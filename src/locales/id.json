@@ -1,0 +1,355 @@
+{
+  "common": {
+    "language": "Bahasa",
+    "signIn": "Masuk",
+    "signOut": "Keluar",
+    "signUp": "Daftar",
+    "alreadyHaveAccount": "Sudah punya akun?",
+    "dontHaveAccount": "Belum punya akun?",
+    "or": "atau"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Masuk",
+      "email": "Email",
+      "emailPlaceholder": "Masukkan email Anda di sini",
+      "password": "Kata Sandi",
+      "passwordPlaceholder": "Masukkan kata sandi Anda di sini",
+      "forgotPassword": "Lupa Kata Sandi?",
+      "rememberMe": "Ingat Saya"
+    },
+    "signUp": {
+      "title": "Buat Akun",
+      "email": "Email",
+      "emailPlaceholder": "Masukkan email Anda di sini",
+      "password": "Kata Sandi",
+      "passwordPlaceholder": "Masukkan kata sandi Anda di sini",
+      "confirmPassword": "Konfirmasi Kata Sandi",
+      "confirmPasswordPlaceholder": "Konfirmasi kata sandi Anda di sini",
+      "fullname": "Nama Lengkap",
+      "fullnamePlaceholder": "Masukkan nama lengkap Anda di sini"
+    }
+  },
+  "chat": {
+    "history": {
+      "nohistory": "Belum ada riwayat konsultasi."
+    },
+    "placeholderNominal": "Masukkan nominal, contoh: 10.000.000",
+    "placeholderQuestion": "Tuliskan pertanyaanmu",    
+    "whatDoYouWant": "Apa yang ingin kamu",
+    "toConsult": "konsultasikan?",
+    "templates": {
+      "savingBestPractices": "Bagaimana cara menabung yang baik?",
+      "howToChooseInstrument": "Bagaimana memilih instrumen investasi yang tepat untuk saya?",
+      "howTheStrategy": "Bagaimana strategi membagi gaji saya untuk kebutuhan dan tabungan?"
+    }
+  },
+  "navigation": {
+    "home": "Home",
+    "consult": "Konsultasi",
+    "aboutUs": "About Us",
+    "calculator": "Kalkulator",
+    "articles": "Artikel",
+    "signIn": "Masuk"
+  },
+  "home": {
+    "introduction": {
+      "tagline": {
+        "first": "Solusi",
+        "second": "Keuangan",
+        "third": "di",
+        "fourth": "Ujung Jari"
+      },
+      "description": "Konsultasi dengan Dokter Urusan Duit (Docduit) berbasis AI untuk mewujudkan kesehatan finansial dengan mudah",
+      "consult": "Konsultasi",
+      "benefit1": {
+        "title": "Konsultasi Keuangan Pribadi dengan AI",
+        "description": "Dapatkan solusi keuangan sesuai kebutuhanmu dengan teknologi AI."
+      },
+      "benefit2": {
+        "title": "Gratis untuk Semua",
+        "description": "Konsultasi tanpa biaya, kapan saja, dan di mana saja."
+      },
+      "benefit3": {
+        "title": "Bangun Kebiasaan Investasi",
+        "description": "Wujudkan tujuan finansialmu dengan panduan investasi praktis."
+      }
+    },
+    "feature": {
+      "tagline": {
+        "first": "Bagaimana",
+        "second": "Docduit",
+        "third": "Dapat Membantu Anda?"
+      },
+      "items": {
+        "first": {
+          "label": "Capai Kesehatan Finansialmu",
+          "description": "Bebaskan diri dari beban finansial (seperti pinjaman online) dan kembalikan kestabilan keuanganmu dengan solusi yang tepat."
+        },
+        "second": {
+          "label": "Bantu Menabung dengan Mudah",
+          "description": "Membimbing kamu mulai menabung dengan panduan yang mudah dipahami untuk pengelolaan uang yang lebih bijak."
+        },
+        "third": {
+          "label": "Wujudkan Impian Finansialmu",
+          "description": "Dapatkan panduan langkah demi langkah untuk mencapai tujuan finansial, dari investasi hingga perencanaan hidup."
+        },
+        "fourth": {
+          "label": "Atur Pengeluaran dengan Bijak",
+          "description": "Kelola pengeluaran harian dengan anggaran sederhana untuk menghindari pemborosan dan menjaga kestabilan keuangan."
+        }
+      }
+    },
+    "calculator": {
+      "title": {
+        "first": "Kalkulator",
+        "second": "Tujuan Finansialmu"
+      },
+      "subtitle": {
+        "first": "Apapun mimpi Anda, awali perjalanan menabung dan berinvestasi melalui fitur di bawah.",
+        "second": ""
+      },
+      "variation": {
+        "gadget": "Beli Gadget",
+        "marriage": "Menikah",
+        "vacation": "Liburan",
+        "vehicle": "Beli Motor",
+        "pilgrimage": "Umroh",
+        "other": "Lainnya"
+      }
+    },
+    "testimony": {
+      "title": {
+        "first": "Apa",
+        "second": "Kata Mereka",
+        "third": "Tentang",
+        "fourth": "DocDuit"
+      },
+      "items": {
+        "first": {
+          "name": "Danny Sudarsono",
+          "occupation": "Startup Founder",
+          "testimony": "Sebagai corporate professional yang juga lagi membangun startup, saya merasa Docduit dapat memberikan nasihat finansial yang senada dengan layanan wealth management kelas atas. It's quite cool bisa mendapatkan advisory dari Docduit yang berbasis AI."
+        },
+        "second": {
+          "name": "Hasna Luthfiana",
+          "occupation": "UI/UX Designer",
+          "testimony": "Sebagai seorang new jobber, saya merasa sangat terbantu dengan aplikasi Docduit! Konsultasi yang dilakukan menggunakan AI membuat saya merasa lebih nyaman dan fleksibel dalam bercerita soal kondisi finansial saya. Dulu saya sering bingung harus bertanya ke siapa saat menghadapi masalah keuangan, tapi dengan Docduit saya bisa mendapatkan insight baru dan saran yang relevan tanpa rasa canggung. Bagi saya yang masih belajar mengatur keuangan di awal karier, Docduit benar-benar jadi solusi yang pas."
+        },
+        "third": {
+          "name": "Azka Adziman",
+          "occupation": "Mahasiswa S1 di Oxford University",
+          "testimony": "Sebagai seorang mahasiswa, kalkulator tujuan keuangan Docduit tentu sangat berguna. Kalkulator ini tidak hanya menguraikan target yang harus Anda capai setiap bulan, tetapi juga merekomendasikan alat investasi yang dapat membantu Anda mewujudkan impian lebih cepat, seperti mata uang asing dan emas. Jika Anda ingin membeli gadget baru atau menabung untuk liburan, Anda harus mencoba Docduit!"
+        }
+      }
+    },
+    "article": {
+      "title": {
+        "first": "Artikel",
+        "second": "Pilihan"
+      },
+      "navigation": "Selengkapnya",
+      "blogTitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+    }
+  },
+  "calculators": {
+    "monthNames": {
+      "1": "Januari",
+      "2": "Februari",
+      "3": "Maret",
+      "4": "April",
+      "5": "Mei",
+      "6": "Juni",
+      "7": "Juli",
+      "8": "Agustus",
+      "9": "September",
+      "10": "Oktober",
+      "11": "November",
+      "12": "Desember"
+    },
+    "month": "bulan",
+    "months": "bulan",
+    "schema": "Skema",
+    "simulation": "Simulasi",
+    "backToResult": "Kembali ke Hasil",
+    "back": "Kembali",
+    "calculate": "Hitung",
+    "in": "dalam",
+    "on": "pada",
+    "common": {
+      "goldBtn": "Tabungan Emas",
+      "forexBtn": "Tabungan Mata Uang Asing",
+      "otherInstrument": "Tahukah kamu? Ada instrumen tabungan lain yang dapat memberimu keuntungan lebih. Lihat skema berikut!"
+    },
+    "goldSavingSection": {
+      "title": "Tabungan Emas",
+      "monthly": "Jumlah tabungan setiap bulan",
+      "savedMoney": "Jumlah uang terkumpul :",
+      "normalSaving": "Tabungan Biasa",
+      "normalLegend": "Biasa",
+      "goldSaving": "Tabungan Emas",
+      "goldLegend": "Emas",
+      "open": "Buka Tabungan Emas",
+      "disclaimerSchema": "*) Proyeksi hasil investasi dihitung menggunakan prorata CAGR harga emas 10 tahun terakhir.",
+      "disclaimerSimulation": "*) Data historis diambil dari www.treasury.id pada 19 Desember 2024.",
+      "simulation": {
+        "rp": "Rupiah",
+        "gram": "gram",
+        "buy": "Harga Beli Emas",
+        "sell": "Harga Jual Emas",
+        "day": "Hari",
+        "month": "Bulan",
+        "year": "Tahun"
+      }
+    },
+    "forexSavingSection": {
+      "title": "Skema Tabungan Mata Uang Asing (Valas)",
+      "monthly": "Jumlah tabungan setiap bulan",
+      "savedMoney": "Jumlah uang terkumpul",
+      "normalSaving": "Tabungan Biasa",
+      "forexSaving": "Tabungan Valas",
+      "disclaimer": "*) Proyeksi hasil investasi dihitung menggunakan prorata CAGR kurs USD/IDR 10 tahun terakhir.",
+      "open": "Buka Tabungan Valas"
+    },
+    "gadget": {
+      "title": "Kalkulator Beli Gadget",
+      "subtitle": "Hitung berapa lama lagi kamu bisa membeli gadget impianmu!",
+      "label": "Gadget",
+      "questions": {
+        "terms": "Dalam berapa bulan kamu akan membeli gadget?",
+        "price": "Berapa harga gadget yang kamu inginkan?",
+        "budget": "Berapa uang yang kamu punya sekarang?"
+      },
+      "result": {
+        "titleIntro": "Kamu akan membeli",
+        "amountToSave": "Jumlah yang harus kamu tabung setiap bulannya :",
+        "yourMoney": "Uang kamu sekarang :",
+        "minus": "Kekurangan :",
+        "savedMoney": "Jumlah uang terkumpul setiap bulannya :"
+      }
+    },
+    "vacation": {
+      "title": "Kalkulator Liburan",
+      "subtitle": "Hitung berapa lama lagi kamu bisa liburan!",
+      "questions": {
+        "where": "Mau liburan ke mana?",
+        "terms": "Berapa bulan lagi kamu berencana berlibur?",
+        "price": "Berapa total biaya liburan kamu?",
+        "budget": "Berapa uang yang kamu punya sekarang?"
+      },
+      "result": {
+        "titleIntro": "Kamu akan ke",
+        "amountToSave": "Jumlah yang harus kamu tabung setiap bulannya :",
+        "yourMoney": "Uang kamu sekarang :",
+        "minus": "Kekurangan :",
+        "savedMoney": "Jumlah uang terkumpul setiap bulannya :"
+      }
+    },
+    "vehicle": {
+      "title": "Kalkulator Beli Motor",
+      "subtitle": "Hitung berapa lama lagi kamu bisa beli Motor!",
+      "label": "Motor",
+      "questions": {
+        "terms": "Berapa bulan lagi kamu berencana membeli motor?",
+        "price": "Berapa harga motor impian kamu?",
+        "budget": "Berapa uang yang kamu punya sekarang?",
+        "dp": "Berapa % Down Payment (DP) yang kamu harapkan?"
+      },
+      "result": {
+        "titleIntro": "Kamu akan membeli",
+        "amountToSave": "Jumlah yang harus kamu tabung setiap bulannya untuk membayar DP :",
+        "yourMoney": "Angsuran setelah motor terbeli (Tenor 36 bulan) :",
+        "minus": "Kekurangan pembayaran Down Payment (DP) :",
+        "savedMoney": "Jumlah uang terkumpul setiap bulannya :"
+      }
+    },
+    "wishlist": {
+      "title": "Kalkulator Lainnya",
+      "subtitle": "Hitung berapa lama lagi kamu bisa mewujudkan impianmu!",
+      "questions": {
+        "what": "Apa yang kamu inginkan?",
+        "terms": "Berapa bulan lagi kamu berencana mencapainya?",
+        "price": "Berapa total biaya keinginan kamu?",
+        "budget": "Berapa uang yang kamu punya sekarang?"
+      },
+      "result": {
+        "titleIntro": "Kamu akan mewujudkan",
+        "amountToSave": "Jumlah yang harus kamu tabung setiap bulannya :",
+        "yourMoney": "Uang kamu sekarang :",
+        "minus": "Kekurangan :",
+        "savedMoney": "Jumlah uang terkumpul setiap bulannya :"
+      }
+    },
+    "marriage": {
+      "label": "Menikah",
+      "title": "Kalkulator Menikah",
+      "tooltip": "Berikut rincian harga dari beberapa sumber berdasarkan paket pilihanmu yang bisa dijadikan referensi dan disesuaikan dengan rencanamu.",
+      "subtitle": "Hitung berapa lama lagi kamu bisa mewujudkan pernikahan impianmu!",
+      "questions": {
+        "package": "Pilih paket yang paling mendekati budget kamu!",
+        "packageOption": {
+          "economic": "Ekonomis",
+          "standard": "Standar",
+          "luxury": "Mewah"
+        },
+        "terms": "Berapa bulan lagi kamu berencana menikah?",
+        "budget": "Berapa uang yang kamu punya sekarang?"
+      },
+      "details": {
+        "title": "Ubah Detail Harga",
+        "event": "Kebutuhan Acara",
+        "venue": "Biaya Venue",
+        "mc": "Biaya MC",
+        "wo": "Wedding Organizer",
+        "makeup": "Makeup",
+        "outfit": "Pakaian/Seragam",
+        "mahar": "Mahar",
+        "documentation": "Dokumentasi",
+        "music": "Musik",
+        "decoration": "Dekorasi",
+        "other": "Lain-lain",
+        "catering": "Catering",
+        "cateringPax": "Jumlah pax",
+        "cateringPerPax": "Harga / pax",
+        "totalCatering": "Total biaya catering",
+        "souvenir": "Souvenir",
+        "souvenirPax": "Jumlah pax",
+        "souvenirPerPax": "Harga / pax",
+        "totalSouvenir": "Total biaya souvenir",
+        "invitation": "Undangan",
+        "invitationPax": "Jumlah pax",
+        "invitationPerPax": "Harga / pax",
+        "totalInvitation": "Total biaya undangan",
+        "save": "Simpan"
+      },
+      "result": {
+        "titleIntro": "Kamu akan",
+        "amountToSave": "Jumlah yang harus kamu tabung setiap bulannya :",
+        "yourMoney": "Uang kamu sekarang :",
+        "minus": "Kekurangan :",
+        "savedMoney": "Jumlah uang terkumpul setiap bulannya :"
+      }
+    },
+    "umroh": {
+      "label": "Umroh",
+      "title": "Kalkulator Umroh",
+      "subtitle": "Hitung berapa lama lagi kamu bisa berangkat ke Tanah Suci!",
+      "questions": {
+        "when": "Kapan ingin berangkat umroh?",
+        "price": "Berapa total biaya umroh yang kamu inginkan?",
+        "budget": "Berapa uang yang kamu punya sekarang?",
+        "month": "Bulan",
+        "year": "Tahun",
+        "selectMonth": "Pilih bulan",
+        "selectYear": "Pilih tahun"
+      },
+      "result": {
+        "titleIntro": "Kamu akan",
+        "amountToSave": "Jumlah yang harus kamu tabung setiap bulannya :",
+        "yourMoney": "Uang kamu sekarang :",
+        "minus": "Kekurangan :",
+        "savedMoney": "Jumlah uang terkumpul setiap bulannya :"
+      }
+    }
+  }
+}

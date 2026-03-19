@@ -1,0 +1,67 @@
+env.ENV = 'prod'
+env.DOCKER_REGISTRY = 'cr.workay.co.id'
+env.REPO_IMAGE_NAME = 'docduit'
+env.SERVICE_NAME = 'website'
+env.DOCKER_IMAGE_TAG = "${ENV}_${SERVICE_NAME}_${BUILD_NUMBER}"
+
+node('linux-x64') {
+	try {
+		notifyBuild('STARTED')
+		stage('Pull Master Branch') {
+			git branch: 'master', credentialsId: 'gitea_devops', url: 'https://git.workay.co.id/docduit/website.git'
+		}		
+		stage('Build Image') {
+			sh "docker build -f deploy/production/Dockerfile -t $DOCKER_REGISTRY/$REPO_IMAGE_NAME:${DOCKER_IMAGE_TAG} . && docker image prune -f"
+		}
+		stage('Push to cluster') {			
+			docker.withRegistry('https://$DOCKER_REGISTRY', 'regcred') {
+				sh "docker push $DOCKER_REGISTRY/$REPO_IMAGE_NAME:${DOCKER_IMAGE_TAG}"
+			}
+		}
+		stage('Deploy to cluster') {
+			sh('kubectl -n prod-docduit set image deployment/prod-website prod-website=$DOCKER_REGISTRY/$REPO_IMAGE_NAME:${DOCKER_IMAGE_TAG} --kubeconfig /home/kube.config')
+		}
+		stage('Remove Docker Image') {
+			sh "docker rmi $DOCKER_REGISTRY/$REPO_IMAGE_NAME:${DOCKER_IMAGE_TAG}"
+		}
+	}
+  	catch (e) {
+		currentBuild.result = "FAILED"
+		throw e
+  	} 
+	finally {
+		notifyBuild(currentBuild.result)
+	} 
+}
+
+def notifyBuild(String buildStatus = 'STARTED') {
+  buildStatus =  buildStatus ?: 'SUCCESSFUL'
+  def appName = "${env.ENV}-${env.SERVICE_NAME}"
+  def color = 'RED'
+  def colorCode = '#FF0000'
+  def buildTriggerBy = "${currentBuild.getBuildCauses()[0].shortDescription} / ${currentBuild.getBuildCauses()[0].userId}"
+  def subject = "[${buildStatus}] *${appName}*, build number: ${env.BUILD_NUMBER}"
+  def summary = "${subject} \n*Triggered By:* ${buildTriggerBy}\n${BUILD_URL}"
+
+  
+  if (buildStatus == 'STARTED') {
+    color = 'BLUE'
+    colorCode = '#0000FF'
+  } else if (buildStatus == 'SUCCESSFUL') {
+    color = 'GREEN'
+    colorCode = '#228B22'
+  } else if (buildStatus == 'FAILURE') {
+    color = 'RED'
+    colorCode = '#FF0000'
+  } else if (buildStatus == 'UNSTABLE') {
+    color = 'YELLOW'
+    colorCode = '#FFCC00'
+  }else if (buildStatus == 'ABORTED') {
+    color = 'BLACK'
+    colorCode = '#000000'
+  } else {
+    color = 'BLUE'
+    colorCode = '#0000FF'
+  }
+  slackSend(color: colorCode, message: summary)    
+}

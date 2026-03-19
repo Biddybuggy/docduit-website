@@ -1,0 +1,358 @@
+{
+  "common": {
+    "language": "English",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "signUp": "Sign Up",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "or": "or"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Sign In",
+      "email": "Email",
+      "emailPlaceholder": "Enter your email here",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password here",
+      "forgotPassword": "Forgot Password?",
+      "rememberMe": "Remember Me"
+    },
+    "signUp": {
+      "title": "Create an Account",
+      "email": "Email",
+      "emailPlaceholder": "Enter your email here",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password here",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Confirm your password here",
+      "fullname": "Full Name",
+      "fullnamePlaceholder": "Enter your full name here"
+    }
+  },
+  "chat": {
+    "history": {
+      "nohistory": "No consultation history yet."
+    },
+    "placeholderNominal": "Enter amount (e.g. 10,000,000)",
+    "placeholderQuestion": "Type your question",
+    "whatDoYouWant": "What do you want",
+    "toConsult": "to consult?",
+    "templates": {
+      "placeholder": "What do you want to ask?",
+      "savingBestPractices": "What are the best saving practices?",
+      "howToChooseInstrument": "How can I choose the right investment tools?",
+      "howTheStrategy": "How can I divide my salary between needs and savings?"
+    }
+  },
+  "navigation": {
+    "home": "Home",
+    "consult": "Consult",
+    "aboutUs": "About Us",
+    "calculator": "Calculator",
+    "articles": "Articles",
+    "signIn": "Sign In"
+  },
+  "home": {
+    "introduction": {
+      "tagline": {
+        "first": "Financial",
+        "second": "Advisor",
+        "third": "at",
+        "fourth": "Your Fingertips"
+      },
+      "description": "Consult with Docduit to improve your financial wellbeing",
+      "consult": "Consult",
+      "benefit1": {
+        "title": "Personal AI Financial Advisor",
+        "description": "Get solutions tailored to your needs with AI technology."
+      },
+      "benefit2": {
+        "title": "Free for Everyone",
+        "description": "Free consultations, anytime, anywhere."
+      },
+      "benefit3": {
+        "title": "Build Investment Habits",
+        "description": "Achieve your financial goals with practical investment guides."
+      }
+    },
+    "feature": {
+      "tagline": {
+        "first": "How",
+        "second": "Docduit",
+        "third": "Can Help You"
+      },
+      "items": {
+        "first": {
+          "label": "Improve Your Financial Health",
+          "description": "Free yourself from financial burdens (such as online loans) and restore your financial stability with the right solutions."
+        },
+        "second": {
+          "label": "Save Easily",
+          "description": "Learn how to start saving with easy-to-understand guides for wiser money management."
+        },
+        "third": {
+          "label": "Achieve Your Financial Goals",
+          "description": "Get step-by-step guides to achieve financial goals, from investments to other life plans."
+        },
+        "fourth": {
+          "label": "Manage Your Expenses Wisely",
+          "description": "Manage daily expenses with a simple budget plan to avoid overspending and maintain financial stability."
+        }
+      }
+    },
+    "calculator": {
+      "title": {
+        "first": "Calculators",
+        "second": "For Your Financial Goals"
+      },
+      "subtitle": {
+        "first": "Whatever your financial goals may be, start your saving and investing journey with the calculators below!",
+        "second": ""
+      },
+      "variation": {
+        "gadget": "Electronics",
+        "marriage": "Marriage",
+        "vacation": "Vacation",
+        "vehicle": "Vehicle",
+        "pilgrimage": "Umrah",
+        "other": "Others"
+      }
+    },
+    "testimony": {
+      "title": {
+        "first": "What Do",
+        "second": "They Say",
+        "third": "About",
+        "fourth": "Docduit"
+      },
+      "items": {
+        "first": {
+          "name": "Danny Sudarsono",
+          "occupation": "Startup Founder",
+          "testimony": "As a corporate professional who is also building a startup, I feel that Docduit can provide financial advice comparable to top-tier wealth management services. It's quite cool to get AI-based advice from Docduit."
+        },
+        "second": {
+          "name": "Hasna Luthfiana",
+          "occupation": "UI/UX Designer",
+          "testimony": "As a new jobber, I feel very helped by the Docduit website! Consulting with AI makes me feel more comfortable talking about my financial conditions. I often felt confused about who to ask when faced with financial problems. But with Docduit, I can get new insights and relevant advice without feeling awkward. As I'm still learning to manage finances at the start of my career, Docduit is truly the right solution."
+        },
+        "third": {
+          "name": "Azka Adziman",
+          "occupation": "Undergraduate Student at Oxford University",
+          "testimony": "As a university student, Docduit's financial calculators are certainly very useful. They not only break down the targets you need to achieve each month, but also recommend investment tools that can help you achieve your dreams faster, such as foreign currency and gold. If you want to buy a new gadget or save for a vacation, you should try Docduit!"
+        }
+      }
+    },
+    "article": {
+      "title": {
+        "first": "Featured",
+        "second": "Articles"
+      },
+      "navigation": "Read More",
+      "blogTitle": "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
+    }
+  },
+  "calculators": {
+    "monthNames": {
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
+    },
+    "month": "month",
+    "months": "months",
+    "schema": "Scheme",
+    "simulation": "Simulation",
+    "backToResult": "Back to Results",
+    "back": "Back",
+    "calculate": "Calculate",
+    "in": "in",
+    "on": "on",
+    "common": {
+      "goldBtn": "Gold Savings",
+      "forexBtn": "Foreign Currency Savings",
+      "otherInstrument": "Did you know that there are other investment tools that boast higher returns? Check out the following options!"
+    },
+    "goldSavingSection": {
+      "title": "Gold Savings",
+      "monthly": "Monthly savings amount",
+      "savedMoney": "Total saved money :",
+      "normalSaving": "Cash Savings",
+      "normalLegend": "Cash",
+      "goldSaving": "Gold Savings",
+      "goldLegend": "Gold",
+      "open": "Open Gold Savings",
+      "disclaimerSchema": "*) Investment return projections are calculated using the prorated CAGR of gold prices over the last 10 years.",
+      "disclaimerSimulation": "*) Historical data was taken from www.treasury.id on December 19, 2024.",
+      "simulation": {
+        "rp": "Rupiah",
+        "gram": "gram",
+        "buy": "Gold Purchase Price",
+        "sell": "Gold Selling Price",
+        "day": "Day",
+        "month": "Month",
+        "year": "Year"
+      }
+    },
+    "forexSavingSection": {
+      "title": "Foreign Currency Savings Scheme",
+      "monthly": "Monthly savings amount",
+      "savedMoney": "Total saved money",
+      "normalSaving": "Cash Savings",
+      "forexSaving": "Foreign Currency Savings",
+      "disclaimer": "*) Investment return projections are calculated using the prorated CAGR of USD/IDR exchange rates over the last 10 years.",
+      "open": "Open Foreign Currency Savings"
+    },
+    "gadget": {
+      "title": "Electronics Calculator",
+      "subtitle": "Calculate how long it will take to buy a new device.",
+      "label": "Electronics",
+      "questions": {
+        "terms": "In how many months do you plan to buy the device?",
+        "price": "What is the price of the device?",
+        "budget": "How much money do you have right now?"
+      },
+      "result": {
+        "titleIntro": "You will buy a device",
+        "amountToSave": "Amount you need to save each month:",
+        "yourMoney": "Your current funds:",
+        "minus": "You need:",
+        "savedMoney": "Total saved money in each month:"
+      }
+    },
+    "vacation": {
+      "title": "Vacation Calculator",
+      "subtitle": "Calculate how long it will take to get that destination off your bucket list.",
+      "label": "Vacation",
+      "questions": {
+        "where": "Where do you want to go?",
+        "terms": "In how many months do you plan to go on the vacation?",
+        "price": "What is the estimated total cost of your vacation?",
+        "budget": "How much money do you have right now?"
+      },
+      "result": {
+        "titleIntro": "You will go to",
+        "amountToSave": "Amount you need to save each month:",
+        "yourMoney": "Your current funds:",
+        "minus": "You need:",
+        "savedMoney": "Total saved money each month:"
+      }
+    },
+    "vehicle": {
+      "title": "Vehicle Calculator",
+      "subtitle": "Calculate how long it will take to buy your dream car or motorcycle.",
+      "label": "Vehicle",
+      "questions": {
+        "terms": "In how many months do you plan to purchase the vehicle?",
+        "price": "What is the price of the vehicle?",
+        "budget": "How much money do you have right now?",
+        "dp": "What is the expected Down Payment (DP) percentage?"
+      },
+      "result": {
+        "titleIntro": "You will purchase a vehicle",
+        "amountToSave": "Amount you need to save each month for the DP:",
+        "yourMoney": "Installments after purchasing the motorcycle (36-month repayment period):",
+        "minus": "Remaining Amount Needed for Down Payment (DP):",
+        "savedMoney": "Total saved money each month:"
+      }
+    },
+    "wishlist": {
+      "title": "Other Calculators",
+      "label": "Others",
+      "subtitle": "Calculate how long it will take to fulfill your financial goal",
+      "questions": {
+        "what": "What do you want? Donations to Charity.",
+        "terms": "In how many months do you plan to achieve your financial goal?",
+        "price": "What is the total cost of achieving your financial goal?",
+        "budget": "How much money do you have right now?"
+      },
+      "result": {
+        "titleIntro": "You will achieve your goal",
+        "amountToSave": "Amount you need to save each month:",
+        "yourMoney": "Your current funds:",
+        "minus": "You need:",
+        "savedMoney": "Total saved money each month:"
+      }
+    },
+    "marriage": {
+      "label": "Marriage",
+      "title": "Marriage Calculator",
+      "tooltip": "Here are the price details from several sources based on your chosen package that can be used as a reference and adjusted to your plan.",
+      "subtitle": "Calculate how long it will take to organize your special day.",
+      "questions": {
+        "package": "Choose the package that best fits your budget!",
+        "packageOption": {
+          "economic": "Economical – Rp 42.000.000",
+          "standard": "Standard – Rp 175.000.000",
+          "luxury": "Luxury – Rp 775.000.000"
+        },
+        "terms": "In how many months do you plan to get married?",
+        "budget": "How much money do you have right now?"
+      },
+      "details": {
+        "title": "Change Price Details",
+        "event": "Event Needs",
+        "venue": "Venue Cost",
+        "mc": "MC Cost",
+        "wo": "Wedding Organizer",
+        "makeup": "Makeup",
+        "outfit": "Outfit/Uniform",
+        "mahar": "Dowry",
+        "documentation": "Documentation",
+        "music": "Music",
+        "decoration": "Decoration",
+        "other": "Others",
+        "catering": "Catering",
+        "cateringPax": "Number of pax",
+        "cateringPerPax": "Price per pax",
+        "totalCatering": "Total catering cost",
+        "souvenir": "Souvenir",
+        "souvenirPax": "Number of pax",
+        "souvenirPerPax": "Price per pax",
+        "totalSouvenir": "Total souvenir cost",
+        "invitation": "Invitation",
+        "invitationPax": "Number of pax",
+        "invitationPerPax": "Price per pax",
+        "totalInvitation": "Total invitation cost",
+        "save": "Save"
+      },
+      "result": {
+        "titleIntro": "You will get married",
+        "amountToSave": "Amount you need to save each month:",
+        "yourMoney": "Your current funds:",
+        "minus": "You need:",
+        "savedMoney": "Total saved money each month:"
+      }
+    },
+    "umroh": {
+      "label": "Umrah",
+      "title": "Umrah Calculator",
+      "subtitle": "Calculate how long it will take to go to the Holy Land!",
+      "questions": {
+        "when": "When do you want to go for Umrah?",
+        "price": "What is the total cost of the Umrah you want?",
+        "budget": "How much money do you have now?",
+        "month": "Month",
+        "year": "Year",
+        "selectMonth": "Select month",
+        "selectYear": "Select year"
+      },
+      "result": {
+        "titleIntro": "You will",
+        "amountToSave": "Amount you need to save each month:",
+        "yourMoney": "Your current money:",
+        "minus": "Shortfall:",
+        "savedMoney": "Total saved money each month:"
+      }
+    }
+  }
+}
