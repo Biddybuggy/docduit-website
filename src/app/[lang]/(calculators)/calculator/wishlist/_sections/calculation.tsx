@@ -31,7 +31,7 @@ export default function CalculationSection({
     },
   } = vocabularies;
 
-  const [what, setWhat] = useState<string>('Donasi');
+  const [what, setWhat] = useState<string>('Donation for Charity');
   const [term, setTerm] = useState<number>(5);
   const [price, setPrice] = useState<number>(5000000);
   const [budget, setBudget] = useState<number>(200000);

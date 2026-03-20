@@ -222,7 +222,7 @@
         "budget": "How much money do you have right now?"
       },
       "result": {
-        "titleIntro": "You will buy a device",
+        "titleIntro": "You will buy a Device",
         "amountToSave": "Amount you need to save each month:",
         "yourMoney": "Your current funds:",
         "minus": "You need:",
@@ -258,7 +258,7 @@
         "dp": "What is the expected Down Payment (DP) percentage?"
       },
       "result": {
-        "titleIntro": "You will purchase a vehicle",
+        "titleIntro": "You will purchase a Vehicle",
         "amountToSave": "Amount you need to save each month for the DP:",
         "yourMoney": "Installments after purchasing the motorcycle (36-month repayment period):",
         "minus": "Remaining Amount Needed for Down Payment (DP):",
@@ -270,13 +270,13 @@
       "label": "Others",
       "subtitle": "Calculate how long it will take to fulfill your financial goal",
       "questions": {
-        "what": "What do you want? Donations to Charity.",
+        "what": "What do you want?",
         "terms": "In how many months do you plan to achieve your financial goal?",
         "price": "What is the total cost of achieving your financial goal?",
         "budget": "How much money do you have right now?"
       },
       "result": {
-        "titleIntro": "You will achieve your goal",
+        "titleIntro": "You will achieve your Goal",
         "amountToSave": "Amount you need to save each month:",
         "yourMoney": "Your current funds:",
         "minus": "You need:",
@@ -326,7 +326,7 @@
         "save": "Save"
       },
       "result": {
-        "titleIntro": "You will get married",
+        "titleIntro": "You will get Married",
         "amountToSave": "Amount you need to save each month:",
         "yourMoney": "Your current funds:",
         "minus": "You need:",

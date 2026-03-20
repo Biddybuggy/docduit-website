@@ -123,7 +123,7 @@
         "first": "Apa",
         "second": "Kata Mereka",
         "third": "Tentang",
-        "fourth": "DocDuit"
+        "fourth": "Docduit"
       },
       "items": {
         "first": {
@@ -273,7 +273,7 @@
         "budget": "Berapa uang yang kamu punya sekarang?"
       },
       "result": {
-        "titleIntro": "Kamu akan mewujudkan",
+        "titleIntro": "Kamu akan mewujudkan rencanamu",
         "amountToSave": "Jumlah yang harus kamu tabung setiap bulannya :",
         "yourMoney": "Uang kamu sekarang :",
         "minus": "Kekurangan :",

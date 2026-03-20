@@ -58,6 +58,15 @@ export default function CalculationResultSection({
     plural: vocabularies?.months,
   });
 
+  const titleSubjectContent = [
+    'Electronics',
+    'Marriage',
+    'Vehicle',
+    'Others',
+  ].includes(titleSubject)
+    ? ''
+    : titleSubject;
+
   const chartData: ChartDataType[] = Array.from(
     { length: term },
     (_, index) => ({
@@ -79,7 +88,8 @@ export default function CalculationResultSection({
         <div className='flex'>
           <p className='font-bold text-xl lg:text-3xl text-center'>
             {titleIntro}&nbsp;
-            <span className='text-docduit-blue'>{titleSubject === "Electronics" ? "" : titleSubject === "Marriage" ? "" :titleSubject === "Vehicle" ? "" : titleSubject === "Others" ? "" :titleSubject}</span>&nbsp;
+            <span className='text-docduit-blue'>{titleSubjectContent}</span>
+            {titleSubjectContent ? '\u00A0' : ''}
             {isUmroh ? onText : inText}&nbsp;
             {isUmroh ? (
               <span className='text-docduit-blue'>{dateText}</span>
