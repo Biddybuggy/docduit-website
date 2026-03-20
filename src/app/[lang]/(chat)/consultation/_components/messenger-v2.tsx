@@ -25,6 +25,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import {
   askAI,
+  askDemoAI,
   AskAIPayload,
   ChatRoomMessagesResponse,
   getRiskProfile,
@@ -39,6 +40,8 @@ import { useAuth } from '@/hooks/useAuth';
 import ChatSkeleton from './chat-skeleton';
 import { ChatMessage, useChatContext } from '@/context/ChatContext';
 import { mutate } from 'swr';
+
+const isDemoMode = process.env.NEXT_PUBLIC_CHAT_DEMO_MODE === 'true';
 
 interface MessengerProps {
   onChatSent?: () => void;
@@ -104,6 +107,8 @@ export default function MessengerV2({
     setResep,
     getChatRoomByIdLoading,
     setGetChatRoomByIdLoading,
+    demoUserId,
+    setDemoUserId,
   } = useChatContext();
 
   useEffect(() => {
@@ -390,36 +395,35 @@ export default function MessengerV2({
       setMessage('');
       setIsLoading(false);
 
-      const saveMessagePayload = {
-        conversation_id: conversationId || null,
-        messages: newChatsToSave,
-        room_id: roomIdFromQuery || null,
-        topic: '-',
-      };
-
-      await saveRiskProfileMessage(
-        saveMessagePayload,
-        user?.accessToken as string,
-      );
-
-      setMessagesToAdded(null);
-
-      const saveRecipePayload = {
-        allocation: [],
-        cicilan: cicilan,
-        conversation_id: conversationId || null,
-        financial_issue_code: 'hutang',
-        gaji: gaji,
-        is_married: isMarried,
-        profile: '',
-        room_id: roomIdFromQuery || null,
-        text: `Silahkan menyisihkan 50% dari gaji dalam satu bulan untuk membayar hutang sampai hutangmu lunas. Sisihkan 10% untuk ditabung, dan sisa 40% untuk kehidupan sehari-hari.`,
-      };
-
-      await saveRecipe(saveRecipePayload, user?.accessToken as string);
-
-      mutate('chat-room-history');
-      mutateRisk();
+      if (!isDemoMode) {
+        const saveMessagePayload = {
+          conversation_id: conversationId || null,
+          messages: newChatsToSave,
+          room_id: roomIdFromQuery || null,
+          topic: '-',
+        };
+        await saveRiskProfileMessage(
+          saveMessagePayload,
+          user?.accessToken as string,
+        );
+        setMessagesToAdded(null);
+        const saveRecipePayload = {
+          allocation: [],
+          cicilan: cicilan,
+          conversation_id: conversationId || null,
+          financial_issue_code: 'hutang',
+          gaji: gaji,
+          is_married: isMarried,
+          profile: '',
+          room_id: roomIdFromQuery || null,
+          text: `Silahkan menyisihkan 50% dari gaji dalam satu bulan untuk membayar hutang sampai hutangmu lunas. Sisihkan 10% untuk ditabung, dan sisa 40% untuk kehidupan sehari-hari.`,
+        };
+        await saveRecipe(saveRecipePayload, user?.accessToken as string);
+        mutate('chat-room-history');
+        mutateRisk();
+      } else {
+        setMessagesToAdded(null);
+      }
 
       return;
     }
@@ -451,54 +455,74 @@ export default function MessengerV2({
       }
     }
 
-    const payload: AskAIPayload = {
-      conversation_id: lastConversation?.conversation_id || null,
-      message: {
-        percakapan: [
-          ...(previousMessages || []),
-          {
-            jawaban: newMessage,
-            pertanyaan: '-',
-          },
-        ],
-        topic: userChat ? userChat[0].message : newMessage,
-      },
-      room_id: lastConversation?.room_id || null,
-    };
-
     try {
-      const response = await askAI(payload, user?.accessToken as string);
+      if (isDemoMode) {
+        const { message: botMessage, userId: newUserId } = await askDemoAI(
+          newMessage,
+          { userId: demoUserId ?? undefined }
+        );
+        if (newUserId) setDemoUserId(newUserId);
+        const newChatData: ChatMessage = {
+          type_user: 'bot',
+          message: botMessage,
+          conversation_id: 'demo',
+          room_id: 'demo',
+        };
 
-      const { data } = response;
-      const newChatData: ChatMessage = {
-        type_user: 'bot',
-        message: data?.message,
-        conversation_id: data?.conversation_id,
-        room_id: data?.room_id,
-      };
+        const newChatsToAddLagi: ChatMessage[] = [
+          ...(newChatsToAdd || chatRoomMessages || []),
+          newChatData,
+        ];
+        setChatRoomMessages(newChatsToAddLagi);
+        setMessage('');
+        onChatSent();
+      } else {
+        const payload: AskAIPayload = {
+          conversation_id: lastConversation?.conversation_id || null,
+          message: {
+            percakapan: [
+              ...(previousMessages || []),
+              {
+                jawaban: newMessage,
+                pertanyaan: '-',
+              },
+            ],
+            topic: userChat ? userChat[0].message : newMessage,
+          },
+          room_id: lastConversation?.room_id || null,
+        };
 
-      setConversationId(data?.conversation_id);
-      setRoomIdFromQuery(data?.room_id);
+        const response = await askAI(payload, user?.accessToken as string);
+        const { data } = response;
+        const newChatData: ChatMessage = {
+          type_user: 'bot',
+          message: data?.message,
+          conversation_id: data?.conversation_id,
+          room_id: data?.room_id,
+        };
 
-      const newChatsToAddLagi: ChatMessage[] = [
-        ...(newChatsToAdd || chatRoomMessages || []),
-        newChatData,
-      ];
-      setChatRoomMessages(newChatsToAddLagi);
+        setConversationId(data?.conversation_id);
+        setRoomIdFromQuery(data?.room_id);
 
-      router.push(`?r=${data?.room_id}`, { scroll: false });
-
-      setMessage('');
-      onChatSent();
-      mutate('chat-room-history');
-      mutateRisk();
+        const newChatsToAddLagi: ChatMessage[] = [
+          ...(newChatsToAdd || chatRoomMessages || []),
+          newChatData,
+        ];
+        setChatRoomMessages(newChatsToAddLagi);
+        router.push(`?r=${data?.room_id}`, { scroll: false });
+        setMessage('');
+        onChatSent();
+        mutate('chat-room-history');
+        mutateRisk();
+      }
     } catch (error) {
       console.error(error);
+      toast.error(
+        error instanceof Error ? error.message : 'Terjadi kesalahan saat mengirim pesan ke AI'
+      );
     } finally {
       setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   const sendTemplateMessage = async (answers: string[]) => {
@@ -507,29 +531,20 @@ export default function MessengerV2({
     if (!answers.length) return;
 
     setIsLoading(true);
-    const payload = {
-      conversation_id: null,
-      message: {
-        percakapan: templateQuestions.map((question, index) => ({
-          pertanyaan: question,
-          jawaban: answers[index],
-        })),
-        topic: templateTopic,
-      },
-      room_id: null,
-    } as AskAIPayload;
-
     try {
-      const response = await askAI(payload, user?.accessToken as string);
-
-      if (response.status_code === 200) {
-        const { data } = response;
+      if (isDemoMode) {
+        const lastAnswer = answers[answers.length - 1];
+        const { message: botMessage, userId: newUserId } = await askDemoAI(
+          lastAnswer,
+          { userId: demoUserId ?? undefined }
+        );
+        if (newUserId) setDemoUserId(newUserId);
         const newChatData: ChatMessage = {
           type_user: 'bot',
-          message: data?.message,
-          conversation_id: data?.conversation_id,
+          message: botMessage,
+          conversation_id: 'demo',
+          room_id: 'demo',
         };
-
         const newChatsToAdd: ChatMessage[] = [
           ...(chatRoomMessages || []),
           newChatData,
@@ -537,20 +552,61 @@ export default function MessengerV2({
         setChatRoomMessages(newChatsToAdd);
         setMessage('');
         onChatSent();
+      } else {
+        const payload = {
+          conversation_id: null,
+          message: {
+            percakapan: templateQuestions.map((question, index) => ({
+              pertanyaan: question,
+              jawaban: answers[index],
+            })),
+            topic: templateTopic,
+          },
+          room_id: null,
+        } as AskAIPayload;
 
-        const roomId = data?.room_id;
-        router.push(`?r=${roomId}`, { scroll: false });
-        mutate('chat-room-history');
-        mutateRisk();
+        const response = await askAI(payload, user?.accessToken as string);
+
+        if (response.status_code === 200) {
+          const { data } = response;
+          const newChatData: ChatMessage = {
+            type_user: 'bot',
+            message: data?.message,
+            conversation_id: data?.conversation_id,
+          };
+
+          const newChatsToAdd: ChatMessage[] = [
+            ...(chatRoomMessages || []),
+            newChatData,
+          ];
+          setChatRoomMessages(newChatsToAdd);
+          setMessage('');
+          onChatSent();
+
+          const roomId = data?.room_id;
+          router.push(`?r=${roomId}`, { scroll: false });
+          mutate('chat-room-history');
+          mutateRisk();
+        }
       }
     } catch (error) {
       console.error(error);
+      toast.error(
+        error instanceof Error ? error.message : 'Terjadi kesalahan saat mengirim pesan ke AI'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleTemplateMsg = (templateId: string) => {
+  const QUIZ_DISABLED_TEMPLATES = ['A22A', 'A22B'];
+
+  const handleTemplateMsg = (templateId: string, displayText?: string) => {
+    if (QUIZ_DISABLED_TEMPLATES.includes(templateId)) {
+      const message = displayText || getTemplateTopic(templateId);
+      void sendMessage(message);
+      return;
+    }
     setChatType('template');
     setTemplateCode(templateId);
     setTemplateAnswers([]);
@@ -673,24 +729,25 @@ export default function MessengerV2({
         message: getChoicesTemplateAnswer(currentScore),
       });
 
-      const saveMessagePayload = {
-        conversation_id: null,
-        messages: newChatsToAdd,
-        room_id: null,
-        topic: 'Bagaimana memilih instrumen investasi yang tepat',
-      };
-
-      await updateRiskProfile(currentScore, user?.accessToken as string);
-      const response = await saveRiskProfileMessage(
-        saveMessagePayload,
-        user?.accessToken as string,
-      );
-
-      setMessagesToAdded(null);
-
-      router.push(`?r=${response.data[0].room_id}`, { scroll: false });
-      mutate('chat-room-history');
-      mutateRisk();
+      if (!isDemoMode) {
+        const saveMessagePayload = {
+          conversation_id: null,
+          messages: newChatsToAdd,
+          room_id: null,
+          topic: 'Bagaimana memilih instrumen investasi yang tepat',
+        };
+        await updateRiskProfile(currentScore, user?.accessToken as string);
+        const response = await saveRiskProfileMessage(
+          saveMessagePayload,
+          user?.accessToken as string,
+        );
+        setMessagesToAdded(null);
+        router.push(`?r=${response.data[0].room_id}`, { scroll: false });
+        mutate('chat-room-history');
+        mutateRisk();
+      } else {
+        setMessagesToAdded(null);
+      }
     } else if (currentAnswerLength < templateQuestions.length) {
       newChatsToAdd.push({
         type_user: 'bot',
@@ -762,37 +819,36 @@ export default function MessengerV2({
       });
       setChatType('financial_choices');
 
-      const saveMessagePayload = {
-        conversation_id: conversationId || null,
-        messages: newChatsToSave,
-        room_id: roomIdFromQuery || null,
-        topic: '-',
-      };
-
-      await saveRiskProfileMessage(
-        saveMessagePayload,
-        user?.accessToken as string,
-      );
-
+      if (!isDemoMode) {
+        const saveMessagePayload = {
+          conversation_id: conversationId || null,
+          messages: newChatsToSave,
+          room_id: roomIdFromQuery || null,
+          topic: '-',
+        };
+        await saveRiskProfileMessage(
+          saveMessagePayload,
+          user?.accessToken as string,
+        );
+        const saveRecipePayload = {
+          allocation: [],
+          cicilan: cicilan,
+          conversation_id: conversationId || null,
+          financial_issue_code: 'membeli',
+          gaji: gaji,
+          is_married: isMarried,
+          profile: '',
+          room_id: roomIdFromQuery || null,
+          text: resepMessage,
+        };
+        await saveRecipe(saveRecipePayload, user?.accessToken as string);
+        mutate('chat-room-history');
+        mutateRisk();
+      }
       setMessagesToAdded(null);
-
-      const saveRecipePayload = {
-        allocation: [],
-        cicilan: cicilan,
-        conversation_id: conversationId || null,
-        financial_issue_code: 'membeli',
-        gaji: gaji,
-        is_married: isMarried,
-        profile: '',
-        room_id: roomIdFromQuery || null,
-        text: resepMessage,
-      };
-
-      await saveRecipe(saveRecipePayload, user?.accessToken as string);
-      mutate('chat-room-history');
-      mutateRisk();
     } else if (code === 'investasi') {
-      if (riskProfileData?.data.risk_score === 0) {
+      const riskScore = isDemoMode ? 3 : riskProfileData?.data?.risk_score;
+      if (!isDemoMode && riskProfileData?.data.risk_score === 0) {
         return toast.error(
           'Anda tidak memiliki profil resiko, silahkan mengisi instrumen investasi.',
         );
@@ -810,40 +866,38 @@ export default function MessengerV2({
       });
 
       const dataResep = getChoicesTemplateAnswerForResep(
-        riskProfileData?.data.risk_score as number,
+        (riskScore ?? 3) as number,
       );
 
       setResep(dataResep);
 
-      const saveMessagePayload = {
-        conversation_id: conversationId || null,
-        messages: newChatsToSave,
-        room_id: roomIdFromQuery || null,
-        topic: '-',
-      };
-
-      await saveRiskProfileMessage(
-        saveMessagePayload,
-        user?.accessToken as string,
-      );
-
+      if (!isDemoMode) {
+        const saveMessagePayload = {
+          conversation_id: conversationId || null,
+          messages: newChatsToSave,
+          room_id: roomIdFromQuery || null,
+          topic: '-',
+        };
+        await saveRiskProfileMessage(
+          saveMessagePayload,
+          user?.accessToken as string,
+        );
+        const saveRecipePayload = {
+          allocation: dataResep.allocation || [],
+          cicilan: cicilan,
+          conversation_id: conversationId || null,
+          financial_issue_code: 'investasi',
+          gaji: gaji,
+          is_married: isMarried,
+          profile: dataResep.profile || '',
+          room_id: roomIdFromQuery || null,
+          text: dataResep.text || '',
+        };
+        await saveRecipe(saveRecipePayload, user?.accessToken as string);
+        mutate('chat-room-history');
+        mutateRisk();
+      }
       setMessagesToAdded(null);
-
-      const saveRecipePayload = {
-        allocation: dataResep.allocation || [],
-        cicilan: cicilan,
-        conversation_id: conversationId || null,
-        financial_issue_code: 'investasi',
-        gaji: gaji,
-        is_married: isMarried,
-        profile: dataResep.profile || '',
-        room_id: roomIdFromQuery || null,
-        text: dataResep.text || '',
-      };
-
-      await saveRecipe(saveRecipePayload, user?.accessToken as string);
-      mutate('chat-room-history');
-      mutateRisk();
     } else if (code === 'hutang') {
       newChatsToAdd.push({
         type_user: 'bot',
@@ -856,41 +910,38 @@ export default function MessengerV2({
       setChatType('debt_question');
       setMessagesToAdded(newChatsToSave);
     } else if (code === 'risk_profile') {
-      if (riskProfileData?.data.risk_score === 0) {
+      const riskScore = isDemoMode ? 3 : riskProfileData?.data?.risk_score;
+      if (!isDemoMode && riskProfileData?.data.risk_score === 0) {
         return toast.error(
           'Anda tidak memiliki profil resiko, silahkan mengisi instrumen investasi.',
         );
       }
 
+      const answerMsg = getChoicesTemplateAnswer((riskScore ?? 3) as number);
       newChatsToAdd.push({
         type_user: 'bot',
-        message: getChoicesTemplateAnswer(
-          riskProfileData?.data.risk_score as number,
-        ),
+        message: answerMsg,
       });
       newChatsToSave.push({
         type_user: 'bot',
-        message: getChoicesTemplateAnswer(
-          riskProfileData?.data.risk_score as number,
-        ),
+        message: answerMsg,
       });
 
-      const saveMessagePayload = {
-        conversation_id: conversationId || null,
-        messages: newChatsToSave,
-        room_id: roomIdFromQuery || null,
-        topic: '-',
-      };
-
-      await saveRiskProfileMessage(
-        saveMessagePayload,
-        user?.accessToken as string,
-      );
-
+      if (!isDemoMode) {
+        const saveMessagePayload = {
+          conversation_id: conversationId || null,
+          messages: newChatsToSave,
+          room_id: roomIdFromQuery || null,
+          topic: '-',
+        };
+        await saveRiskProfileMessage(
+          saveMessagePayload,
+          user?.accessToken as string,
+        );
+        mutate('chat-room-history');
+        mutateRisk();
+      }
       setMessagesToAdded(null);
-
-      mutate('chat-room-history');
-      mutateRisk();
     } else if (code === 'resep') {
       setIsResepModalOpen(true);
     }
@@ -924,7 +975,7 @@ export default function MessengerV2({
             : 'gap-4 justify-center',
         )}
       >
-        {isLoadingUser || getChatRoomByIdLoading ? (
+        {(isLoadingUser || getChatRoomByIdLoading) && !isDemoMode ? (
           <ChatSkeleton />
         ) : !chatRoomMessages ? (
           <p className='font-bold text-lg md:text-4xl text-center'>

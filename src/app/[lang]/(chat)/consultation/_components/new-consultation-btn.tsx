@@ -30,6 +30,7 @@ export default function NewConsultationBtn({
     setResep,
     setChatRoomMessages,
     setMessagesToAdded,
+    setDemoUserId,
   } = useChatContext();
 
   const handleResetChat = () => {
@@ -53,7 +54,10 @@ export default function NewConsultationBtn({
     });
     setChatRoomMessages(null);
     setMessagesToAdded(null);
+    setDemoUserId(null);
   };
+
+  const isDemoMode = process.env.NEXT_PUBLIC_CHAT_DEMO_MODE === 'true';
 
   return (
     <MessageCirclePlus
@@ -61,7 +65,11 @@ export default function NewConsultationBtn({
       color={color}
       className='cursor-pointer'
       onClick={(e) => {
-        router.push(`/${lang}/under-maintenance`);
+        if (isDemoMode) {
+          router.push(`/${lang}/consultation`, { scroll: false });
+        } else {
+          router.push(`/${lang}/under-maintenance`);
+        }
         onNewConsultClick(e);
         handleResetChat();
       }}

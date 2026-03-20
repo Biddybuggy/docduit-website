@@ -1,5 +1,9 @@
 'use client';
 
+const isDemoMode = process.env.NEXT_PUBLIC_CHAT_DEMO_MODE === 'true';
+const consultHref = (locale: string) =>
+  isDemoMode ? `/${locale}/consultation` : `/${locale}/under-maintenance`;
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useState } from 'react';
@@ -33,9 +37,9 @@ export default function FloatingChatComponent({
             <CardHeader className='bg-docduit-blue rounded-t-lg py-2'>
               <div className='flex justify-between items-center'>
                 <Link
-                  href={`/${locale}/under-maintenance`}
+                  href={consultHref(locale)}
                   onClick={() =>
-                    (window.location.href = `/${locale}/under-maintenance`)
+                    (window.location.href = consultHref(locale))
                   }
                 >
                   <SquareArrowOutUpRight size={24} color='white' />
@@ -69,10 +73,7 @@ export default function FloatingChatComponent({
               className='min-w-14 min-h-14'
               variant='link'
               onClick={() => {
-                // Consultation + auth are under maintenance.
-                // Route the user to the maintenance page instead of opening chat.
-                void user;
-                router.push(`/${locale}/under-maintenance`);
+                router.push(consultHref(locale));
               }}
             >
               <Image

@@ -147,6 +147,26 @@ export interface AskSingleAIResponse {
   messages: string;
 }
 
+/** Used when NEXT_PUBLIC_CHAT_DEMO_MODE=true - calls local API route (proxies to CF worker / Stack AI). */
+export const askDemoAI = async (
+  userMessage: string,
+  options?: { userId?: string }
+): Promise<{ message: string; userId?: string }> => {
+  const body: { message: string; userId?: string } = { message: userMessage };
+  if (options?.userId) body.userId = options.userId;
+
+  const res = await fetch('/api/chat/ask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Demo AI request failed');
+  }
+  return res.json();
+};
+
 export const askAISingle = async (
   payload: AskSingleAIPayload,
   // accessToken: string,

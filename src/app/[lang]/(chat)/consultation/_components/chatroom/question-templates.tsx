@@ -1,7 +1,7 @@
 import { ChartLine, Lightbulb, PiggyBank } from 'lucide-react';
 
 interface ChatroomQuestionTemplatesProps {
-  onTemplateClicked: (template: string) => void;
+  onTemplateClicked: (templateId: string, displayText?: string) => void;
   onTemplateChoicesClicked?: () => void;
   vocabularies: any;
 }
@@ -19,7 +19,7 @@ export default function ChatroomQuestionTemplates({
   return (
     <div className='flex flex-col gap-2'>
       <div
-        onClick={() => onTemplateClicked('A22A')}
+        onClick={() => onTemplateClicked('A22A', savingBestPractices)}
         className='p-4 border-2 rounded-lg flex gap-4 hover:bg-gray-100 cursor-pointer'
       >
         <Lightbulb size={24} className='text-docduit-yellow' />
@@ -33,7 +33,7 @@ export default function ChatroomQuestionTemplates({
         <p>{howToChooseInstrument}</p>
       </div>
       <div
-        onClick={() => onTemplateClicked('A22B')}
+        onClick={() => onTemplateClicked('A22B', howTheStrategy)}
         className='p-4 border-2 rounded-lg flex gap-4 hover:bg-gray-100 cursor-pointer'
       >
         <PiggyBank size={24} className='text-docduit-red' />

@@ -55,7 +55,8 @@ const HistoryChatContent = ({
     setResep,
     setChatRoomMessages,
     setMessagesToAdded,
-    setGetChatRoomByIdLoading
+    setGetChatRoomByIdLoading,
+    setDemoUserId,
   } = useChatContext();
 
   const handleResetChat = () => {
@@ -79,6 +80,7 @@ const HistoryChatContent = ({
     });
     setChatRoomMessages(null);
     setMessagesToAdded(null);
+    setDemoUserId(null);
   };
 
   const handleRoomClick = (roomId: string) => {

@@ -61,11 +61,15 @@ export default function HeaderChatComponent({
   lang,
   vocabularies,
 }: HeaderComponentProps) {
+  const consultHref =
+    process.env.NEXT_PUBLIC_CHAT_DEMO_MODE === 'true'
+      ? `/${lang}/consultation`
+      : `/${lang}/under-maintenance`;
   const navigations: NavigationItem[] = [
     { name: vocabularies.navigation.home, href: `/${lang}/#` },
     {
       name: vocabularies.navigation.consult,
-      href: `/${lang}/under-maintenance`,
+      href: consultHref,
     },
     { name: vocabularies.navigation.aboutUs, href: `/${lang}/#testimonies` },
     { name: vocabularies.navigation.calculator, href: `/${lang}/#calculators` },

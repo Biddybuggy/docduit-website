@@ -60,7 +60,11 @@ export default function IntroductionSection({
         <p className='font-medium'>{description}</p>
         <div>
           <Link
-            href={`/${lang}/under-maintenance`}
+            href={
+              process.env.NEXT_PUBLIC_CHAT_DEMO_MODE === 'true'
+                ? `/${lang}/consultation`
+                : `/${lang}/under-maintenance`
+            }
             onClick={() =>
               safeSendGAEvent('event', 'navigate_to_consultation', {
                 email: userInfo?.email,

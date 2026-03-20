@@ -3,3 +3,7 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 NEXT_PUBLIC_API_URL=
 NEXT_PUBLIC_AI_CHAT_URL=
 NEXT_PUBLIC_GOOGLE_MEASUREMENT_ID=
+# Set to "true" to enable frontend-only chat (no sign-up, no persistence).
+NEXT_PUBLIC_CHAT_DEMO_MODE=
+# Your deployed Cloudflare worker URL (e.g. https://docduit-worker.workers.dev)
+CHAT_DEMO_CF_WORKER_URL=

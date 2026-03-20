@@ -1,7 +1,9 @@
 'use client';
 
 import { ChatRoom } from '@/services/chat.service';
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+const DEMO_USER_ID_KEY = 'docduit-demo-user-id';
 
 interface IResep {
   profile?: string;
@@ -55,6 +57,9 @@ interface ChatContextType {
   setResep: (value: IResep) => void;
   getChatRoomByIdLoading: boolean;
   setGetChatRoomByIdLoading: (value: boolean) => void;
+  /** Demo mode: stable userId for Stack AI conversation memory. Cleared on new consultation. */
+  demoUserId: string | null;
+  setDemoUserId: (value: string | null) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -87,6 +92,21 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     allocation: [],
   });
   const [getChatRoomByIdLoading, setGetChatRoomByIdLoading] = useState(false);
+  const [demoUserId, setDemoUserIdState] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setDemoUserIdState(window.sessionStorage.getItem(DEMO_USER_ID_KEY));
+    }
+  }, []);
+
+  const setDemoUserId = (value: string | null) => {
+    setDemoUserIdState(value);
+    if (typeof window !== 'undefined') {
+      if (value) window.sessionStorage.setItem(DEMO_USER_ID_KEY, value);
+      else window.sessionStorage.removeItem(DEMO_USER_ID_KEY);
+    }
+  };
 
   return (
     <ChatContext.Provider
@@ -129,6 +149,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         setResep,
         getChatRoomByIdLoading,
         setGetChatRoomByIdLoading,
+        demoUserId,
+        setDemoUserId,
       }}
     >
       {children}
