@@ -222,7 +222,7 @@
         "budget": "How much money do you have right now?"
       },
       "result": {
-        "titleIntro": "You will buy a Device",
+        "titleIntro": "You will buy a DEVICE",
         "amountToSave": "Amount you need to save each month:",
         "yourMoney": "Your current funds:",
         "minus": "You need:",
@@ -258,7 +258,7 @@
         "dp": "What is the expected Down Payment (DP) percentage?"
       },
       "result": {
-        "titleIntro": "You will purchase a Vehicle",
+        "titleIntro": "You will purchase a VEHICLE",
         "amountToSave": "Amount you need to save each month for the DP:",
         "yourMoney": "Installments after purchasing the motorcycle (36-month repayment period):",
         "minus": "Remaining Amount Needed for Down Payment (DP):",
@@ -276,7 +276,7 @@
         "budget": "How much money do you have right now?"
       },
       "result": {
-        "titleIntro": "You will achieve your Goal",
+        "titleIntro": "You will achieve your goal",
         "amountToSave": "Amount you need to save each month:",
         "yourMoney": "Your current funds:",
         "minus": "You need:",
@@ -326,7 +326,7 @@
         "save": "Save"
       },
       "result": {
-        "titleIntro": "You will get Married",
+        "titleIntro": "You will get MARRIED",
         "amountToSave": "Amount you need to save each month:",
         "yourMoney": "Your current funds:",
         "minus": "You need:",
