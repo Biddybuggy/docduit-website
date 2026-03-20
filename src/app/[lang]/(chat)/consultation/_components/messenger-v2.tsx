@@ -592,7 +592,7 @@ export default function MessengerV2({
     } catch (error) {
       console.error(error);
       toast.error(
-        error instanceof Error ? error.message : 'Terjadi kesalahan saat mengirim pesan ke AI'
+        error instanceof Error ? error.message : 'Terjadi kesalahan saat mengirim pesan ke AI.'
       );
     } finally {
       setIsLoading(false);
