@@ -1,3 +1,4 @@
+// If website becomes messed up, please change the href to /id/under-maintenance or /en/under-maintenance
 'use client';
 import { Globe } from 'lucide-react';
 import {
@@ -29,9 +30,9 @@ export const LocalesButton = ({ label }: { label?: string }) => {
       <DropdownMenuContent>
         <DropdownMenuItem>
           <Link
-            href='/id/under-maintenance'
+            href='/id/consultation'
             onClick={() =>
-              (window.location.href = '/id/under-maintenance')
+              (window.location.href = '/id/consultation')
             }
           >
             🇮🇩 Bahasa
@@ -39,9 +40,9 @@ export const LocalesButton = ({ label }: { label?: string }) => {
         </DropdownMenuItem>
         <DropdownMenuItem>
           <Link
-            href='/en/under-maintenance'
+            href='/en/consultation'
             onClick={() =>
-              (window.location.href = '/en/under-maintenance')
+              (window.location.href = '/en/consultation')
             }
           >
             🇺🇸 English

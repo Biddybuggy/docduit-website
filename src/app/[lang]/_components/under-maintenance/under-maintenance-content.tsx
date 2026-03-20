@@ -7,13 +7,13 @@ export default function UnderMaintenanceContent({ lang }: { lang: Locale }) {
       ? {
           title: 'DALAM PEMELIHARAAN',
           description:
-            'Konsultasi dan fitur masuk sementara tidak tersedia. Silakan coba lagi nanti.',
+            'Fitur login sementara tidak tersedia. Silakan coba lagi nanti.',
           back: 'Kembali ke beranda',
         }
       : {
           title: 'UNDER MAINTENANCE',
           description:
-            'Consultation and sign-in are temporarily unavailable. Please try again later.',
+            'Login feature is temporarily unavailable. Please try again later.',
           back: 'Back to home',
         };
 
