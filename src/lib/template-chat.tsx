@@ -258,7 +258,7 @@ export const choicesTemplateLibrariesEn = {
     },
     {
       question:
-        'How would you feel if your investment value dropped 10% in one month?',
+        'How would you feel if your investment value dropped by 10% in one month?',
       options: [
         'Panic and want to withdraw my funds immediately.',
         'Anxious, but will keep monitoring while considering the next step.',

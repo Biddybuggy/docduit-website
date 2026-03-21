@@ -9,9 +9,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import { Locale } from '../../../_utils/dictionaries';
-import MobileNavigationContents from './mobile-navigation-contents';
 import { ReactQueryProvider } from '@/lib/react-query';
 import AuthenticationSection from '@/app/[lang]/_components/auth/authentication-section';
+import SheetSideChat from './sheet-side-chat';
 
 type NavigationItem = {
   name: string;
@@ -82,7 +82,14 @@ export default function HeaderChatComponent({
       <header className='fixed top-0 left-0 w-full bg-white z-50 h-14 lg:h-20 flex items-center lg:border-b-2 lg:border-docduit-blue'>
         {/* Mobile view navigation */}
         <nav className='w-full flex lg:hidden justify-between px-5 items-center'>
-          <MobileNavigationContents vocabularies={vocabularies} lang={lang} />
+          <SheetSideChat vocabularies={vocabularies} language={lang as string} />
+          <Link href={`/${lang}/`}>
+            <p className='font-epilogue font-bold text-lg'>
+              Doc<span className='text-docduit-blue'>duit</span>
+            </p>
+          </Link>
+          {/* This is a placeholder to keep the logo centered after removing the new chat button */}
+          <div className='w-6' />
         </nav>
 
         {/* Web view navigations */}
