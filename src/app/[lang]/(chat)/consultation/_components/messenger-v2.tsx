@@ -12,16 +12,16 @@ import {
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
 import {
-  choicesTemplateLibraries,
   getChoicesTemplateAnswer,
   getChoicesTemplateAnswerForResep,
   getChoicesTemplateOptions,
   getChoicesTemplateQuestions,
+  getChoicesTemplateTopic,
   getTemplateQuestions,
   getTemplateTopic,
 } from '@/lib/template-chat';
 import PrescriptionModal from './PrescriptionModal';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 import {
   askAI,
@@ -55,6 +55,8 @@ export default function MessengerV2({
 }: MessengerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
+  const lang = (params?.lang as string) || 'id';
   
   const {
     chat: { placeholderNominal, placeholderQuestion, whatDoYouWant, toConsult },
@@ -631,9 +633,9 @@ export default function MessengerV2({
     setIsLoading(true);
     setChatType('choices');
     setTemplateAnswers([]);
-    const questions = getChoicesTemplateQuestions();
-    const options = getChoicesTemplateOptions();
-    const topic = choicesTemplateLibraries.topic;
+    const questions = getChoicesTemplateQuestions(lang);
+    const options = getChoicesTemplateOptions(lang);
+    const topic = getChoicesTemplateTopic(lang);
     setTemplateTopic(topic);
     setTemplateQuestions(questions);
     setTemplateChoices(options);
@@ -726,7 +728,7 @@ export default function MessengerV2({
       setChatType('ai');
       newChatsToAdd.push({
         type_user: 'bot',
-        message: getChoicesTemplateAnswer(currentScore),
+        message: getChoicesTemplateAnswer(currentScore, lang),
       });
 
       if (!isDemoMode) {
@@ -867,6 +869,7 @@ export default function MessengerV2({
 
       const dataResep = getChoicesTemplateAnswerForResep(
         (riskScore ?? 3) as number,
+        lang,
       );
 
       setResep(dataResep);
@@ -917,7 +920,7 @@ export default function MessengerV2({
         );
       }
 
-      const answerMsg = getChoicesTemplateAnswer((riskScore ?? 3) as number);
+      const answerMsg = getChoicesTemplateAnswer((riskScore ?? 3) as number, lang);
       newChatsToAdd.push({
         type_user: 'bot',
         message: answerMsg,

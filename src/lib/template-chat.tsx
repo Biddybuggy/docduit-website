@@ -245,71 +245,165 @@ export const choicesTemplateLibraries = {
   ],
 };
 
-export const getChoicesTemplateQuestions = () => {
-  const templateChat = choicesTemplateLibraries;
+export const choicesTemplateLibrariesEn = {
+  topic: 'How to choose the right investment instrument for me?',
+  conversations: [
+    {
+      question: 'How do you choose the right investment instrument for you?',
+      options: [
+        'I prefer safe and stable instruments, even if the returns are low.',
+        'I am willing to take a little risk for potentially higher returns.',
+        'I am ready to face high fluctuations for the chance of maximum returns.',
+      ],
+    },
+    {
+      question:
+        'How would you feel if your investment value dropped 10% in one month?',
+      options: [
+        'Panic and want to withdraw my funds immediately.',
+        'Anxious, but will keep monitoring while considering the next step.',
+        'No problem, I see it as part of long-term investment.',
+      ],
+    },
+    {
+      question: 'What is your main goal in investing?',
+      options: [
+        'Preserving the value of money against inflation.',
+        'Growing wealth steadily in the medium-long term.',
+        'Getting high asset growth as quickly as possible.',
+      ],
+    },
+    {
+      question: 'How long is your investment timeframe?',
+      options: ['Less than 3 years.', '3-7 years.', 'More than 7 years.'],
+    },
+    {
+      question: 'What is your tolerance for loss risk?',
+      options: [
+        'Cannot tolerate loss, I want my investment value to remain stable.',
+        'I can accept small losses occasionally.',
+        'I am ready to face large losses for potentially higher returns.',
+      ],
+    },
+  ],
+};
+
+export const getChoicesTemplateTopic = (lang: string = 'id') => {
+  const templateChat =
+    lang === 'en' ? choicesTemplateLibrariesEn : choicesTemplateLibraries;
+  return templateChat?.topic || '';
+};
+
+export const getChoicesTemplateQuestions = (lang: string = 'id') => {
+  const templateChat =
+    lang === 'en' ? choicesTemplateLibrariesEn : choicesTemplateLibraries;
   if (!templateChat) return [];
   return templateChat?.conversations.map((item) => item.question) || [];
 };
 
-export const getChoicesTemplateOptions = () => {
-  const templateChat = choicesTemplateLibraries;
+export const getChoicesTemplateOptions = (lang: string = 'id') => {
+  const templateChat =
+    lang === 'en' ? choicesTemplateLibrariesEn : choicesTemplateLibraries;
   if (!templateChat) return [];
   return templateChat?.conversations?.map((item) => item.options) || [];
 };
 
-export const getChoicesTemplateAnswer = (score: number) => {
+export const getChoicesTemplateAnswer = (score: number, lang: string = 'id') => {
+  const isEn = lang === 'en';
   if (score >= 5 && score <= 7) {
-    return 'Profil Risiko: **Konservatif**\n\nAnda lebih suka keamanan dan stabilitas, cocok dengan deposito, reksa dana pasar uang, atau obligasi pemerintah. Alokasi:\n\n -Deposito/SBN (Retail Bonds): 20%\n\n -Emas: 25%\n\n -Tabungan US Dollar: 15%\n\n -Obligasi Pemerintah IDR / USD: 30%\n\n -Saham / Reksa Dana Saham: 10%';
+    return isEn
+      ? 'Risk Profile: **Conservative**\n\nYou prefer safety and stability, suitable for deposits, money market funds, or government bonds. Allocation:\n\n -Deposits/SBN (Retail Bonds): 20%\n\n -Gold: 25%\n\n -US Dollar Savings: 15%\n\n -Government Bonds IDR / USD: 30%\n\n -Stocks / Equity Funds: 10%'
+      : 'Profil Risiko: **Konservatif**\n\nAnda lebih suka keamanan dan stabilitas, cocok dengan deposito, reksa dana pasar uang, atau obligasi pemerintah. Alokasi:\n\n -Deposito/SBN (Retail Bonds): 20%\n\n -Emas: 25%\n\n -Tabungan US Dollar: 15%\n\n -Obligasi Pemerintah IDR / USD: 30%\n\n -Saham / Reksa Dana Saham: 10%';
   } else if (score >= 8 && score <= 11) {
-    return 'Profil Risiko: **Moderat**\n\nAnda bersedia mengambil risiko terbatas untuk imbal hasil yang lebih baik, cocok dengan reksa dana campuran atau saham blue chip jangka menengah. Alokasi:\n\n -Deposito/SBN (Retail Bonds): 15%\n\n -Emas: 15%\n\n -Tabungan US Dollar: 10%\n\n -Obligasi Pemerintah IDR / USD: 35%\n\n -Saham / Reksa Dana Saham: 25%';
+    return isEn
+      ? 'Risk Profile: **Moderate**\n\nYou are willing to take limited risks for better returns, suitable for balanced funds or medium-term blue-chip stocks. Allocation:\n\n -Deposits/SBN (Retail Bonds): 15%\n\n -Gold: 15%\n\n -US Dollar Savings: 10%\n\n -Government Bonds IDR / USD: 35%\n\n -Stocks / Equity Funds: 25%'
+      : 'Profil Risiko: **Moderat**\n\nAnda bersedia mengambil risiko terbatas untuk imbal hasil yang lebih baik, cocok dengan reksa dana campuran atau saham blue chip jangka menengah. Alokasi:\n\n -Deposito/SBN (Retail Bonds): 15%\n\n -Emas: 15%\n\n -Tabungan US Dollar: 10%\n\n -Obligasi Pemerintah IDR / USD: 35%\n\n -Saham / Reksa Dana Saham: 25%';
   } else if (score >= 12 && score <= 15) {
-    return 'Profil Risiko: **Agresif**\n\nAnda siap mengambil risiko besar demi pertumbuhan optimal, cocok dengan saham, kripto, dan investasi alternatif. Alokasi:\n\n -Deposito/SBN (Retail Bonds): 10%\n\n -Emas: 10%\n\n -Tabungan US Dollar: 10%\n- Obligasi Pemerintah IDR / USD: 20%\n\n -Saham / Reksa Dana Saham: 50%';
+    return isEn
+      ? 'Risk Profile: **Aggressive**\n\nYou are ready to take big risks for optimal growth, suitable for stocks, crypto, and alternative investments. Allocation:\n\n -Deposits/SBN (Retail Bonds): 10%\n\n -Gold: 10%\n\n -US Dollar Savings: 10%\n- Government Bonds IDR / USD: 20%\n\n -Stocks / Equity Funds: 50%'
+      : 'Profil Risiko: **Agresif**\n\nAnda siap mengambil risiko besar demi pertumbuhan optimal, cocok dengan saham, kripto, dan investasi alternatif. Alokasi:\n\n -Deposito/SBN (Retail Bonds): 10%\n\n -Emas: 10%\n\n -Tabungan US Dollar: 10%\n- Obligasi Pemerintah IDR / USD: 20%\n\n -Saham / Reksa Dana Saham: 50%';
   } else {
-    return 'Profil Risiko: **Tidak Diketahui**\n\nAlokasi: Tidak tersedia.';
+    return isEn
+      ? 'Risk Profile: **Unknown**\n\nAllocation: Not available.'
+      : 'Profil Risiko: **Tidak Diketahui**\n\nAlokasi: Tidak tersedia.';
   }
 };
 
-export const getChoicesTemplateAnswerForResep = (score: number): IResep => {
+export const getChoicesTemplateAnswerForResep = (
+  score: number,
+  lang: string = 'id',
+): IResep => {
+  const isEn = lang === 'en';
   if (score >= 5 && score <= 7) {
     return {
-      profile: 'Konservatif',
-      text: 'Anda lebih suka keamanan dan stabilitas, cocok dengan deposito, reksa dana pasar uang, atau obligasi pemerintah.',
-      allocation: [
-        'Deposito/SBN (Retail Bonds): 20%',
-        'Emas: 25%',
-        'Tabungan US Dollar: 15%',
-        'Obligasi Pemerintah IDR / USD: 30%',
-        'Saham / Reksa Dana Saham: 10%',
-      ],
+      profile: isEn ? 'Conservative' : 'Konservatif',
+      text: isEn
+        ? 'You prefer safety and stability, suitable for deposits, money market funds, or government bonds.'
+        : 'Anda lebih suka keamanan dan stabilitas, cocok dengan deposito, reksa dana pasar uang, atau obligasi pemerintah.',
+      allocation: isEn
+        ? [
+            'Deposits/SBN (Retail Bonds): 20%',
+            'Gold: 25%',
+            'US Dollar Savings: 15%',
+            'Government Bonds IDR / USD: 30%',
+            'Stocks / Equity Funds: 10%',
+          ]
+        : [
+            'Deposito/SBN (Retail Bonds): 20%',
+            'Emas: 25%',
+            'Tabungan US Dollar: 15%',
+            'Obligasi Pemerintah IDR / USD: 30%',
+            'Saham / Reksa Dana Saham: 10%',
+          ],
     };
   } else if (score >= 8 && score <= 11) {
     return {
-      profile: 'Moderat',
-      text: 'Anda bersedia mengambil risiko terbatas untuk imbal hasil yang lebih baik, cocok dengan reksa dana campuran atau saham blue chip jangka menengah.',
-      allocation: [
-        'Deposito/SBN (Retail Bonds): 15%',
-        'Emas: 15%',
-        'Tabungan US Dollar: 10%',
-        'Obligasi Pemerintah IDR / USD: 35%',
-        'Saham / Reksa Dana Saham: 25%',
-      ],
+      profile: isEn ? 'Moderate' : 'Moderat',
+      text: isEn
+        ? 'You are willing to take limited risks for better returns, suitable for balanced funds or medium-term blue-chip stocks.'
+        : 'Anda bersedia mengambil risiko terbatas untuk imbal hasil yang lebih baik, cocok dengan reksa dana campuran atau saham blue chip jangka menengah.',
+      allocation: isEn
+        ? [
+            'Deposits/SBN (Retail Bonds): 15%',
+            'Gold: 15%',
+            'US Dollar Savings: 10%',
+            'Government Bonds IDR / USD: 35%',
+            'Stocks / Equity Funds: 25%',
+          ]
+        : [
+            'Deposito/SBN (Retail Bonds): 15%',
+            'Emas: 15%',
+            'Tabungan US Dollar: 10%',
+            'Obligasi Pemerintah IDR / USD: 35%',
+            'Saham / Reksa Dana Saham: 25%',
+          ],
     };
   } else if (score >= 12 && score <= 15) {
     return {
-      profile: 'Agresif',
-      text: 'Anda siap mengambil risiko besar demi pertumbuhan optimal, cocok dengan saham, kripto, dan investasi alternatif.',
-      allocation: [
-        'Deposito/SBN (Retail Bonds): 10%',
-        'Emas: 10%',
-        'Tabungan US Dollar: 10%',
-        'Obligasi Pemerintah IDR / USD: 20%',
-        'Saham / Reksa Dana Saham: 50%',
-      ],
+      profile: isEn ? 'Aggressive' : 'Agresif',
+      text: isEn
+        ? 'You are ready to take big risks for optimal growth, suitable for stocks, crypto, and alternative investments.'
+        : 'Anda siap mengambil risiko besar demi pertumbuhan optimal, cocok dengan saham, kripto, dan investasi alternatif.',
+      allocation: isEn
+        ? [
+            'Deposits/SBN (Retail Bonds): 10%',
+            'Gold: 10%',
+            'US Dollar Savings: 10%',
+            'Government Bonds IDR / USD: 20%',
+            'Stocks / Equity Funds: 50%',
+          ]
+        : [
+            'Deposito/SBN (Retail Bonds): 10%',
+            'Emas: 10%',
+            'Tabungan US Dollar: 10%',
+            'Obligasi Pemerintah IDR / USD: 20%',
+            'Saham / Reksa Dana Saham: 50%',
+          ],
     };
   } else {
     return {
-      profile: 'Tidak Diketahui',
-      text: 'Alokasi: Tidak tersedia.',
+      profile: isEn ? 'Unknown' : 'Tidak Diketahui',
+      text: isEn ? 'Allocation: Not available.' : 'Alokasi: Tidak tersedia.',
       allocation: [],
     };
   }
