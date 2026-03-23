@@ -8,6 +8,7 @@ export default {
         headers: corsHeaders(),
       });
     }
+
     try {
       if (url.pathname === "/health" && request.method === "GET") {
         return json({ ok: true, service: "docduit-worker" });
@@ -57,8 +58,10 @@ async function handleChat(request, env) {
     return json({ error: "Invalid JSON body" }, 400);
   }
 
+  // Support multiple input field names to prevent breaking the live app
+  const rawMessage = body.message || body.question || body.input || body['in-0'];
   const message =
-    typeof body.message === "string" ? body.message.trim() : "";
+    typeof rawMessage === "string" ? rawMessage.trim() : "";
   const userId =
     typeof body.userId === "string" && body.userId.trim()
       ? body.userId.trim()
@@ -79,6 +82,52 @@ async function handleChat(request, env) {
     ...(docs.length ? { "doc-0": docs } : {}),
   };
 
+  // Check if the client requested streaming (either via body or Accept header).
+  const wantsStreaming =
+    body.stream === true ||
+    (request.headers.get("accept") || "").toLowerCase().includes("text/event-stream");
+
+  if (wantsStreaming) {
+    const stackUrl = `https://api.stack-ai.com/inference/v0/stream/${env.STACK_ORG_ID}/${env.STACK_FLOW_ID}`;
+
+    const response = await fetch(stackUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.STACK_API_KEY}`,
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const rawText = await response.text().catch(() => "");
+      return json(
+        {
+          error: "Stack AI request failed",
+          status: response.status,
+          details: tryParseJson(rawText) ?? rawText,
+        },
+        response.status
+      );
+    }
+
+    if (!response.body) {
+      return json({ error: "Stack AI streaming response missing body" }, 502);
+    }
+
+    return new Response(response.body, {
+      status: response.status,
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        ...corsHeaders(),
+      },
+    });
+  }
+
+  // Legacy / Default Behavior (Fixes "No response from AI" on live app)
   const stackUrl = `https://api.stack-ai.com/inference/v0/run/${env.STACK_ORG_ID}/${env.STACK_FLOW_ID}`;
 
   const response = await fetch(stackUrl, {
@@ -94,23 +143,15 @@ async function handleChat(request, env) {
   const rawText = await response.text();
 
   if (!response.ok) {
-    return json(
-      {
-        error: "Stack AI request failed",
-        status: response.status,
-        details: tryParseJson(rawText) ?? rawText,
-      },
-      response.status
-    );
+    return json({
+      error: "Stack AI request failed",
+      status: response.status,
+      details: tryParseJson(rawText) ?? rawText
+    }, response.status);
   }
 
   const result = tryParseJson(rawText) ?? { raw: rawText };
-
-  return json({
-    ok: true,
-    userId,
-    result,
-  });
+  return json({ ok: true, userId, result });
 }
 
 function tryParseJson(text) {

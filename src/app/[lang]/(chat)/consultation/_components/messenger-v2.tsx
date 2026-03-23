@@ -26,6 +26,7 @@ import useSWR from 'swr';
 import {
   askAI,
   askDemoAI,
+  askDemoAIStream,
   AskAIPayload,
   ChatRoomMessagesResponse,
   getRiskProfile,
@@ -459,23 +460,171 @@ export default function MessengerV2({
 
     try {
       if (isDemoMode) {
-        const { message: botMessage, userId: newUserId } = await askDemoAI(
+        const stream = await askDemoAIStream(
           newMessage,
           { userId: demoUserId ?? undefined }
         );
-        if (newUserId) setDemoUserId(newUserId);
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+        let botMessage = '';
+        let buffer = '';
         const newChatData: ChatMessage = {
           type_user: 'bot',
           message: botMessage,
           conversation_id: 'demo',
           room_id: 'demo',
         };
-
         const newChatsToAddLagi: ChatMessage[] = [
           ...(newChatsToAdd || chatRoomMessages || []),
           newChatData,
         ];
         setChatRoomMessages(newChatsToAddLagi);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          // Keep partial lines across chunk boundaries.
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
+
+          for (const rawLine of lines) {
+            const line = rawLine.trim();
+            if (!line) continue;
+
+            // SSE format: "data: <payload>"
+            if (line.startsWith('data:')) {
+              const data = line.slice(5).trim();
+              if (data.startsWith('[DONE]')) {
+                // Finish streaming.
+                await reader.cancel().catch(() => {});
+                break;
+              }
+
+              try {
+                const parsed = JSON.parse(data);
+
+                // StackAI stream usually ends with something like:
+                // {"type":"stream_complete","message":"..."}
+                if (
+                  typeof parsed?.type === 'string' &&
+                  parsed.type.toLowerCase().includes('stream_complete')
+                ) {
+                  await reader.cancel().catch(() => {});
+                  break;
+                }
+
+                // Extract token from multiple known payload shapes.
+                const token =
+                  // e.g. { "response": "..." }
+                  (typeof parsed?.response === 'string' && parsed.response) ||
+                  // e.g. OpenAI-style { choices: [{ delta: { content: "..." } }] }
+                  (typeof parsed?.choices?.[0]?.delta?.content === 'string' &&
+                    parsed.choices[0].delta.content) ||
+                  // e.g. { delta: "..." } / { content: "..." } / { text: "..." }
+                  (typeof parsed?.delta === 'string' && parsed.delta) ||
+                  (typeof parsed?.content === 'string' && parsed.content) ||
+                  (typeof parsed?.text === 'string' && parsed.text) ||
+                  (typeof parsed?.message === 'string' && parsed.message) ||
+                  // StackAI inference stream often looks like:
+                  // { outputs: { "out-0": "token", ... } }
+                  (typeof parsed?.outputs?.['out-0'] === 'string' &&
+                    parsed.outputs['out-0']) ||
+                  // Fallback: first string in outputs.
+                  (parsed?.outputs &&
+                    typeof parsed.outputs === 'object' &&
+                    !Array.isArray(parsed.outputs) &&
+                    Object.values(parsed.outputs).find(
+                      (v) => typeof v === 'string' && v.length > 0,
+                    ) as string | undefined) ||
+                  null;
+
+                if (token) {
+                  botMessage += token;
+                  setChatRoomMessages((prev: ChatMessage[] | null) => {
+                    if (!prev) return [];
+                    const lastMsgIndex = prev.length - 1;
+                    const lastMsg = prev[lastMsgIndex];
+                    if (lastMsg.type_user === 'bot') {
+                      const newMessages = [...prev];
+                      newMessages[lastMsgIndex] = {
+                        ...lastMsg,
+                        message: botMessage,
+                      };
+                      return newMessages;
+                    }
+                    return prev;
+                  });
+                }
+              } catch {
+                // If the upstream isn't JSON, treat it as raw text token.
+                botMessage += data;
+                setChatRoomMessages((prev: ChatMessage[] | null) => {
+                  if (!prev) return [];
+                  const lastMsgIndex = prev.length - 1;
+                  const lastMsg = prev[lastMsgIndex];
+                  if (lastMsg.type_user === 'bot') {
+                    const newMessages = [...prev];
+                    newMessages[lastMsgIndex] = {
+                      ...lastMsg,
+                      message: botMessage,
+                    };
+                    return newMessages;
+                  }
+                  return prev;
+                });
+              }
+              continue;
+            }
+
+            // Ignore common SSE metadata lines.
+            if (line.startsWith('event:') || line.startsWith('id:')) continue;
+
+            // Some upstreams may send raw JSON lines without `data:` prefix.
+            if (line.startsWith('{') && line.endsWith('}')) {
+              try {
+                const parsed = JSON.parse(line);
+                const token =
+                  (typeof parsed?.outputs?.['out-0'] === 'string' &&
+                    parsed.outputs['out-0']) ||
+                  (typeof parsed?.response === 'string' && parsed.response) ||
+                  null;
+
+                if (
+                  typeof parsed?.type === 'string' &&
+                  parsed.type.toLowerCase().includes('stream_complete')
+                ) {
+                  await reader.cancel().catch(() => {});
+                  break;
+                }
+
+                if (token) {
+                  botMessage += token;
+                  setChatRoomMessages((prev: ChatMessage[] | null) => {
+                    if (!prev) return [];
+                    const lastMsgIndex = prev.length - 1;
+                    const lastMsg = prev[lastMsgIndex];
+                    if (lastMsg.type_user === 'bot') {
+                      const newMessages = [...prev];
+                      newMessages[lastMsgIndex] = {
+                        ...lastMsg,
+                        message: botMessage,
+                      };
+                      return newMessages;
+                    }
+                    return prev;
+                  });
+                }
+              } catch {
+                // Ignore unparseable JSON.
+              }
+              continue;
+            }
+
+            // Otherwise ignore unknown non-token lines.
+          }
+        }
         setMessage('');
         onChatSent();
       } else {
@@ -1012,15 +1161,7 @@ export default function MessengerV2({
                   </div>
                 </div>
               ))}
-            {isLoading && (
-              <div className='flex items-end space-x-2'>
-                <div className='p-4 rounded-lg bg-docduit-lightgray rounded-bl-none'>
-                  <p className='text-sm animate-typing overflow-hidden whitespace-nowrap'>
-                    Thinking ...
-                  </p>
-                </div>
-              </div>
-            )}
+
           </div>
         )}
         {chatType === 'choices' && !isLoadingUser && (

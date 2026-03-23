@@ -167,6 +167,38 @@ export const askDemoAI = async (
   return res.json();
 };
 
+
+export const askDemoAIStream = async (
+  userMessage: string,
+  options?: { userId?: string }
+): Promise<ReadableStream<Uint8Array>> => {
+  const body: { message: string; userId?: string; stream: true } = {
+    message: userMessage,
+    stream: true,
+  };
+  if (options?.userId) body.userId = options.userId;
+
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Demo AI request failed');
+  }
+
+  if (!res.body) {
+    throw new Error('No response body');
+  }
+
+  return res.body;
+};
+
 export const askAISingle = async (
   payload: AskSingleAIPayload,
   // accessToken: string,

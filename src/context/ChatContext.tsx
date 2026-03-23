@@ -20,7 +20,7 @@ export interface ChatMessage {
 
 interface ChatContextType {
   chatRoomMessages: ChatMessage[] | null;
-  setChatRoomMessages: (value: ChatMessage[] | null) => void;
+  setChatRoomMessages: React.Dispatch<React.SetStateAction<ChatMessage[] | null>>;
   messagesToAdded: ChatMessage[] | null;
   setMessagesToAdded: (value: ChatMessage[] | null) => void;
   chatRoomsData: ChatRoom[] | null;
