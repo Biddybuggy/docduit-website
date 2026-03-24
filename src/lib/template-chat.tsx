@@ -173,6 +173,120 @@ export const templateChatLibraries: TemplateTopic[] = [
   },
 ];
 
+// English versions for open-ended quiz templates (A22A/A22B).
+// Note: Prescription images may still be rendered in Bahasa Indonesia for now.
+export const templateChatLibrariesEn: TemplateTopic[] = [
+  {
+    id: 'A22A',
+    topics: [
+      'What are the best saving practices?',
+      'What tips can help me save more effectively?',
+      'How do I save in a way that gives the best results?',
+      'What steps should I take to save well?',
+      'How can I make saving easier and more effective?',
+    ],
+    conversations: [
+      {
+        id: 'A22A1',
+        questions: [
+          'Are you married yet?',
+          'Do you already have a family?',
+          'Do you already have a life partner?',
+        ],
+      },
+      {
+        id: 'A22A2',
+        questions: [
+          'Is your spending greater than your income?',
+          'Are your expenses higher than your income?',
+          'Do you spend more money than you earn?',
+          'Is your shopping spending higher than your earnings?',
+        ],
+      },
+      {
+        id: 'A22A3',
+        questions: [
+          'In principle, 20% of your income is saved, 30% is for paying installments (phone installment, motor installment, home installment, TV installment, credit card installment, etc.), and you live your daily life with half of your salary (food, transport, snacks, buying clothes/shoes, etc.). What is your income per month?\n\nExample input: 8,000,000',
+          'The principle is: 20% of income goes to saving, 30% to installments, and 50% to daily needs. What is your monthly income?\n\nExample input: 8,000,000',
+        ],
+      },
+      {
+        id: 'A22A4',
+        questions: [
+          'Do you already have 2 bank accounts?',
+          'Do you have two bank accounts?',
+        ],
+      },
+      {
+        id: 'A22A5',
+        questions: [
+          'How much total installments do you need to pay every month? (tip: ideally only ~30% should go to installments like phone installment, motor installment, home installment, TV installment, credit card installment, etc.)\n\nExample input: 5,000,000',
+          'How much do you need to pay in installments each month? (Tip: installments should not exceed 30% of your income.)\n\nExample input: 5,000,000',
+        ],
+      },
+      {
+        id: 'A22A6',
+        questions: [
+          'Have you ever saved money in gold?',
+          'Have you tried saving in gold?',
+          'Have you ever stored money in the form of gold?',
+          'Have you ever invested in gold?',
+        ],
+      },
+      {
+        id: 'A22A7',
+        questions: [
+          'Have you ever saved in foreign currency (USD, SGD, JPY, etc.)?',
+          'Have you tried saving in foreign currency (USD, SGD, JPY, etc.)?',
+          'Have you ever kept money in foreign currency (USD, SGD, JPY, etc.)?',
+          'Have you ever invested in foreign currency (USD, SGD, JPY, etc.)?',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'A22B',
+    topics: [
+      'How can I divide my salary between needs and savings?',
+      'What is the best way to split my salary between needs and savings?',
+      'What is the right strategy to split your salary between needs and savings?',
+      'How should I divide my salary for daily expenses and savings?',
+    ],
+    conversations: [
+      {
+        id: 'A22B1',
+        questions: ['Are you married yet?'],
+      },
+      {
+        id: 'A22B2',
+        questions: [
+          'In principle, 20% of your income is saved, 30% is for paying installments (phone installment, motor installment, home installment, TV installment, credit card installment, etc.), and you live your daily life with half of your salary (food, transport, snacks, buying clothes/shoes, etc.). What is your income per month?\n\nExample input: 8,000,000',
+        ],
+      },
+      {
+        id: 'A22B3',
+        questions: ['Do you already have 2 bank accounts?'],
+      },
+      {
+        id: 'A22B4',
+        questions: [
+          'How much total installments do you need to pay every month? (tip: ideally only ~30% should go to installments like phone installment, motor installment, home installment, credit card installment, etc.)\n\nExample input: 5,000,000',
+        ],
+      },
+      {
+        id: 'A22B5',
+        questions: ['Have you ever saved in gold?'],
+      },
+      {
+        id: 'A22B6',
+        questions: [
+          'Have you ever saved in foreign currency (USD, SGD, JPY, etc.)?',
+        ],
+      },
+    ],
+  },
+];
+
 export type SelectedConversations = {
   id: string;
   question: string;
@@ -184,8 +298,9 @@ export type SelectedTemplate = {
   conversations: SelectedConversations[];
 };
 
-export const getTemplateQuestions = (id: string): string[] => {
-  const templateChat = templateChatLibraries.find((item) => item.id === id);
+export const getTemplateQuestions = (id: string, lang: string = 'id'): string[] => {
+  const libs = lang === 'en' ? templateChatLibrariesEn : templateChatLibraries;
+  const templateChat = libs.find((item) => item.id === id);
   if (!templateChat) return [];
   return (
     templateChat?.conversations.map((item) =>
@@ -194,8 +309,9 @@ export const getTemplateQuestions = (id: string): string[] => {
   );
 };
 
-export const getTemplateTopic = (id: string): string => {
-  const templateChat = templateChatLibraries.find((item) => item.id === id);
+export const getTemplateTopic = (id: string, lang: string = 'id'): string => {
+  const libs = lang === 'en' ? templateChatLibrariesEn : templateChatLibraries;
+  const templateChat = libs.find((item) => item.id === id);
   if (!templateChat) return '';
   return getRandomFromStringArray(templateChat?.topics || []);
 };

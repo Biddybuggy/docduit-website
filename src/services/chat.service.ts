@@ -147,13 +147,19 @@ export interface AskSingleAIResponse {
   messages: string;
 }
 
+type HistoryItem = {
+  pertanyaan: string;
+  jawaban: string;
+}
+
 /** Used when NEXT_PUBLIC_CHAT_DEMO_MODE=true - calls local API route (proxies to CF worker / Stack AI). */
 export const askDemoAI = async (
   userMessage: string,
-  options?: { userId?: string }
+  options?: { userId?: string; history?: HistoryItem[] }
 ): Promise<{ message: string; userId?: string }> => {
-  const body: { message: string; userId?: string } = { message: userMessage };
+  const body: { message: string; userId?: string; history?: HistoryItem[] } = { message: userMessage };
   if (options?.userId) body.userId = options.userId;
+  if (options?.history) body.history = options.history;
 
   const res = await fetch('/api/chat/ask', {
     method: 'POST',
@@ -170,13 +176,15 @@ export const askDemoAI = async (
 
 export const askDemoAIStream = async (
   userMessage: string,
-  options?: { userId?: string }
-): Promise<ReadableStream<Uint8Array>> => {
-  const body: { message: string; userId?: string; stream: true } = {
+  options?: { userId?: string; history?: HistoryItem[] }
+): Promise<{ stream: ReadableStream<Uint8Array>; userId?: string }> => {
+  const body: { message: string; userId?: string; history?: HistoryItem[]; stream: true } = {
     message: userMessage,
     stream: true,
   };
+
   if (options?.userId) body.userId = options.userId;
+  if (options?.history) body.history = options.history;
 
   const res = await fetch('/api/chat', {
     method: 'POST',
@@ -196,7 +204,10 @@ export const askDemoAIStream = async (
     throw new Error('No response body');
   }
 
-  return res.body;
+  return {
+    stream: res.body,
+    userId: res.headers.get('X-Docduit-User-Id') ?? undefined,
+  };
 };
 
 export const askAISingle = async (

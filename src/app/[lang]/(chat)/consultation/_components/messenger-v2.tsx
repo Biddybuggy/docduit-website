@@ -448,7 +448,7 @@ export default function MessengerV2({
       const current = filteredMessages[i];
       const next = filteredMessages[i + 1];
 
-      if (current.type_user === 'bot' && next?.type_user === 'user') {
+      if (current.type_user === 'user' && next?.type_user === 'bot') {
         previousMessages.push({
           pertanyaan: current.message,
           jawaban: next.message,
@@ -460,10 +460,81 @@ export default function MessengerV2({
 
     try {
       if (isDemoMode) {
-        const stream = await askDemoAIStream(
-          newMessage,
-          { userId: demoUserId ?? undefined }
-        );
+        // Demo-only optimization:
+        // For the A22A/A22B quiz, avoid the final AI call and immediately show
+        // the prescription modal by deriving `resep` from the answers we've
+        // already collected.
+        const expectedAnswers =
+          templateCode === 'A22A' ? 7 : templateCode === 'A22B' ? 6 : 0;
+
+        if (expectedAnswers > 0) {
+          const userMessagesInChat = newChatsToAdd
+            .filter((m) => m.type_user === 'user')
+            .map((m) => m.message);
+          const answers = userMessagesInChat.slice(1); // exclude the initial topic message
+
+          if (answers.length === expectedAnswers) {
+            const quizAnswers = answers;
+
+            const marriageAnswer = quizAnswers[0];
+            const incomeIndex = templateCode === 'A22A' ? 2 : 1;
+            const installmentIndex = templateCode === 'A22A' ? 4 : 3;
+
+            const marriageStatus = handleMarriageStatus(marriageAnswer);
+            const penghasilan = convertRupiahToNumber(
+              quizAnswers[incomeIndex] || '',
+            );
+            const tagihan = convertRupiahToNumber(
+              quizAnswers[installmentIndex] || '',
+            );
+
+            const maxCicilan = penghasilan * 0.3;
+            const apakahCicilanTerlaluBanyak = tagihan > maxCicilan;
+
+            const resepMessage = apakahCicilanTerlaluBanyak
+              ? 'Tugasmu yang utama adalah mengurangi cicilan-cicilan ini dan kurangi biaya ngopi, biaya nonton atau hang out dulu ya, sampai cicilan-cicilanmu totalnya maksimal hanya 30% dari pendapatanmu bulanan.'
+              : 'Kamu sudah lumayan sehat, pastikan cicilanmu per bulan kurang dari 30%, dan pastikan kehidupan sehari-harimu (beli makan, uang transport, beli sembako, dll) itu terpenuhi dengan maksimal 50% dari pendapatan bulananmu.';
+
+            const botMessage = `${resepMessage} Ini resepmu, ya. Anda boleh mencoba kalkulator finansial yang tersedia di halaman utama.`;
+
+            setIsMarried(marriageStatus);
+            setGaji(penghasilan);
+            setCicilan(tagihan);
+            setResep({
+              profile: '',
+              text: resepMessage,
+              allocation: [],
+            });
+
+            setFinancialIssueCode('resep');
+            setChatType('financial_choices');
+            setIsResepModalOpen(true);
+
+            setChatRoomMessages([
+              ...newChatsToAdd,
+              {
+                type_user: 'bot',
+                message: botMessage,
+                conversation_id: 'demo',
+                room_id: 'demo',
+              },
+            ]);
+            setMessagesToAdded(null);
+            setMessage('');
+            onChatSent();
+            return;
+          }
+        }
+
+        const { stream, userId } = await askDemoAIStream(newMessage, {
+          userId: demoUserId ?? undefined,
+          history: previousMessages,
+        });
+
+        if (userId && !demoUserId) {
+          setDemoUserId(userId);
+        }
+
         const reader = stream.getReader();
         const decoder = new TextDecoder();
         let botMessage = '';
@@ -754,15 +825,22 @@ export default function MessengerV2({
 
   const handleTemplateMsg = (templateId: string, displayText?: string) => {
     if (QUIZ_DISABLED_TEMPLATES.includes(templateId)) {
-      const message = displayText || getTemplateTopic(templateId);
+      setTemplateCode(templateId);
+
+      const baseTopic = displayText || getTemplateTopic(templateId, lang);
+      const message =
+        lang === 'en'
+          ? `${baseTopic}`
+          : baseTopic;
+
       void sendMessage(message);
       return;
     }
     setChatType('template');
     setTemplateCode(templateId);
     setTemplateAnswers([]);
-    const template = getTemplateQuestions(templateId);
-    const topic = getTemplateTopic(templateId);
+    const template = getTemplateQuestions(templateId, lang);
+    const topic = getTemplateTopic(templateId, lang);
     setTemplateTopic(topic);
     setTemplateQuestions(template);
     setChatRoomMessages([
@@ -851,6 +929,41 @@ export default function MessengerV2({
     ];
 
     if (currentAnswerLength === templateQuestions.length) {
+      // Demo mode: skip AI call and show prescription immediately.
+      // Non-demo mode keeps the old behavior because the backend flow
+      // is responsible for room creation / recipe generation.
+      if (isDemoMode) {
+        const maxCicilan = gaji * 0.3;
+        const apakahCicilanTerlaluBanyak = cicilan > maxCicilan;
+
+        const resepMessage = apakahCicilanTerlaluBanyak
+          ? 'Tugasmu yang utama adalah mengurangi cicilan-cicilan ini dan kurangi biaya ngopi, biaya nonton atau hang out dulu ya, sampai cicilan-cicilanmu totalnya maksimal hanya 30% dari pendapatanmu bulanan.'
+          : 'Kamu sudah lumayan sehat, pastikan cicilanmu per bulan kurang dari 30%, dan pastikan kehidupan sehari-harimu (beli makan, uang transport, beli sembako, dll) itu terpenuhi dengan maksimal 50% dari pendapatan bulananmu.';
+
+        const botMessage = `${resepMessage} Ini resepmu, ya. Anda boleh mencoba kalkulator finansial yang tersedia di halaman utama.`;
+
+        setResep({
+          profile: '',
+          text: resepMessage,
+          allocation: [],
+        });
+        setFinancialIssueCode('resep');
+        setChatType('financial_choices');
+        setIsResepModalOpen(true);
+
+        newChatsToAdd.push({
+          type_user: 'bot',
+          message: botMessage,
+        });
+
+        setChatRoomMessages(newChatsToAdd);
+        setMessagesToAdded(null);
+        setMessage('');
+        onChatSent();
+        setIsLoading(false);
+        return;
+      }
+
       setChatType('ai');
       sendTemplateMessage(currentAnswer);
     } else if (currentAnswerLength < templateQuestions.length) {
