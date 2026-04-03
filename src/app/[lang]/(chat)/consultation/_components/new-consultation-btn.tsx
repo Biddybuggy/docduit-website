@@ -41,7 +41,7 @@ export default function NewConsultationBtn({
     setTemplateQuestions([]);
     setTemplateChoices([]);
     setTemplateAnswers([]);
-    setChoiceScore(0);
+    setChoiceScore([]);
     setGaji(0);
     setCicilan(0);
     setIsMarried(false);

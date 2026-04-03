@@ -17,6 +17,7 @@ import {
   getChoicesTemplateOptions,
   getChoicesTemplateQuestions,
   getChoicesTemplateTopic,
+  getTemplateConversations,
   getTemplateQuestions,
   getTemplateTopic,
 } from '@/lib/template-chat';
@@ -123,7 +124,7 @@ export default function MessengerV2({
       setTemplateQuestions([]);
       setTemplateChoices([]);
       setTemplateAnswers([]);
-      setChoiceScore(0);
+      setChoiceScore([]);
       setGaji(0);
       setCicilan(0);
       setIsMarried(false);
@@ -821,7 +822,7 @@ export default function MessengerV2({
     }
   };
 
-  const QUIZ_DISABLED_TEMPLATES = ['A22A', 'A22B'];
+  const QUIZ_DISABLED_TEMPLATES: string[] = [];
 
   const handleTemplateMsg = (templateId: string, displayText?: string) => {
     if (QUIZ_DISABLED_TEMPLATES.includes(templateId)) {
@@ -839,10 +840,12 @@ export default function MessengerV2({
     setChatType('template');
     setTemplateCode(templateId);
     setTemplateAnswers([]);
+    const conversations = getTemplateConversations(templateId, lang);
     const template = getTemplateQuestions(templateId, lang);
     const topic = getTemplateTopic(templateId, lang);
     setTemplateTopic(topic);
     setTemplateQuestions(template);
+    setTemplateChoices(conversations.map(item => item.options || []));
     setChatRoomMessages([
       {
         type_user: 'user',
@@ -977,7 +980,7 @@ export default function MessengerV2({
 
   const handleAnswerChoices = async (answer: string, score: number) => {
     setMessage('');
-    const currentScore = choiceScore + score;
+    const currentScore = [...choiceScore, score];
     const currentAnswerLength = templateAnswers.length + 1;
     const newChatsToAdd: ChatMessage[] = [
       ...(chatRoomMessages || []),
@@ -990,7 +993,7 @@ export default function MessengerV2({
       setChatType('ai');
       newChatsToAdd.push({
         type_user: 'bot',
-        message: getChoicesTemplateAnswer(currentScore, lang),
+        message: getChoicesTemplateAnswer(currentScore, lang, templateTopic),
       });
 
       if (!isDemoMode) {
@@ -1000,7 +1003,8 @@ export default function MessengerV2({
           room_id: null,
           topic: 'Bagaimana memilih instrumen investasi yang tepat',
         };
-        await updateRiskProfile(currentScore, user?.accessToken as string);
+        const totalScore = currentScore.reduce((a, b) => a + b, 0);
+        await updateRiskProfile(totalScore, user?.accessToken as string);
         const response = await saveRiskProfileMessage(
           saveMessagePayload,
           user?.accessToken as string,
@@ -1182,7 +1186,7 @@ export default function MessengerV2({
         );
       }
 
-      const answerMsg = getChoicesTemplateAnswer((riskScore ?? 3) as number, lang);
+      const answerMsg = getChoicesTemplateAnswer([(riskScore ?? 3) as number], lang);
       newChatsToAdd.push({
         type_user: 'bot',
         message: answerMsg,
@@ -1283,6 +1287,19 @@ export default function MessengerV2({
               <div
                 key={index}
                 onClick={() => handleAnswerChoices(choice, index + 1)}
+                className='p-4 border-2 rounded-lg flex gap-4 hover:bg-gray-100 cursor-pointer'
+              >
+                <p>{choice}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {chatType === 'template' && !isLoadingUser && (
+          <div className='flex flex-col gap-2'>
+            {templateChoices[templateAnswers.length]?.map((choice, index) => (
+              <div
+                key={index}
+                onClick={() => handleAnswerTemplate(choice)}
                 className='p-4 border-2 rounded-lg flex gap-4 hover:bg-gray-100 cursor-pointer'
               >
                 <p>{choice}</p>
@@ -1397,7 +1414,7 @@ export default function MessengerV2({
             )}
           </div>
         )}
-        {chatType !== 'choices' && chatType !== 'financial_choices' && (
+        {chatType !== 'choices' && chatType !== 'financial_choices' && chatType !== 'template' && (
           <div className='rounded-full flex justify-center items-center border-2'>
             <Input
               disabled={

@@ -33,8 +33,8 @@ interface ChatContextType {
   setMessage: (value: string) => void;
   chatType: string;
   setChatType: (value: string) => void;
-  choiceScore: number;
-  setChoiceScore: (value: number) => void;
+  choiceScore: number[];
+  setChoiceScore: (value: number[]) => void;
   templateTopic: string;
   setTemplateTopic: (value: string) => void;
   templateQuestions: string[];
@@ -57,7 +57,6 @@ interface ChatContextType {
   setResep: (value: IResep) => void;
   getChatRoomByIdLoading: boolean;
   setGetChatRoomByIdLoading: (value: boolean) => void;
-  /** Demo mode: stable userId for Stack AI conversation memory. Cleared on new consultation. */
   demoUserId: string | null;
   setDemoUserId: (value: string | null) => void;
 }
@@ -76,7 +75,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [conversationId, setConversationId] = useState<string | null>(null); //
   const [message, setMessage] = useState(''); //
   const [chatType, setChatType] = useState('ai'); //
-  const [choiceScore, setChoiceScore] = useState(0); //
+  const [choiceScore, setChoiceScore] = useState<number[]>([]); //
   const [templateTopic, setTemplateTopic] = useState<string>(''); //
   const [templateQuestions, setTemplateQuestions] = useState<string[]>([]); //
   const [templateChoices, setTemplateChoices] = useState<string[][]>([]); //

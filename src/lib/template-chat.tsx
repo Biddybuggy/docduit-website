@@ -5,7 +5,9 @@ export const templateIDList = ['A22A', 'A22B', 'A22C'];
 
 export type TemplateConversations = {
   id: string;
-  questions: string[];
+  question?: string;
+  questions?: string[];
+  options?: string[];
 };
 
 export type TemplateTopic = {
@@ -27,59 +29,38 @@ export const templateChatLibraries: TemplateTopic[] = [
     conversations: [
       {
         id: 'A22A1',
-        questions: [
-          'Kamu sudah menikah atau belum?',
-          'Apakah kamu sudah berkeluarga?',
-          'Kamu sudah punya pasangan hidup atau belum?',
-        ],
+        question: 'Apakah kamu sudah menikah?',
+        options: ['Belum', 'Sudah']
       },
       {
         id: 'A22A2',
-        questions: [
-          'Apakah pengeluaranmu lebih besar daripada pendapatanmu?',
-          'Apakah pengeluaranmu melebihi pendapatanmu?',
-          'Apakah kamu menghabiskan lebih banyak uang daripada yang kamu dapatkan?',
-          'Apakah belanjaanmu lebih banyak dibandingkan dengan penghasilanmu?',
-        ],
+        question: 'Apakah pengeluaranmu lebih besar daripada pendapatanmu?',
+        options: ['Ya', 'Tidak']
       },
       {
         id: 'A22A3',
-        questions: [
-          'Pada prinsipnya, 20% dari pendapatan itu ditabung, 30% untuk bayar cicilan-cicilan (cicilan HP, cicilan motor, cicilan rumah, cicilan TV, cicilan kartu kredit, dll), dan kita hidup sehari-hari dengan setengah dari gaji kita (untuk makan, transportasi, jajan, beli baju, beli sepatu, dll). Berapakah pendapatmu dalam sebulan?\n\nContoh masukkan: 8.000.000',
-          'Prinsipnya, 20% pendapatan ditabung, 30% untuk cicilan, dan 50% untuk kebutuhan sehari-hari. Berapa pendapatanmu dalam sebulan?\n\nContoh masukkan: 8.000.000',
-        ],
+        question: 'Berapakah pendapatmu dalam sebulan?',
+        options: ['Kurang dari 5 juta', '5-10 juta', '10-15 juta', 'Lebih dari 15 juta']
       },
       {
         id: 'A22A4',
-        questions: [
-          'Apakah kamu sudah punya  2 rekening bank?',
-          'Apakah kamu memiliki dua rekening bank?',
-        ],
+        question: 'Apakah kamu sudah punya 2 rekening bank?',
+        options: ['Ya', 'Tidak']
       },
       {
         id: 'A22A5',
-        questions: [
-          'berapakah total cicilan yang harus kamu bayar tiap bulan? (tips: sebaiknya hanya 30% untuk bayar cicilan-cicilan (cicilan HP, cicilan motor, cicilan rumah, cicilan kartu kredit, dll))\n\nContoh masukkan: 5.000.000',
-          'Berapa jumlah cicilan yang perlu kamu bayarkan setiap bulan? (Tips: Sebaiknya cicilan tidak lebih dari 30% dari pendapatanmu.)\n\nContoh masukkan: 5.000.000',
-        ],
+        question: 'Berapakah total cicilan yang harus kamu bayar tiap bulan?',
+        options: ['Kurang dari 1 juta', '1-3 juta', '3-5 juta', 'Lebih dari 5 juta']
       },
       {
         id: 'A22A6',
-        questions: [
-          'sudah pernah menabung emas',
-          'Apakah kamu sudah mencoba menabung emas?',
-          'Apakah kamu pernah menyimpan uang dalam bentuk emas?',
-          'Apakah kamu sudah pernah berinvestasi dalam emas?',
-        ],
+        question: 'Apakah kamu sudah pernah menabung emas?',
+        options: ['Sudah', 'Belum']
       },
       {
         id: 'A22A7',
-        questions: [
-          'sudah pernah menabung mata uang asing (USD, SGD, JPY, dll)',
-          'Apakah kamu sudah mencoba menabung  mata uang asing (USD, SGD, JPY, dll)',
-          'Apakah kamu sudah pernah menyimpan uang dalam bentuk mata uang asing (USD, SGD, JPY, dll)',
-          'apakah kamu sudah pernah berinvestasi dalam mata uang asing (USD, SGD, JPY, dll)',
-        ],
+        question: 'Apakah kamu sudah pernah menabung mata uang asing (USD, SGD, JPY, dll)?',
+        options: ['Sudah', 'Belum']
       },
     ],
   },
@@ -94,33 +75,33 @@ export const templateChatLibraries: TemplateTopic[] = [
     conversations: [
       {
         id: 'A22B1',
-        questions: ['Kamu sudah menikah atau belum?'],
+        question: 'Apakah kamu sudah menikah?',
+        options: ['Belum', 'Sudah']
       },
       {
         id: 'A22B2',
-        questions: [
-          'Pada prinsipnya, 20% dari pendapatan itu ditabung, 30% untuk bayar cicilan-cicilan (cicilan HP, cicilan motor, cicilan rumah, cicilan TV, cicilan kartu kredit, dll), dan kita hidup sehari-hari dengan setengah dari gaji kita (untuk makan, transportasi, jajan, beli baju, beli sepatu, dll). Berapakah pendapatmu dalam sebulan?\n\nContoh masukkan: 8.000.000',
-        ],
+        question: 'Berapakah pendapatmu dalam sebulan?',
+        options: ['Kurang dari 5 juta', '5-10 juta', '10-15 juta', 'Lebih dari 15 juta']
       },
       {
         id: 'A22B3',
-        questions: ['Apakah kamu sudah punya  2 rekening bank?'],
+        question: 'Apakah kamu sudah punya 2 rekening bank?',
+        options: ['Ya', 'Tidak']
       },
       {
         id: 'A22B4',
-        questions: [
-          'berapakah total cicilan yang harus kamu bayar tiap bulan? (tips: sebaiknya hanya 30% untuk bayar cicilan-cicilan (cicilan HP, cicilan motor, cicilan rumah, cicilan kartu kredit, dll))\n\nContoh masukkan: 5.000.000',
-        ],
+        question: 'Berapakah total cicilan yang harus kamu bayar tiap bulan?',
+        options: ['Kurang dari 1 juta', '1-3 juta', '3-5 juta', 'Lebih dari 5 juta']
       },
       {
         id: 'A22B5',
-        questions: ['sudah pernah menabung emas?'],
+        question: 'Apakah kamu sudah pernah menabung emas?',
+        options: ['Sudah', 'Belum']
       },
       {
         id: 'A22B6',
-        questions: [
-          'sudah pernah menabung mata uang asing (USD, SGD, JPY, dll)?',
-        ],
+        question: 'Apakah kamu sudah pernah menabung mata uang asing (USD, SGD, JPY, dll)?',
+        options: ['Sudah', 'Belum']
       },
     ],
   },
@@ -188,59 +169,38 @@ export const templateChatLibrariesEn: TemplateTopic[] = [
     conversations: [
       {
         id: 'A22A1',
-        questions: [
-          'Are you married yet?',
-          'Do you already have a family?',
-          'Do you already have a life partner?',
-        ],
+        question: 'Are you married or not?',
+        options: ['Not married', 'Married']
       },
       {
         id: 'A22A2',
-        questions: [
-          'Is your spending greater than your income?',
-          'Are your expenses higher than your income?',
-          'Do you spend more money than you earn?',
-          'Is your shopping spending higher than your earnings?',
-        ],
+        question: 'Is your spending greater than your income?',
+        options: ['Yes', 'No']
       },
       {
         id: 'A22A3',
-        questions: [
-          'In principle, 20% of your income is saved, 30% is for paying installments (phone installment, motor installment, home installment, TV installment, credit card installment, etc.), and you live your daily life with half of your salary (food, transport, snacks, buying clothes/shoes, etc.). What is your income per month?\n\nExample input: 8,000,000',
-          'The principle is: 20% of income goes to saving, 30% to installments, and 50% to daily needs. What is your monthly income?\n\nExample input: 8,000,000',
-        ],
+        question: 'What is your monthly income?',
+        options: ['Less than 5 million', '5-10 million', '10-15 million', 'More than 15 million']
       },
       {
         id: 'A22A4',
-        questions: [
-          'Do you already have 2 bank accounts?',
-          'Do you have two bank accounts?',
-        ],
+        question: 'Do you already have 2 bank accounts?',
+        options: ['Yes', 'No']
       },
       {
         id: 'A22A5',
-        questions: [
-          'How much total installments do you need to pay every month? (tip: ideally only ~30% should go to installments like phone installment, motor installment, home installment, TV installment, credit card installment, etc.)\n\nExample input: 5,000,000',
-          'How much do you need to pay in installments each month? (Tip: installments should not exceed 30% of your income.)\n\nExample input: 5,000,000',
-        ],
+        question: 'How much do you need to pay in total installments every month?',
+        options: ['Less than 1 million', '1-3 million', '3-5 million', 'More than 5 million']
       },
       {
         id: 'A22A6',
-        questions: [
-          'Have you ever saved money in gold?',
-          'Have you tried saving in gold?',
-          'Have you ever stored money in the form of gold?',
-          'Have you ever invested in gold?',
-        ],
+        question: 'Have you ever saved money in gold?',
+        options: ['Yes', 'No']
       },
       {
         id: 'A22A7',
-        questions: [
-          'Have you ever saved in foreign currency (USD, SGD, JPY, etc.)?',
-          'Have you tried saving in foreign currency (USD, SGD, JPY, etc.)?',
-          'Have you ever kept money in foreign currency (USD, SGD, JPY, etc.)?',
-          'Have you ever invested in foreign currency (USD, SGD, JPY, etc.)?',
-        ],
+        question: 'Have you ever saved in foreign currency (USD, SGD, JPY, etc.)?',
+        options: ['Yes', 'No']
       },
     ],
   },
@@ -255,33 +215,33 @@ export const templateChatLibrariesEn: TemplateTopic[] = [
     conversations: [
       {
         id: 'A22B1',
-        questions: ['Are you married yet?'],
+        question: 'Are you married or not?',
+        options: ['Not married', 'Married']
       },
       {
         id: 'A22B2',
-        questions: [
-          'In principle, 20% of your income is saved, 30% is for paying installments (phone installment, motor installment, home installment, TV installment, credit card installment, etc.), and you live your daily life with half of your salary (food, transport, snacks, buying clothes/shoes, etc.). What is your income per month?\n\nExample input: 8,000,000',
-        ],
+        question: 'What is your monthly income?',
+        options: ['Less than 5 million', '5-10 million', '10-15 million', 'More than 15 million']
       },
       {
         id: 'A22B3',
-        questions: ['Do you already have 2 bank accounts?'],
+        question: 'Do you already have 2 bank accounts?',
+        options: ['Yes', 'No']
       },
       {
         id: 'A22B4',
-        questions: [
-          'How much total installments do you need to pay every month? (tip: ideally only ~30% should go to installments like phone installment, motor installment, home installment, credit card installment, etc.)\n\nExample input: 5,000,000',
-        ],
+        question: 'How much do you need to pay in total installments every month?',
+        options: ['Less than 1 million', '1-3 million', '3-5 million', 'More than 5 million']
       },
       {
         id: 'A22B5',
-        questions: ['Have you ever saved in gold?'],
+        question: 'Have you ever saved money in gold?',
+        options: ['Yes', 'No']
       },
       {
         id: 'A22B6',
-        questions: [
-          'Have you ever saved in foreign currency (USD, SGD, JPY, etc.)?',
-        ],
+        question: 'Have you ever saved in foreign currency (USD, SGD, JPY, etc.)?',
+        options: ['Yes', 'No']
       },
     ],
   },
@@ -304,9 +264,15 @@ export const getTemplateQuestions = (id: string, lang: string = 'id'): string[] 
   if (!templateChat) return [];
   return (
     templateChat?.conversations.map((item) =>
-      getRandomFromStringArray(item?.questions || []),
+      item.question || getRandomFromStringArray(item?.questions || []),
     ) || []
   );
+};
+
+export const getTemplateConversations = (id: string, lang: string = 'id'): TemplateConversations[] => {
+  const libs = lang === 'en' ? templateChatLibrariesEn : templateChatLibraries;
+  const templateChat = libs.find((item) => item.id === id);
+  return templateChat?.conversations || [];
 };
 
 export const getTemplateTopic = (id: string, lang: string = 'id'): string => {
@@ -424,24 +390,99 @@ export const getChoicesTemplateOptions = (lang: string = 'id') => {
   return templateChat?.conversations?.map((item) => item.options) || [];
 };
 
-export const getChoicesTemplateAnswer = (score: number, lang: string = 'id') => {
+export const getChoicesTemplateAnswer = (scores: number[], lang: string = 'id', topic: string = '') => {
   const isEn = lang === 'en';
-  if (score >= 5 && score <= 7) {
-    return isEn
-      ? 'Risk Profile: **Conservative**\n\nYou prefer safety and stability, suitable for deposits, money market funds, or government bonds. Allocation:\n\n -Deposits/SBN (Retail Bonds): 20%\n\n -Gold: 25%\n\n -US Dollar Savings: 15%\n\n -Government Bonds IDR / USD: 30%\n\n -Stocks / Equity Funds: 10%'
-      : 'Profil Risiko: **Konservatif**\n\nAnda lebih suka keamanan dan stabilitas, cocok dengan deposito, reksa dana pasar uang, atau obligasi pemerintah. Alokasi:\n\n -Deposito/SBN (Retail Bonds): 20%\n\n -Emas: 25%\n\n -Tabungan US Dollar: 15%\n\n -Obligasi Pemerintah IDR / USD: 30%\n\n -Saham / Reksa Dana Saham: 10%';
-  } else if (score >= 8 && score <= 11) {
-    return isEn
-      ? 'Risk Profile: **Moderate**\n\nYou are willing to take limited risks for better returns, suitable for balanced funds or medium-term blue-chip stocks. Allocation:\n\n -Deposits/SBN (Retail Bonds): 15%\n\n -Gold: 15%\n\n -US Dollar Savings: 10%\n\n -Government Bonds IDR / USD: 35%\n\n -Stocks / Equity Funds: 25%'
-      : 'Profil Risiko: **Moderat**\n\nAnda bersedia mengambil risiko terbatas untuk imbal hasil yang lebih baik, cocok dengan reksa dana campuran atau saham blue chip jangka menengah. Alokasi:\n\n -Deposito/SBN (Retail Bonds): 15%\n\n -Emas: 15%\n\n -Tabungan US Dollar: 10%\n\n -Obligasi Pemerintah IDR / USD: 35%\n\n -Saham / Reksa Dana Saham: 25%';
-  } else if (score >= 12 && score <= 15) {
-    return isEn
-      ? 'Risk Profile: **Aggressive**\n\nYou are ready to take big risks for optimal growth, suitable for stocks, crypto, and alternative investments. Allocation:\n\n -Deposits/SBN (Retail Bonds): 10%\n\n -Gold: 10%\n\n -US Dollar Savings: 10%\n- Government Bonds IDR / USD: 20%\n\n -Stocks / Equity Funds: 50%'
-      : 'Profil Risiko: **Agresif**\n\nAnda siap mengambil risiko besar demi pertumbuhan optimal, cocok dengan saham, kripto, dan investasi alternatif. Alokasi:\n\n -Deposito/SBN (Retail Bonds): 10%\n\n -Emas: 10%\n\n -Tabungan US Dollar: 10%\n- Obligasi Pemerintah IDR / USD: 20%\n\n -Saham / Reksa Dana Saham: 50%';
+  if (topic.includes('investasi') || topic.includes('investment')) {
+    const total = scores.reduce((a, b) => a + b, 0);
+    if (total >= 5 && total <= 7) {
+      return isEn
+        ? 'Risk Profile: **Conservative**\n\nYou prefer safety and stability, suitable for deposits, money market funds, or government bonds. Allocation:\n\n -Deposits/SBN (Retail Bonds): 20%\n\n -Gold: 25%\n\n -US Dollar Savings: 15%\n\n -Government Bonds IDR / USD: 30%\n\n -Stocks / Equity Funds: 10%'
+        : 'Profil Risiko: **Konservatif**\n\nAnda lebih suka keamanan dan stabilitas, cocok dengan deposito, reksa dana pasar uang, atau obligasi pemerintah. Alokasi:\n\n -Deposito/SBN (Retail Bonds): 20%\n\n -Emas: 25%\n\n -Tabungan US Dollar: 15%\n\n -Obligasi Pemerintah IDR / USD: 30%\n\n -Saham / Reksa Dana Saham: 10%';
+    } else if (total >= 8 && total <= 11) {
+      return isEn
+        ? 'Risk Profile: **Moderate**\n\nYou are willing to take limited risks for better returns, suitable for balanced funds or medium-term blue-chip stocks. Allocation:\n\n -Deposits/SBN (Retail Bonds): 15%\n\n -Gold: 15%\n\n -US Dollar Savings: 10%\n\n -Government Bonds IDR / USD: 35%\n\n -Stocks / Equity Funds: 25%'
+        : 'Profil Risiko: **Moderat**\n\nAnda bersedia mengambil risiko terbatas untuk imbal hasil yang lebih baik, cocok dengan reksa dana campuran atau saham blue chip jangka menengah. Alokasi:\n\n -Deposito/SBN (Retail Bonds): 15%\n\n -Emas: 15%\n\n -Tabungan US Dollar: 10%\n\n -Obligasi Pemerintah IDR / USD: 35%\n\n -Saham / Reksa Dana Saham: 25%';
+    } else if (total >= 12 && total <= 15) {
+      return isEn
+        ? 'Risk Profile: **Aggressive**\n\nYou are ready to take big risks for optimal growth, suitable for stocks, crypto, and alternative investments. Allocation:\n\n -Deposits/SBN (Retail Bonds): 10%\n\n -Gold: 10%\n\n -US Dollar Savings: 10%\n- Government Bonds IDR / USD: 20%\n\n -Stocks / Equity Funds: 50%'
+        : 'Profil Risiko: **Agresif**\n\nAnda siap mengambil risiko besar demi pertumbuhan optimal, cocok dengan saham, kripto, dan investasi alternatif. Alokasi:\n\n -Deposito/SBN (Retail Bonds): 10%\n\n -Emas: 10%\n\n -Tabungan US Dollar: 10%\n- Obligasi Pemerintah IDR / USD: 20%\n\n -Saham / Reksa Dana Saham: 50%';
+    } else {
+      return isEn
+        ? 'Risk Profile: **Unknown**\n\nAllocation: Not available.'
+        : 'Profil Risiko: **Tidak Diketahui**\n\nAlokasi: Tidak tersedia.';
+    }
+  } else if (topic.includes('menabung') || topic.includes('save')) {
+    // Logic for saving
+    let message = '';
+    const [marriage, expenditure, income, accounts, cicilan, gold, foreign] = scores;
+    if (expenditure === 0) { // Ya, expenditure > income
+      message = isEn
+        ? 'Your expenditure is greater than your income. Focus on reducing expenses and increasing income. Reduce unnecessary costs like hanging out or impulse buying.'
+        : 'Pengeluaran Anda lebih besar dari pendapatan. Fokuslah untuk mengurangi pengeluaran dan meningkatkan pendapatan. Kurangi biaya yang tidak perlu seperti nongkrong atau belanja impulsif.';
+    } else {
+      const incomeApprox = [4, 7.5, 12.5, 20][income] * 1000000;
+      const cicilanApprox = [0.5, 2, 4, 6][cicilan] * 1000000;
+      if (cicilanApprox > incomeApprox * 0.3) {
+        message = isEn
+          ? 'Your installments are too large, maximum 30% of income. Reduce installments and living costs so you can save.'
+          : 'Cicilan Anda terlalu besar, maksimal 30% dari pendapatan. Kurangi cicilan dan biaya hidup agar bisa menabung.';
+      } else {
+        message = isEn
+          ? 'You are quite good at managing finances. Make sure savings 20%, installments max 30%, living needs 50%.'
+          : 'Anda sudah cukup baik dalam mengelola keuangan. Pastikan tabungan 20%, cicilan maksimal 30%, dan kebutuhan hidup 50%.';
+      }
+    }
+    if (accounts === 0) {
+      message += isEn
+        ? ' Create 2 bank accounts to separate savings from the main account.'
+        : ' Buatlah 2 rekening bank untuk memisahkan tabungan dari rekening utama.';
+    }
+    if (gold === 0) {
+      message += isEn
+        ? ' Try saving gold as diversification.'
+        : ' Cobalah menabung emas sebagai diversifikasi.';
+    }
+    if (foreign === 0) {
+      message += isEn
+        ? ' Try saving foreign currency for hedging.'
+        : ' Cobalah menabung mata uang asing untuk lindung nilai.';
+    }
+    return message;
+  } else if (topic.includes('membagi gaji') || topic.includes('divide salary')) {
+    // Logic for salary division
+    let message = '';
+    const [marriage, income, accounts, cicilan, gold, foreign] = scores;
+    const incomeApprox = [4, 7.5, 12.5, 20][income] * 1000000;
+    const cicilanApprox = [0.5, 2, 4, 6][cicilan] * 1000000;
+    if (cicilanApprox > incomeApprox * 0.3) {
+      message = isEn
+        ? 'Your installments are too large, maximum 30% of income. Reduce installments and living costs so you can save.'
+        : 'Cicilan Anda terlalu besar, maksimal 30% dari pendapatan. Kurangi cicilan dan biaya hidup agar bisa menabung.';
+    } else {
+      message = isEn
+        ? 'You are quite good at managing finances. Make sure savings 20%, installments max 30%, living needs 50%.'
+        : 'Anda sudah cukup baik dalam mengelola keuangan. Pastikan tabungan 20%, cicilan maksimal 30%, dan kebutuhan hidup 50%.';
+    }
+    if (accounts === 0) {
+      message += isEn
+        ? ' Create 2 bank accounts to separate savings from the main account.'
+        : ' Buatlah 2 rekening bank untuk memisahkan tabungan dari rekening utama.';
+    }
+    if (gold === 0) {
+      message += isEn
+        ? ' Try saving gold as diversification.'
+        : ' Cobalah menabung emas sebagai diversifikasi.';
+    }
+    if (foreign === 0) {
+      message += isEn
+        ? ' Try saving foreign currency for hedging.'
+        : ' Cobalah menabung mata uang asing untuk lindung nilai.';
+    }
+    return message;
   } else {
     return isEn
-      ? 'Risk Profile: **Unknown**\n\nAllocation: Not available.'
-      : 'Profil Risiko: **Tidak Diketahui**\n\nAlokasi: Tidak tersedia.';
+      ? 'Unknown topic.'
+      : 'Topik tidak dikenal.';
   }
 };
 
