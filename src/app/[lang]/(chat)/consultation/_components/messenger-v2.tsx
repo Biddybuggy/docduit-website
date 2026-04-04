@@ -377,11 +377,16 @@ export default function MessengerV2({
 
     // Jika ini adalah jawaban untuk pertanyaan hutang
     if (chatType === 'debt_question' && financialIssueCode === 'hutang') {
-      const botMessage = `Silahkan menyisihkan 50% dari gaji dalam satu bulan untuk membayar hutang sampai hutangmu lunas. Sisihkan 10% untuk ditabung, dan sisa 40% untuk kehidupan sehari-hari. Ini resepmu, ya. Untuk mengetahui risk profilemu, silahkan klik tombol di bawah.`;
+      const debtText = lang === 'en'
+        ? 'Please set aside 50% of your monthly salary to pay off your debt until it is cleared. Save 10% and use the remaining 40% for daily living expenses.'
+        : 'Silahkan menyisihkan 50% dari gaji dalam satu bulan untuk membayar hutang sampai hutangmu lunas. Sisihkan 10% untuk ditabung, dan sisa 40% untuk kehidupan sehari-hari.';
+      const botMessage = lang === 'en'
+        ? `${debtText} This is your prescription. To see your risk profile, please click the button below.`
+        : `${debtText} Ini resepmu, ya. Untuk mengetahui risk profilemu, silahkan klik tombol di bawah.`;
 
       setResep({
         profile: '',
-        text: `Silahkan menyisihkan 50% dari gaji dalam satu bulan untuk membayar hutang sampai hutangmu lunas. Sisihkan 10% untuk ditabung, dan sisa 40% untuk kehidupan sehari-hari.`,
+        text: debtText,
         allocation: [],
       });
 
@@ -420,7 +425,7 @@ export default function MessengerV2({
           is_married: isMarried,
           profile: '',
           room_id: roomIdFromQuery || null,
-          text: `Silahkan menyisihkan 50% dari gaji dalam satu bulan untuk membayar hutang sampai hutangmu lunas. Sisihkan 10% untuk ditabung, dan sisa 40% untuk kehidupan sehari-hari.`,
+          text: debtText,
         };
         await saveRecipe(saveRecipePayload, user?.accessToken as string);
         mutate('chat-room-history');
@@ -492,11 +497,17 @@ export default function MessengerV2({
             const maxCicilan = penghasilan * 0.3;
             const apakahCicilanTerlaluBanyak = tagihan > maxCicilan;
 
-            const resepMessage = apakahCicilanTerlaluBanyak
-              ? 'Tugasmu yang utama adalah mengurangi cicilan-cicilan ini dan kurangi biaya ngopi, biaya nonton atau hang out dulu ya, sampai cicilan-cicilanmu totalnya maksimal hanya 30% dari pendapatanmu bulanan.'
-              : 'Kamu sudah lumayan sehat, pastikan cicilanmu per bulan kurang dari 30%, dan pastikan kehidupan sehari-harimu (beli makan, uang transport, beli sembako, dll) itu terpenuhi dengan maksimal 50% dari pendapatan bulananmu.';
+            const resepMessage = lang === 'en'
+              ? apakahCicilanTerlaluBanyak
+                ? 'Your main task is to reduce these installments and cut back on coffee, entertainment, or hanging out until your total installments are at most 30% of your monthly income.'
+                : 'You are in fairly good shape. Make sure your monthly installments are below 30%, and keep your daily living expenses (food, transport, groceries, etc.) to a maximum of 50% of your monthly income.'
+              : apakahCicilanTerlaluBanyak
+                ? 'Tugasmu yang utama adalah mengurangi cicilan-cicilan ini dan kurangi biaya ngopi, biaya nonton atau hang out dulu ya, sampai cicilan-cicilanmu totalnya maksimal hanya 30% dari pendapatanmu bulanan.'
+                : 'Kamu sudah lumayan sehat, pastikan cicilanmu per bulan kurang dari 30%, dan pastikan kehidupan sehari-harimu (beli makan, uang transport, beli sembako, dll) itu terpenuhi dengan maksimal 50% dari pendapatan bulananmu.';
 
-            const botMessage = `${resepMessage} Ini resepmu, ya. Anda boleh mencoba kalkulator finansial yang tersedia di halaman utama.`;
+            const botMessage = lang === 'en'
+              ? `${resepMessage} This is your prescription. You may try the financial calculators available on the homepage.`
+              : `${resepMessage} Ini resepmu, ya. Anda boleh mencoba kalkulator finansial yang tersedia di halaman utama.`;
 
             setIsMarried(marriageStatus);
             setGaji(penghasilan);
@@ -509,7 +520,6 @@ export default function MessengerV2({
 
             setFinancialIssueCode('resep');
             setChatType('financial_choices');
-            setIsResepModalOpen(true);
 
             setChatRoomMessages([
               ...newChatsToAdd,
@@ -939,11 +949,17 @@ export default function MessengerV2({
         const maxCicilan = gaji * 0.3;
         const apakahCicilanTerlaluBanyak = cicilan > maxCicilan;
 
-        const resepMessage = apakahCicilanTerlaluBanyak
-          ? 'Tugasmu yang utama adalah mengurangi cicilan-cicilan ini dan kurangi biaya ngopi, biaya nonton atau hang out dulu ya, sampai cicilan-cicilanmu totalnya maksimal hanya 30% dari pendapatanmu bulanan.'
-          : 'Kamu sudah lumayan sehat, pastikan cicilanmu per bulan kurang dari 30%, dan pastikan kehidupan sehari-harimu (beli makan, uang transport, beli sembako, dll) itu terpenuhi dengan maksimal 50% dari pendapatan bulananmu.';
+        const resepMessage = lang === 'en'
+          ? apakahCicilanTerlaluBanyak
+            ? 'Your main task is to reduce these installments and cut back on coffee, entertainment, or hanging out until your total installments are at most 30% of your monthly income.'
+            : 'You are in fairly good shape. Make sure your monthly installments are below 30%, and keep your daily living expenses (food, transport, groceries, etc.) to a maximum of 50% of your monthly income.'
+          : apakahCicilanTerlaluBanyak
+            ? 'Tugasmu yang utama adalah mengurangi cicilan-cicilan ini dan kurangi biaya ngopi, biaya nonton atau hang out dulu ya, sampai cicilan-cicilanmu totalnya maksimal hanya 30% dari pendapatanmu bulanan.'
+            : 'Kamu sudah lumayan sehat, pastikan cicilanmu per bulan kurang dari 30%, dan pastikan kehidupan sehari-harimu (beli makan, uang transport, beli sembako, dll) itu terpenuhi dengan maksimal 50% dari pendapatan bulananmu.';
 
-        const botMessage = `${resepMessage} Ini resepmu, ya. Anda boleh mencoba kalkulator finansial yang tersedia di halaman utama.`;
+        const botMessage = lang === 'en'
+          ? `${resepMessage} This is your prescription. You may try the financial calculators available on the homepage.`
+          : `${resepMessage} Ini resepmu, ya. Anda boleh mencoba kalkulator finansial yang tersedia di halaman utama.`;
 
         setResep({
           profile: '',
@@ -952,7 +968,6 @@ export default function MessengerV2({
         });
         setFinancialIssueCode('resep');
         setChatType('financial_choices');
-        setIsResepModalOpen(true);
 
         newChatsToAdd.push({
           type_user: 'bot',
@@ -1061,17 +1076,17 @@ export default function MessengerV2({
 
       const apakahCicilanTerlaluBanyak = cicilan > maxCicilan;
 
-      let resepMessage = '';
+      const resepMessage = lang === 'en'
+        ? apakahCicilanTerlaluBanyak
+          ? 'Your main task is to reduce these installments and cut back on coffee, entertainment, or hanging out until your total installments are at most 30% of your monthly income.'
+          : 'You are in fairly good shape. Make sure your monthly installments are below 30%, and keep your daily living expenses (food, transport, groceries, etc.) to a maximum of 50% of your monthly income.'
+        : apakahCicilanTerlaluBanyak
+          ? 'Tugasmu yang utama adalah mengurangi cicilan-cicilan ini dan kurangi biaya ngopi, biaya nonton atau hang out dulu ya, sampai cicilan-cicilanmu totalnya maksimal hanya 30% dari pendapatanmu bulanan.'
+          : 'Kamu sudah lumayan sehat, pastikan cicilanmu per bulan kurang dari 30%, dan pastikan kehidupan sehari-harimu (beli makan, uang transport, beli sembako, dll) itu terpenuhi dengan maksimal 50% dari pendapatan bulananmu.';
 
-      if (apakahCicilanTerlaluBanyak) {
-        resepMessage =
-          'Tugasmu yang utama adalah mengurangi cicilan-cicilan ini dan kurangi biaya ngopi, biaya nonton atau hang out dulu ya, sampai cicilan-cicilanmu totalnya maksimal hanya 30% dari pendapatanmu bulanan.';
-      } else {
-        resepMessage =
-          'Kamu sudah lumayan sehat, pastikan cicilanmu per bulan kurang dari 30%, dan pastikan kehidupan sehari-harimu (beli makan, uang transport, beli sembako, dll) itu terpenuhi dengan maksimal 50% dari pendapatan bulananmu.';
-      }
-
-      const botMessage = `${resepMessage} Ini resepmu, ya. Anda boleh mencoba kalkulator finansial yang tersedia di halaman utama.`;
+      const botMessage = lang === 'en'
+        ? `${resepMessage} This is your prescription. You may try the financial calculators available on the homepage.`
+        : `${resepMessage} Ini resepmu, ya. Anda boleh mencoba kalkulator finansial yang tersedia di halaman utama.`;
       setResep({
         profile: '',
         text: resepMessage,
@@ -1317,7 +1332,7 @@ export default function MessengerV2({
                       ? undefined
                       : () =>
                           handleFinancialIssueChoice(
-                            'Ketahui profil resiko saya.',
+                            lang === 'en' ? 'Know my risk profile.' : 'Ketahui profil resiko saya.',
                             'risk_profile',
                           )
                   }
@@ -1327,10 +1342,12 @@ export default function MessengerV2({
                       : 'hover:bg-gray-100 cursor-pointer'
                   }`}
                 >
-                  <p>Ketahui profil resiko saya.</p>
+                  <p>{lang === 'en' ? 'Know my risk profile.' : 'Ketahui profil resiko saya.'}</p>
                   {riskProfileData?.data.risk_score === 0 && (
                     <p className='text-xs text-gray-500'>
-                      Silakan isi instrumen investasi terlebih dahulu
+                      {lang === 'en'
+                        ? 'Please fill in your investment instrument first.'
+                        : 'Silakan isi instrumen investasi terlebih dahulu'}
                     </p>
                   )}
                 </div>
@@ -1338,7 +1355,7 @@ export default function MessengerV2({
                   onClick={() => setIsResepModalOpen(true)}
                   className='p-4 border-2 rounded-lg flex gap-4 hover:bg-gray-100 cursor-pointer'
                 >
-                  <p>Buka resep hasil konsultasi.</p>
+                  <p>{lang === 'en' ? 'Open consultation prescription.' : 'Buka resep hasil konsultasi.'}</p>
                 </div>
               </>
             ) : financialIssueCode === 'hutang' ||
@@ -1351,7 +1368,7 @@ export default function MessengerV2({
                       ? undefined
                       : () =>
                           handleFinancialIssueChoice(
-                            'Ketahui profil resiko saya.',
+                            lang === 'en' ? 'Know my risk profile.' : 'Ketahui profil resiko saya.',
                             'risk_profile',
                           )
                   }
@@ -1361,10 +1378,12 @@ export default function MessengerV2({
                       : 'hover:bg-gray-100 cursor-pointer'
                   }`}
                 >
-                  <p>Ketahui profil resiko saya.</p>
+                  <p>{lang === 'en' ? 'Know my risk profile.' : 'Ketahui profil resiko saya.'}</p>
                   {riskProfileData?.data.risk_score === 0 && (
                     <p className='text-xs text-gray-500'>
-                      Silakan isi instrumen investasi terlebih dahulu
+                      {lang === 'en'
+                        ? 'Please fill in your investment instrument first.'
+                        : 'Silakan isi instrumen investasi terlebih dahulu'}
                     </p>
                   )}
                 </div>
@@ -1372,7 +1391,7 @@ export default function MessengerV2({
                   onClick={() => setIsResepModalOpen(true)}
                   className='p-4 border-2 rounded-lg flex gap-4 hover:bg-gray-100 cursor-pointer'
                 >
-                  <p>Buka resep hasil konsultasi.</p>
+                  <p>{lang === 'en' ? 'Open consultation prescription.' : 'Buka resep hasil konsultasi.'}</p>
                 </div>
               </>
             ) : financialIssueCode === 'risk_profile' ? (
@@ -1380,10 +1399,15 @@ export default function MessengerV2({
                 onClick={() => setIsResepModalOpen(true)}
                 className='p-4 border-2 rounded-lg flex gap-4 hover:bg-gray-100 cursor-pointer'
               >
-                <p>Buka resep hasil konsultasi.</p>
+                <p>{lang === 'en' ? 'Open consultation prescription.' : 'Buka resep hasil konsultasi.'}</p>
               </div>
             ) : financialIssueCode === 'resep' ? (
-              <div> </div>
+              <div
+                onClick={() => setIsResepModalOpen(true)}
+                className='p-4 border-2 rounded-lg flex gap-4 hover:bg-gray-100 cursor-pointer'
+              >
+                <p>{lang === 'en' ? 'Open consultation prescription.' : 'Buka resep hasil konsultasi.'}</p>
+              </div>
             ) : (
               financialChoices.map((choice, index) => (
                 <div
@@ -1406,7 +1430,9 @@ export default function MessengerV2({
                   {choice.code === 'investasi' &&
                     riskProfileData?.data.risk_score === 0 && (
                       <p className='text-xs text-gray-500'>
-                        Silakan isi instrumen investasi terlebih dahulu
+                        {lang === 'en'
+                          ? 'Please fill in your investment instrument first.'
+                          : 'Silakan isi instrumen investasi terlebih dahulu'}
                       </p>
                     )}
                 </div>
