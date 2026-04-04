@@ -39,7 +39,7 @@ export const templateChatLibraries: TemplateTopic[] = [
       },
       {
         id: 'A22A3',
-        question: 'Berapakah pendapatmu dalam sebulan (IDR)?',
+        question: 'Berapakah pendapatmu dalam sebulan (Rupiah)?',
         options: ['Kurang dari 5 juta', '5-10 juta', '10-15 juta', 'Lebih dari 15 juta']
       },
       {
@@ -179,7 +179,7 @@ export const templateChatLibrariesEn: TemplateTopic[] = [
       },
       {
         id: 'A22A3',
-        question: 'What is your monthly income (IDR)?',
+        question: 'What is your monthly income (Rupiah)?',
         options: ['Less than 5 million', '5-10 million', '10-15 million', 'More than 15 million']
       },
       {
