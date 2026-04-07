@@ -1,24 +1,32 @@
 'use client';
 import { Button } from '@/components/ui/button';
-import { useParams, useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
+import { useState } from 'react';
 
 interface AuthButtonProps {
   vocabularies: any;
 }
 
 export default function AuthButton({ vocabularies }: AuthButtonProps) {
-  const router = useRouter();
-  const params = useParams();
+  const [isLoading, setIsLoading] = useState(false);
   const {
-    common: { signIn },
+    common: { signIn: signInText },
   } = vocabularies;
 
-  const lang = (params.lang as string) === 'id' ? 'id' : 'en';
-  const goToMaintenance = () => router.push(`/${lang}/under-maintenance`);
+  const handleSignIn = async () => {
+    setIsLoading(true);
+    try {
+      await signIn('google', { callbackUrl: window.location.href });
+    } catch (error) {
+      console.error('Sign in error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <Button variant='red' onClick={goToMaintenance}>
-      {signIn}
+    <Button variant='red' onClick={handleSignIn} disabled={isLoading}>
+      {isLoading ? 'Signing in...' : signInText}
     </Button>
   );
 }

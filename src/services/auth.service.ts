@@ -1,4 +1,3 @@
-import { toast } from 'sonner';
 import fetcher from '@/lib/fetcher';
 import {
   AuthResponse,
@@ -21,7 +20,6 @@ export const login = async (payload: LoginPayload): Promise<AuthResponse> => {
       },
     );
   } catch (error) {
-    toast.error('Login failed. Please check your credentials.');
     throw error;
   }
 };
@@ -39,7 +37,6 @@ export const googleLogin = async (
       },
     );
   } catch (error) {
-    toast.error('Google login failed. Please try again.');
     throw error;
   }
 };

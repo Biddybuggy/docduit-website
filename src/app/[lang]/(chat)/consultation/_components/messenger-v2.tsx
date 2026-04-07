@@ -566,7 +566,6 @@ export default function MessengerV2({
           const { done, value } = await reader.read();
           if (done) break;
 
-          // Keep partial lines across chunk boundaries.
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() ?? '';
@@ -575,20 +574,15 @@ export default function MessengerV2({
             const line = rawLine.trim();
             if (!line) continue;
 
-            // SSE format: "data: <payload>"
             if (line.startsWith('data:')) {
               const data = line.slice(5).trim();
               if (data.startsWith('[DONE]')) {
-                // Finish streaming.
                 await reader.cancel().catch(() => {});
                 break;
               }
 
               try {
                 const parsed = JSON.parse(data);
-
-                // StackAI stream usually ends with something like:
-                // {"type":"stream_complete","message":"..."}
                 if (
                   typeof parsed?.type === 'string' &&
                   parsed.type.toLowerCase().includes('stream_complete')
@@ -597,23 +591,16 @@ export default function MessengerV2({
                   break;
                 }
 
-                // Extract token from multiple known payload shapes.
                 const token =
-                  // e.g. { "response": "..." }
                   (typeof parsed?.response === 'string' && parsed.response) ||
-                  // e.g. OpenAI-style { choices: [{ delta: { content: "..." } }] }
                   (typeof parsed?.choices?.[0]?.delta?.content === 'string' &&
                     parsed.choices[0].delta.content) ||
-                  // e.g. { delta: "..." } / { content: "..." } / { text: "..." }
                   (typeof parsed?.delta === 'string' && parsed.delta) ||
                   (typeof parsed?.content === 'string' && parsed.content) ||
                   (typeof parsed?.text === 'string' && parsed.text) ||
-                  (typeof parsed?.message === 'string' && parsed.message) ||
-                  // StackAI inference stream often looks like:
-                  // { outputs: { "out-0": "token", ... } }
+                  (typeof parsed?.message === 'string' && parsed.message) ||    
                   (typeof parsed?.outputs?.['out-0'] === 'string' &&
                     parsed.outputs['out-0']) ||
-                  // Fallback: first string in outputs.
                   (parsed?.outputs &&
                     typeof parsed.outputs === 'object' &&
                     !Array.isArray(parsed.outputs) &&
@@ -640,7 +627,6 @@ export default function MessengerV2({
                   });
                 }
               } catch {
-                // If the upstream isn't JSON, treat it as raw text token.
                 botMessage += data;
                 setChatRoomMessages((prev: ChatMessage[] | null) => {
                   if (!prev) return [];
@@ -660,10 +646,8 @@ export default function MessengerV2({
               continue;
             }
 
-            // Ignore common SSE metadata lines.
             if (line.startsWith('event:') || line.startsWith('id:')) continue;
 
-            // Some upstreams may send raw JSON lines without `data:` prefix.
             if (line.startsWith('{') && line.endsWith('}')) {
               try {
                 const parsed = JSON.parse(line);
@@ -699,12 +683,10 @@ export default function MessengerV2({
                   });
                 }
               } catch {
-                // Ignore unparseable JSON.
               }
               continue;
             }
 
-            // Otherwise ignore unknown non-token lines.
           }
         }
         setMessage('');
@@ -1293,7 +1275,6 @@ export default function MessengerV2({
                   </div>
                 </div>
               ))}
-
           </div>
         )}
         {chatType === 'choices' && !isLoadingUser && (

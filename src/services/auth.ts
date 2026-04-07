@@ -1,5 +1,6 @@
 import { AuthOptions, DefaultUser } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import { login, googleLogin, refreshToken } from '@/services/auth.service';
 import { LoginPayload, GoogleLoginPayload } from '@/types/auth.type';
 import { decode } from 'jsonwebtoken';
@@ -36,8 +37,12 @@ declare module 'next-auth/jwt' {
 }
 
 export const authOptions: AuthOptions = {
-  debug: true,
+  debug: process.env.NODE_ENV === 'development',
   providers: [
+    GoogleProvider({
+      clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
@@ -101,8 +106,30 @@ export const authOptions: AuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, user, account }) {
+      if (account?.provider === 'google') {
+        try {
+          const payload: GoogleLoginPayload = {
+            access_token: account.id_token!,
+            provider: 'google',
+          };
+          const response = await googleLogin(payload);
+          const decoded = decode(response.data.access_token) as {
+            exp: number;
+            username: string;
+          };
+
+          token.accessToken = response.data.access_token;
+          token.refreshToken = response.data.refresh_token;
+          token.expiresAt = decoded.exp * 1000;
+          token.username = decoded.username;
+        } catch (error) {
+          console.error('Google login error:', error);
+          throw new Error('Google login failed');
+        }
+      }
+
+      if (user && !account?.provider) {
         return {
           ...token,
           accessToken: user.accessToken,
@@ -167,7 +194,7 @@ export const authOptions: AuthOptions = {
   pages: {
     signIn: '/login',
     signOut: '/logout',
-    error: '/api/auth/error',
+    error: '/login',
   },
   secret: process.env.NEXTAUTH_SECRET,
 };
