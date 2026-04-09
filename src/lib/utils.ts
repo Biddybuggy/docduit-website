@@ -99,7 +99,6 @@ export const getRandomFromStringArray = (arr: string[]) => {
 export const handleMarriageStatus = (text: string): boolean => {
   const normalizedText = (text || '').toLowerCase().trim();
 
-  // Daftar kata kunci yang menunjukkan status sudah menikah
   const marriedKeywords = [
     'iya',
     'sudah',
@@ -136,7 +135,6 @@ export const handleMarriageStatus = (text: string): boolean => {
     'sudah membina rumah tangga',
   ];
 
-  // Daftar kata kunci yang secara eksplisit menunjukkan belum menikah / cerai
   const notMarriedKeywords = [
     'belum',
     'tidak',
@@ -177,46 +175,38 @@ export const handleMarriageStatus = (text: string): boolean => {
     'sudah tidak berkeluarga',
   ];
 
-  // Cek apakah teks mengandung kata kunci sudah menikah
+  
   const isMarriedStatus = marriedKeywords.some((keyword) =>
     normalizedText.includes(keyword),
   );
 
-  // Cek apakah teks mengandung kata kunci belum menikah atau tidak lagi menikah
   const isNotMarriedStatus = notMarriedKeywords.some((keyword) =>
     normalizedText.includes(keyword),
   );
 
-  // Set status berdasarkan prioritas:
-  // 1. Jika ada kata kunci belum menikah atau tidak lagi menikah, set false
-  // 2. Jika ada kata kunci sudah menikah, set true
-  // 3. Default ke false jika tidak ada kata kunci yang cocok
   return isNotMarriedStatus ? false : isMarriedStatus;
 };
 
 export const convertRupiahToNumber = (input: string | undefined): number => {
   if (!input) return 0;
   
-  // Normalisasi input: hapus spasi, Rp., dan akhiran ,- atau --
   const cleanedInput = input
     .trim()
-    .replace(/rp\.?|rupiah/gi, '') // Hapus "Rp" atau "rupiah"
-    .replace(/,--|,-/g, '') // Hapus ",-" atau "--"
-    .replace(/\s+/g, ''); // Hapus spasi
+    .replace(/rp\.?|rupiah/gi, '') 
+    .replace(/,--|,-/g, '') 
+    .replace(/\s+/g, ''); 
 
-  // Cek format numerik dengan pemisah ribuan (misal: "8,530,000", "8.543.000", "8,000,000")
   const numericMatch = cleanedInput.match(/^[\d,.]+$/);
   if (numericMatch) {
-    // Hapus pemisah ribuan (titik atau koma yang diikuti tepat 3 digit)
     const numStr = cleanedInput
-      .replace(/([,.])(\d{3})(\b)/g, '$2') // Hapus pemisah ribuan
-      .replace(/,/g, '.'); // Ganti koma desimal dengan titik
+      .replace(/([,.])(\d{3})(\b)/g, '$2') 
+      .replace(/,/g, '.'); 
     const num = parseFloat(numStr);
-    if (isNaN(num)) return 0; // Kembalikan 0 jika parsing gagal
-    return Math.floor(num); // Hilangkan desimal dan kembalikan bilangan bulat
+    if (isNaN(num)) return 0; 
+    return Math.floor(num); 
   }
 
-  // Jika input tidak valid, kembalikan 0
+
   return 0;
 };
 

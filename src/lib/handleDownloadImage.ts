@@ -24,7 +24,7 @@ export const handleDownloadImage = async (id: string) => {
             if (loaded === images.length) resolve(true);
           };
         }
-        // Selesaikan jika semua gambar sudah dicek
+        // Complete if all images have been checked
         if (loaded === images.length) resolve(true);
       });
     });

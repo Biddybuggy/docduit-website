@@ -139,7 +139,7 @@ export const authOptions: AuthOptions = {
         };
       }
 
-      const refreshThreshold = 60 * 1000; // 1 menit sebelum expired
+      const refreshThreshold = 60 * 1000; // 1 minute before expiration
       const now = Date.now();
 
       if (token.expiresAt && now > token.expiresAt - refreshThreshold) {
@@ -171,11 +171,10 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       if (token.error === 'RefreshAccessTokenError') {
-        // Mengembalikan sesi kosong untuk memicu logout
         return {
           ...session,
-          user: {}, // Kosongkan data user untuk menghapus sesi
-          expires: new Date(0).toISOString(), // Atur expires ke masa lalu untuk memastikan sesi tidak valid
+          user: {}, 
+          expires: new Date(0).toISOString(), 
         };
       }
       session.user = {

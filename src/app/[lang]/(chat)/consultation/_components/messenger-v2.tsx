@@ -375,7 +375,6 @@ export default function MessengerV2({
     ];
     setMessagesToAdded(newChatsToSave);
 
-    // Jika ini adalah jawaban untuk pertanyaan hutang
     if (chatType === 'debt_question' && financialIssueCode === 'hutang') {
       const debtText = lang === 'en'
         ? 'Please set aside 50% of your monthly salary to pay off your debt until it is cleared. Save 10% and use the remaining 40% for daily living expenses.'
