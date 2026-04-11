@@ -21,10 +21,10 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
-    if (session?.user?.accessToken) {
+    if (session?.user?.accessToken && !session?.user?.email) {
       fetchProfile(session.user.accessToken);
     }
-  }, [session?.user?.accessToken]);
+  }, [session?.user?.accessToken, session?.user?.email]);
 
   const loginWithCredentials = async (username: string, password: string) => {
     return await signIn('credentials', {

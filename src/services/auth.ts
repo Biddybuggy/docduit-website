@@ -9,17 +9,25 @@ import { signOut } from 'next-auth/react';
 declare module 'next-auth' {
   interface User {
     accessToken?: string;
+    idToken?: string;
     refreshToken?: string;
     expiresAt?: number;
     username?: string;
+    email?: string;
+    name?: string;
+    image?: string;
   }
 
   interface Session {
     user: {
       accessToken?: string;
+      idToken?: string;
       refreshToken?: string;
       expiresAt?: number;
       username?: string;
+      email?: string;
+      name?: string;
+      image?: string;
     } & DefaultUser;
 
     error?: string;
@@ -29,6 +37,7 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     accessToken?: string;
+    idToken?: string;
     refreshToken?: string;
     expiresAt?: number;
     username?: string;
@@ -42,6 +51,13 @@ export const authOptions: AuthOptions = {
     GoogleProvider({
       clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
+        },
+      },
     }),
     CredentialsProvider({
       name: 'Credentials',
@@ -108,25 +124,18 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user, account }) {
       if (account?.provider === 'google') {
-        try {
-          const payload: GoogleLoginPayload = {
-            access_token: account.id_token!,
-            provider: 'google',
-          };
-          const response = await googleLogin(payload);
-          const decoded = decode(response.data.access_token) as {
-            exp: number;
-            username: string;
-          };
+        token.accessToken = account.access_token ?? account.id_token;
+        token.idToken = account.id_token;
+        token.refreshToken = account.refresh_token ?? token.refreshToken;
 
-          token.accessToken = response.data.access_token;
-          token.refreshToken = response.data.refresh_token;
-          token.expiresAt = decoded.exp * 1000;
-          token.username = decoded.username;
-        } catch (error) {
-          console.error('Google login error:', error);
-          throw new Error('Google login failed');
+        if (account.expires_at) {
+          token.expiresAt = account.expires_at * 1000;
         }
+
+        token.username = user?.email || user?.name || token.username;
+        token.email = user?.email;
+        token.name = user?.name;
+        token.image = user?.image;
       }
 
       if (user && !account?.provider) {
@@ -173,16 +182,20 @@ export const authOptions: AuthOptions = {
       if (token.error === 'RefreshAccessTokenError') {
         return {
           ...session,
-          user: {}, 
-          expires: new Date(0).toISOString(), 
+          user: {},
+          expires: new Date(0).toISOString(),
         };
       }
       session.user = {
         ...session.user,
         accessToken: token.accessToken as string,
+        idToken: token.idToken as string,
         refreshToken: token.refreshToken as string,
         expiresAt: token.expiresAt as number,
         username: token.username as string,
+        email: token.email as string,
+        name: token.name as string,
+        image: token.image as string,
       };
       return session;
     },

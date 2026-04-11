@@ -28,32 +28,40 @@ export default function AuthenticationSection({
     isLoading: isLoadingProfile,
     error,
   } = useSWR(['user-info' + data?.user?.accessToken], () =>
-    data?.user?.accessToken && status === 'authenticated'
+    data?.user?.accessToken && status === 'authenticated' && !data?.user?.email
       ? getProfile(data?.user?.accessToken as string)
       : null,
   );
 
   useEffect(() => {
-    if (error) {
-      setUserInfo(null);
-    }
-
-    if (userData) {
-      setUserInfo({
-        fullname: userData?.data?.fullname,
-        username: userData?.data?.username,
-        picture: userData?.data?.avatar,
-      });
+    if (status === 'authenticated') {
+      // For Google users, use session data directly
+      if (data?.user?.email) {
+        setUserInfo({
+          fullname: data.user.name || data.user.email,
+          username: data.user.email,
+          picture: data.user.image,
+        });
+      } else if (userData) {
+        // For backend users, use API data
+        setUserInfo({
+          fullname: userData?.data?.fullname,
+          username: userData?.data?.username,
+          picture: userData?.data?.avatar,
+        });
+      } else if (error) {
+        setUserInfo(null);
+      }
     } else {
       setUserInfo(null);
     }
-  }, [userData, error]);
+  }, [data, userData, error, status]);
 
   return (
     <>
-      {status === 'loading' || isLoadingProfile ? (
+      {status === 'loading' || (isLoadingProfile && !data?.user?.email) ? (
         <ProfileComponentSkeleton />
-      ) : userData ? (
+      ) : userInfo ? (
         <ProfileComponent
           userInfo={userInfo}
           vocabularies={vocabularies}

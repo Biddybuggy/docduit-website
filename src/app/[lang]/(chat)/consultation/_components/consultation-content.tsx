@@ -17,10 +17,10 @@ interface ConsultationContentProps {
 export default function ConsultationContent({
   vocabularies,
 }: ConsultationContentProps) {
-  const [showHistory, setShowHistory] = useState(true);
+  const [showHistory, setShowHistory] = useState(false); // Start hidden for better UX
   const { user, isLoading } = useAuth();
   const showAuthDialog = !isDemoMode && !isLoading && !user;
-  const showHistorySidebar = !isDemoMode;
+  const showHistorySidebar = !isDemoMode || (user?.email); // Show for Google users even in demo mode
 
   return (
     <>
@@ -29,7 +29,7 @@ export default function ConsultationContent({
           <div
             className={cn(
               'min-w-[260px] max-w-[260px] bg-docduit-blue overflow-auto',
-              showHistory ? 'hidden lg:flex' : 'hidden',
+              showHistory ? 'flex' : 'hidden md:flex', // Show on md+ by default, toggleable
             )}
           >
             <div className='flex flex-col py-6 px-4 text-white h-full w-full'>
@@ -53,7 +53,7 @@ export default function ConsultationContent({
             <div
               className={cn(
                 'flex gap-4 items-end mb-4 p-4',
-                showHistory ? 'hidden' : 'hidden lg:flex',
+                showHistory ? 'hidden' : 'md:hidden flex', // Show toggle on small screens when sidebar is hidden
               )}
             >
               <PanelLeft

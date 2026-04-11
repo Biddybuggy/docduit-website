@@ -38,7 +38,11 @@ export interface ProfileResponse {
 
 export interface AuthToken {
   accessToken: string;
+  idToken?: string;
   refreshToken: string;
   expiresAt: number;
   username: string;
+  email?: string;
+  name?: string;
+  image?: string;
 }

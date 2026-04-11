@@ -32,7 +32,7 @@
   },
   "chat": {
     "history": {
-      "nohistory": "No consultation history yet."
+      "nohistory": "No previous conversations yet."
     },
     "placeholderNominal": "Enter amount (e.g. 10,000,000)",
     "placeholderQuestion": "Type your question",

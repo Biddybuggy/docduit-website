@@ -4,6 +4,7 @@ import { useChatContext } from '@/context/ChatContext';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { ChatRoomResponse, getAllRooms } from '@/services/chat.service';
+import { loadConversationsFromFirestore, loadConversationFromFirestore, FirestoreConversation } from '@/services/firebase.service';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
 
@@ -30,9 +31,9 @@ const HistoryChatContent = ({
 
   const roomId = searchParams.get('r');
 
-  const { data, error, isLoading } = useSWR<ChatRoomResponse, Error>(
-    user?.accessToken ? 'chat-room-history' : null,
-    ([token]) => getAllRooms(token as string),
+  const { data, error, isLoading } = useSWR<FirestoreConversation[], Error>(
+    user?.email ? ['firebase-conversations', user.email] : null,
+    ([, userEmail]: [string, string]) => loadConversationsFromFirestore(userEmail),
     {
       revalidateOnFocus: true,
     },
@@ -57,6 +58,7 @@ const HistoryChatContent = ({
     setMessagesToAdded,
     setGetChatRoomByIdLoading,
     setDemoUserId,
+    setRoomIdFromQuery,
   } = useChatContext();
 
   const handleResetChat = () => {
@@ -83,11 +85,40 @@ const HistoryChatContent = ({
     setDemoUserId(null);
   };
 
-  const handleRoomClick = (roomId: string) => {
+  const handleRoomClick = async (conversation: FirestoreConversation) => {
+    if (!user?.email) return;
+
     setGetChatRoomByIdLoading(true);
-    router.push(`/${lang}/under-maintenance`);
-    onHistoryClick(roomId);
-    handleResetChat();
+
+    try {
+      // Load the full conversation from Firebase
+      const fullConversation = await loadConversationFromFirestore(user.email, conversation.roomId || conversation.id);
+
+      if (fullConversation) {
+        // Reset chat state
+        handleResetChat();
+
+        // Set the loaded conversation
+        setChatRoomMessages(fullConversation.messages);
+        setConversationId(fullConversation.conversationId);
+        setRoomIdFromQuery(fullConversation.roomId);
+
+        // Update URL with room ID
+        const newSearchParams = new URLSearchParams(searchParams.toString());
+        if (fullConversation.roomId) {
+          newSearchParams.set('r', fullConversation.roomId);
+        } else {
+          newSearchParams.delete('r');
+        }
+        router.push(`?${newSearchParams.toString()}`, { scroll: false });
+
+        onHistoryClick(fullConversation.roomId || fullConversation.id);
+      }
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+    } finally {
+      setGetChatRoomByIdLoading(false);
+    }
   };
 
   return (
@@ -103,23 +134,40 @@ const HistoryChatContent = ({
         </div>
       ) : error ? (
         <p className='italic text-center my-2 text-red-500'>
-          Gagal memuat riwayat obrolan
+          Gagal memuat riwayat obrolan. Silakan coba lagi.
         </p>
-      ) : data && data?.data?.length > 0 ? (
+      ) : data && data.length > 0 ? (
         <nav className='space-y-1 overflow-y-auto overflow-x-hidden'>
-          {data.data.map((chat) => (
-            <Button
-              key={chat.id}
-              variant='ghost'
-              className={cn(
-                `flex items-center gap-2 rounded-md py-2 text-sm font-medium overflow-hidden whitespace-nowrap my-1 ${roomId === chat.id ? 'bg-white text-black' : ''}`,
-              )}
-              onClick={() => handleRoomClick(chat.id)}
-            >
-              <div>{chat.title}</div>
-            </Button>
-          ))}
+          {data.map((conversation) => {
+            const title = conversation.title
+              ? conversation.title
+              : conversation.messages.find((msg) => msg.type_user === 'user')?.message
+              ? (() => {
+                  const firstUserMessage = conversation.messages.find((msg) => msg.type_user === 'user')?.message || '';
+                  return firstUserMessage.length > 50
+                    ? `${firstUserMessage.substring(0, 50)}...`
+                    : firstUserMessage;
+                })()
+              : `Conversation ${conversation.id.substring(0, 8)}`;
+
+            const isActive = roomId === conversation.roomId || roomId === conversation.id;
+
+            return (
+              <Button
+                key={conversation.id}
+                variant='ghost'
+                className={cn(
+                  `flex items-center gap-2 rounded-md py-2 text-sm font-medium overflow-hidden whitespace-nowrap my-1 ${isActive ? 'bg-white text-black' : ''}`,
+                )}
+                onClick={() => handleRoomClick(conversation)}
+              >
+                <div>{title}</div>
+              </Button>
+            );
+          })}
         </nav>
+      ) : data && data.length === 0 ? (
+        <p className='italic text-center my-2'>{noHistoryText}</p>
       ) : (
         <p className='italic text-center my-2'>{noHistoryText}</p>
       )}

@@ -32,7 +32,7 @@
   },
   "chat": {
     "history": {
-      "nohistory": "Belum ada riwayat konsultasi."
+      "nohistory": "Belum ada percakapan sebelumnya."
     },
     "placeholderNominal": "Masukkan nominal, contoh: 10.000.000",
     "placeholderQuestion": "Tuliskan pertanyaanmu",    

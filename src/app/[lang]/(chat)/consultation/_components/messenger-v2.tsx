@@ -8,6 +8,9 @@ import {
   getTemplateId,
   handleMarriageStatus,
 } from '@/lib/utils';
+import { firebaseAuth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { saveConversationToFirestore } from '@/services/firebase.service';
 
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
@@ -209,7 +212,7 @@ export default function MessengerV2({
     mutate: mutateChat,
     error: chatError,
   } = useSWR<ChatRoomMessagesResponse, Error>(
-    roomIdFromQuery && user?.accessToken
+    roomIdFromQuery && user?.accessToken && !chatRoomMessages
       ? '/api/v1/room/' + roomIdFromQuery
       : null,
     ([url, token]) => getRoomChats(roomIdFromQuery!, token as string),
@@ -352,6 +355,63 @@ export default function MessengerV2({
       setCicilan(convertRupiahToNumber(data?.data[7]?.message));
     }
   }, [data?.data, templateCode]);
+
+  const lastSavedConversationRef = useRef<string | null>(null);
+
+  const waitForFirebaseAuth = async () => {
+    const authInstance = firebaseAuth;
+    if (!authInstance) return false;
+    if (authInstance.currentUser) return true;
+
+    return new Promise<boolean>((resolve) => {
+      const unsubscribe = onAuthStateChanged(authInstance, (user) => {
+        unsubscribe();
+        resolve(!!user);
+      });
+      setTimeout(() => {
+        unsubscribe();
+        resolve(false);
+      }, 5000);
+    });
+  };
+
+  const saveChatHistory = async (messages: ChatMessage[]) => {
+    if (!user?.email || messages.length === 0) return;
+
+    const authReady = await waitForFirebaseAuth();
+    if (!authReady) {
+      console.warn('Firebase auth is not ready yet; skipping chat save.');
+      return;
+    }
+
+    try {
+      const savedDocId = await saveConversationToFirestore(
+        user.email,
+        messages,
+        roomIdFromQuery,
+        conversationId,
+      );
+      if (user?.email) {
+        await mutate(['firebase-conversations', user.email]);
+      }
+      return savedDocId;
+    } catch (error) {
+      console.error('Failed to save chat history to Firestore:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (!user?.email || isLoading || !chatRoomMessages?.length) return;
+
+    const lastMessage = chatRoomMessages[chatRoomMessages.length - 1];
+    if (lastMessage.type_user !== 'bot') return;
+
+    const saveKey = `${roomIdFromQuery ?? 'no-room'}|${conversationId ?? 'no-conv'}|${lastMessage.message}`;
+    if (lastSavedConversationRef.current === saveKey) return;
+
+    lastSavedConversationRef.current = saveKey;
+    void saveChatHistory(chatRoomMessages);
+  }, [chatRoomMessages, isLoading, roomIdFromQuery, conversationId, user?.email]);
 
   const sendMessage = async (newMessage: string) => {
     if (!newMessage) return;
@@ -925,7 +985,7 @@ export default function MessengerV2({
     if (currentAnswerLength === templateQuestions.length) {
       // Demo mode: skip AI call and show prescription immediately.
       // Non-demo mode keeps the old behavior because the backend flow
-      // is responsible for room creation / recipe generation.
+      // is responsible for room creation / prescription generation.
       if (isDemoMode) {
         const maxCicilan = gaji * 0.3;
         const apakahCicilanTerlaluBanyak = cicilan > maxCicilan;
