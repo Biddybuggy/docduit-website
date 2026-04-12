@@ -4,7 +4,6 @@ import GoogleProvider from 'next-auth/providers/google';
 import { login, googleLogin, refreshToken } from '@/services/auth.service';
 import { LoginPayload, GoogleLoginPayload } from '@/types/auth.type';
 import { decode } from 'jsonwebtoken';
-import { signOut } from 'next-auth/react';
 
 declare module 'next-auth' {
   interface User {
@@ -168,7 +167,6 @@ export const authOptions: AuthOptions = {
           };
         } catch (error) {
           console.error('Error refreshing token:', error);
-          await signOut({ redirect: false });
           return {
             ...token,
             error: 'RefreshAccessTokenError',
