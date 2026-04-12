@@ -12,12 +12,25 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const isFirebaseConfigValid = (config: Record<string, string | undefined>) =>
+  Object.values(config).every((value) => typeof value === 'string' && value.length > 0);
+
+let firebaseApp;
+
+if (typeof window !== 'undefined' && isFirebaseConfigValid(firebaseConfig)) {
+  try {
+    firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  } catch (error) {
+    console.error('Firebase initialization failed:', error);
+  }
+} else if (typeof window !== 'undefined') {
+  console.warn('Firebase is not initialized because configuration is missing or invalid.');
+}
 
 export const firebaseAuth =
-  typeof window !== 'undefined' ? getAuth(firebaseApp) : undefined;
+  typeof window !== 'undefined' && firebaseApp ? getAuth(firebaseApp) : undefined;
 
 export const firebaseFirestore =
-  typeof window !== 'undefined' ? getFirestore(firebaseApp) : undefined;
+  typeof window !== 'undefined' && firebaseApp ? getFirestore(firebaseApp) : undefined;
 
 export const googleAuthProvider = new GoogleAuthProvider();
