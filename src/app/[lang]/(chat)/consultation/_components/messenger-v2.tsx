@@ -1,4 +1,4 @@
-// .
+// ..
 import ChatroomQuestionTemplates from './chatroom/question-templates';
 import { Input } from '@/components/ui/input';
 import { useEffect, useRef, useState } from 'react';

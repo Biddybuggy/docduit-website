@@ -58,6 +58,19 @@ declare module 'next-auth/jwt' {
 
 export const authOptions: AuthOptions = {
   debug: process.env.NODE_ENV === 'development',
+  logger: {
+    error(code, metadata) {
+      console.error('[next-auth][error]', code, metadata);
+    },
+    warn(code) {
+      console.warn('[next-auth][warn]', code);
+    },
+    debug(code, metadata) {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('[next-auth][debug]', code, metadata);
+      }
+    },
+  },
   providers: [
     GoogleProvider({
       clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
