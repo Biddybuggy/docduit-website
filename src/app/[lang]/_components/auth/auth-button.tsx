@@ -16,7 +16,7 @@ export default function AuthButton({ vocabularies }: AuthButtonProps) {
   const handleSignIn = async () => {
     setIsLoading(true);
     try {
-      const callbackUrl = `${window.location.origin}${window.location.pathname}`;
+      const callbackUrl = window.location.pathname + window.location.search;
       await signIn('google', { callbackUrl });
     } catch (error) {
       console.error('Sign in error:', error);

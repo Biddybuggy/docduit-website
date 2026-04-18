@@ -10,7 +10,7 @@ export default function AuthSignInGoogle() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const callbackUrl = `${window.location.origin}/`;
+      const callbackUrl = '/';
       await signIn('google', { callbackUrl });
     } finally {
       setLoading(false);
