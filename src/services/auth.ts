@@ -5,8 +5,20 @@ import { login, googleLogin, refreshToken } from '@/services/auth.service';
 import { LoginPayload, GoogleLoginPayload } from '@/types/auth.type';
 import { decode } from 'jsonwebtoken';
 
+const trimEnv = (value?: string) => value?.trim();
+const maskValue = (value?: string) => {
+  if (!value) return '(missing)';
+  if (value.length <= 8) return `${value[0]}***${value[value.length - 1]}`;
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+};
+
+const googleClientId = trimEnv(
+  process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+);
+const googleClientSecret = trimEnv(process.env.GOOGLE_CLIENT_SECRET);
+
 const nextAuthUrl =
-  process.env.NEXTAUTH_URL ||
+  trimEnv(process.env.NEXTAUTH_URL) ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
 process.env.NEXTAUTH_URL = nextAuthUrl;
@@ -60,6 +72,17 @@ export const authOptions: AuthOptions = {
   debug: process.env.NODE_ENV === 'development',
   logger: {
     error(code, metadata) {
+      if (code === 'OAUTH_CALLBACK_ERROR' || code === 'SIGNIN_OAUTH_ERROR') {
+        console.error('[next-auth][error]', code, {
+          ...metadata,
+          authConfig: {
+            nextAuthUrl,
+            googleClientId: maskValue(googleClientId),
+            googleClientSecretLength: googleClientSecret?.length ?? 0,
+          },
+        });
+        return;
+      }
       console.error('[next-auth][error]', code, metadata);
     },
     warn(code) {
@@ -73,8 +96,8 @@ export const authOptions: AuthOptions = {
   },
   providers: [
     GoogleProvider({
-      clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: googleClientId!,
+      clientSecret: googleClientSecret!,
       authorization: {
         params: {
           prompt: 'consent',
