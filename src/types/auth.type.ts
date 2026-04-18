@@ -39,6 +39,7 @@ export interface ProfileResponse {
 export interface AuthToken {
   accessToken: string;
   idToken?: string;
+  googleAccessToken?: string;
   refreshToken: string;
   expiresAt: number;
   username: string;

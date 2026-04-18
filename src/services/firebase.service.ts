@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   DocumentReference,
+  Timestamp,
   serverTimestamp,
   setDoc,
   getDocs,
@@ -54,6 +55,8 @@ export const saveConversationToFirestore = async (
     : doc(conversationsCollection);
 
   const title = createConversationTitle(messages);
+  const messageTimestamp = Timestamp.now();
+  const existingConversation = await getDoc(conversationRef);
 
   await setDoc(
     conversationRef,
@@ -67,10 +70,12 @@ export const saveConversationToFirestore = async (
         message: message.message,
         conversation_id: message.conversation_id ?? null,
         room_id: message.room_id ?? null,
-        createdAt: serverTimestamp(),
+        createdAt: messageTimestamp,
       })),
       updatedAt: serverTimestamp(),
-      createdAt: serverTimestamp(),
+      createdAt: existingConversation.exists()
+        ? existingConversation.data().createdAt ?? messageTimestamp
+        : serverTimestamp(),
     },
     { merge: true },
   );
@@ -142,7 +147,7 @@ export const loadConversationFromFirestore = async (
     let querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      const documentRef = doc(conversationsCollection, conversationId);
+      const documentRef = doc(conversationsCollection, scrubId(conversationId));
       const documentSnapshot = await getDoc(documentRef);
 
       if (!documentSnapshot.exists()) {
@@ -190,4 +195,3 @@ export const loadConversationFromFirestore = async (
     return null;
   }
 };
-

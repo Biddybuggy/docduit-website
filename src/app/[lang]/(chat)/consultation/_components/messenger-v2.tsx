@@ -214,7 +214,7 @@ export default function MessengerV2({
     error: chatError,
   } = useSWR<ChatRoomMessagesResponse, Error>(
     roomIdFromQuery && user?.accessToken && !chatRoomMessages
-      ? '/api/v1/room/' + roomIdFromQuery
+      ? ['/api/v1/room/' + roomIdFromQuery, user.accessToken]
       : null,
     ([url, token]) => getRoomChats(roomIdFromQuery!, token as string),
     {

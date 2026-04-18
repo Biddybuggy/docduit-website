@@ -14,11 +14,20 @@ function FirebaseAuthSync({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!firebaseAuth) return;
 
-    if (status === 'authenticated' && session?.user?.accessToken) {
-      if (!firebaseAuth.currentUser) {
+    if (
+      status === 'authenticated' &&
+      session?.user?.idToken &&
+      session?.user?.googleAccessToken
+    ) {
+      const hasMatchingGoogleUser =
+        firebaseAuth.currentUser?.email &&
+        session.user.email &&
+        firebaseAuth.currentUser.email === session.user.email;
+
+      if (!hasMatchingGoogleUser) {
         const credential = GoogleAuthProvider.credential(
           session.user.idToken ?? undefined,
-          session.user.accessToken ?? undefined,
+          session.user.googleAccessToken ?? undefined,
         );
 
         signInWithCredential(firebaseAuth, credential).catch((error) => {

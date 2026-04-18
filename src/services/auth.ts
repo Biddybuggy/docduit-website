@@ -5,10 +5,17 @@ import { login, googleLogin, refreshToken } from '@/services/auth.service';
 import { LoginPayload, GoogleLoginPayload } from '@/types/auth.type';
 import { decode } from 'jsonwebtoken';
 
+const nextAuthUrl =
+  process.env.NEXTAUTH_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+process.env.NEXTAUTH_URL = nextAuthUrl;
+
 declare module 'next-auth' {
   interface User {
     accessToken?: string;
     idToken?: string;
+    googleAccessToken?: string;
     refreshToken?: string;
     expiresAt?: number;
     username?: string;
@@ -21,6 +28,7 @@ declare module 'next-auth' {
     user: {
       accessToken?: string;
       idToken?: string;
+      googleAccessToken?: string;
       refreshToken?: string;
       expiresAt?: number;
       username?: string;
@@ -37,9 +45,13 @@ declare module 'next-auth/jwt' {
   interface JWT {
     accessToken?: string;
     idToken?: string;
+    googleAccessToken?: string;
     refreshToken?: string;
     expiresAt?: number;
     username?: string;
+    email?: string;
+    name?: string;
+    image?: string;
     error?: string;
   }
 }
@@ -55,6 +67,7 @@ export const authOptions: AuthOptions = {
           prompt: 'consent',
           access_type: 'offline',
           response_type: 'code',
+          scope: 'openid email profile',
         },
       },
     }),
@@ -122,28 +135,47 @@ export const authOptions: AuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user, account }) {
-      if (account?.provider === 'google') {
-        token.accessToken = account.access_token ?? account.id_token;
-        token.idToken = account.id_token;
-        token.refreshToken = account.refresh_token ?? token.refreshToken;
-
-        if (account.expires_at) {
-          token.expiresAt = account.expires_at * 1000;
+      if (account?.provider === 'google' && account.access_token) {
+        try {
+          const payload: GoogleLoginPayload = {
+            access_token: account.access_token,
+            provider: 'google',
+          };
+          const response = await googleLogin(payload);
+          const decoded = decode(response.data.access_token) as {
+            exp: number;
+            username: string;
+          };
+          token.accessToken = response.data.access_token;
+          token.idToken = account.id_token;
+          token.googleAccessToken = account.access_token;
+          token.refreshToken = response.data.refresh_token;
+          token.expiresAt = decoded.exp * 1000;
+          token.username = decoded.username || user?.email || user?.name || token.username;
+          token.email = user?.email;
+          token.name = user?.name;
+          token.image = user?.image;
+        } catch (error) {
+          console.error('Error logging in with Google backend:', error);
+          return {
+            ...token,
+            error: 'GoogleLoginError',
+          };
         }
-
-        token.username = user?.email || user?.name || token.username;
-        token.email = user?.email;
-        token.name = user?.name;
-        token.image = user?.image;
       }
 
       if (user && !account?.provider) {
         return {
           ...token,
           accessToken: user.accessToken,
+          idToken: user.idToken,
+          googleAccessToken: user.googleAccessToken,
           refreshToken: user.refreshToken,
           expiresAt: user.expiresAt,
           username: user.username,
+          email: user.email,
+          name: user.name,
+          image: user.image,
         };
       }
 
@@ -164,6 +196,11 @@ export const authOptions: AuthOptions = {
             refreshToken: response.data.refresh_token,
             expiresAt: decoded.exp * 1000,
             username: decoded.username,
+            idToken: token.idToken,
+            googleAccessToken: token.googleAccessToken,
+            email: token.email,
+            name: token.name,
+            image: token.image,
           };
         } catch (error) {
           console.error('Error refreshing token:', error);
@@ -177,7 +214,7 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token.error === 'RefreshAccessTokenError') {
+      if (token.error === 'RefreshAccessTokenError' || token.error === 'GoogleLoginError') {
         return {
           ...session,
           user: {},
@@ -188,6 +225,7 @@ export const authOptions: AuthOptions = {
         ...session.user,
         accessToken: token.accessToken as string,
         idToken: token.idToken as string,
+        googleAccessToken: token.googleAccessToken as string,
         refreshToken: token.refreshToken as string,
         expiresAt: token.expiresAt as number,
         username: token.username as string,

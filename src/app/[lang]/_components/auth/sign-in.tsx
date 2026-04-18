@@ -3,8 +3,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { getSession } from 'next-auth/react';
 import { mutate } from 'swr';
 import { safeSendGAEvent } from '@/lib/analytics';
 
@@ -15,6 +17,7 @@ interface AuthContentProps {
 
 export default function AuthSignIn({ vocabularies, setIsOpen }: AuthContentProps) {
   const { loginWithCredentials } = useAuth();
+  const router = useRouter();
 
   const {
     common: { signIn },
@@ -37,9 +40,11 @@ export default function AuthSignIn({ vocabularies, setIsOpen }: AuthContentProps
       setLoading(true);
       try {
         const result = await loginWithCredentials(email, password);
-        if (result?.error) {
+        if (result?.error || !result?.ok) {
           toast.error('Login gagal. Silakan coba lagi.');
         } else {
+          await getSession();
+          router.refresh();
           mutate('user-info');
           setIsOpen(false);
           toast.success('Login berhasil!');
