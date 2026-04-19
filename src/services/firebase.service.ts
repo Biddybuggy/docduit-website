@@ -12,7 +12,8 @@ import {
   limit,
   where,
 } from 'firebase/firestore';
-import { firebaseFirestore } from '@/lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { firebaseAuth, firebaseFirestore } from '@/lib/firebase';
 import { ChatMessage } from '@/context/ChatContext';
 
 const scrubId = (value: string) =>
@@ -33,6 +34,32 @@ const getFirestoreDb = () => {
   return firebaseFirestore;
 };
 
+const waitForFirebaseUser = async (): Promise<User> => {
+  const authInstance = firebaseAuth;
+
+  if (!authInstance) {
+    throw new Error('Firebase Auth is not available in this environment.');
+  }
+
+  if (authInstance.currentUser) {
+    return authInstance.currentUser;
+  }
+
+  return new Promise<User>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      unsubscribe();
+      reject(new Error('Timed out waiting for Firebase Auth user.'));
+    }, 15000);
+
+    const unsubscribe = onAuthStateChanged(authInstance, (user) => {
+      if (!user) return;
+      clearTimeout(timeoutId);
+      unsubscribe();
+      resolve(user);
+    });
+  });
+};
+
 export const saveConversationToFirestore = async (
   userEmail: string,
   messages: ChatMessage[],
@@ -40,7 +67,8 @@ export const saveConversationToFirestore = async (
   conversationId?: string | null,
 ): Promise<string> => {
   const db = getFirestoreDb();
-  const userId = scrubId(userEmail);
+  const firebaseUser = await waitForFirebaseUser();
+  const userId = firebaseUser.uid;
   const userDoc = doc(db, 'users', userId);
   const conversationsCollection = collection(userDoc, 'conversations');
 
@@ -61,6 +89,7 @@ export const saveConversationToFirestore = async (
   await setDoc(
     conversationRef,
     {
+      firebaseUid: firebaseUser.uid,
       userEmail,
       roomId: roomId ?? null,
       conversationId: conversationId ?? null,
@@ -99,7 +128,8 @@ export const loadConversationsFromFirestore = async (
 ): Promise<FirestoreConversation[]> => {
   try {
     const db = getFirestoreDb();
-    const userId = scrubId(userEmail);
+    const firebaseUser = await waitForFirebaseUser();
+    const userId = firebaseUser.uid;
     const userDoc = doc(db, 'users', userId);
     const conversationsCollection = collection(userDoc, 'conversations');
 
@@ -139,7 +169,8 @@ export const loadConversationFromFirestore = async (
 ): Promise<FirestoreConversation | null> => {
   try {
     const db = getFirestoreDb();
-    const userId = scrubId(userEmail);
+    const firebaseUser = await waitForFirebaseUser();
+    const userId = firebaseUser.uid;
     const userDocRef = doc(db, 'users', userId);
     const conversationsCollection = collection(userDocRef, 'conversations');
 
