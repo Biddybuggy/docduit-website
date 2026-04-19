@@ -14,6 +14,8 @@ import AuthSignInGoogle from './sign-in-google';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
+const isGoogleOnlyMode = process.env.NEXT_PUBLIC_CHAT_DEMO_MODE === 'true';
+
 interface AuthDialogProps {
   vocabularies: any;
   children?: React.ReactNode;
@@ -68,36 +70,40 @@ export default function AuthDialog({
           </DialogTitle>
         </DialogHeader>
         <div className='flex flex-col gap-6 p-8 lg:px-24'>
-          <div className='flex flex-col gap-4'>
-            {displayForm === 'signin' ? (
-              <>
-                <AuthSignIn setIsOpen={setIsOpen} vocabularies={vocabularies} />
-                <p className='text-start text-gray-500'>
-                  {dontHaveAccount}&nbsp;
-                  <button
-                    onClick={() => setDisplayForm('signup')}
-                    className='text-docduit-red'
-                  >
-                    {signUp}
-                  </button>
-                </p>
-              </>
-            ) : (
-              <>
-                <AuthSignUp vocabularies={vocabularies} />
-                <p className='text-start text-gray-500'>
-                  {alreadyHaveAccount}&nbsp;
-                  <button
-                    onClick={() => setDisplayForm('signin')}
-                    className='text-docduit-red'
-                  >
-                    {signIn}
-                  </button>
-                </p>
-              </>
-            )}
-          </div>
-          <p className='text-xl text-docduit-gray text-center'>{or}</p>
+          {!isGoogleOnlyMode && (
+            <div className='flex flex-col gap-6'>
+              <div className='flex flex-col gap-4'>
+                {displayForm === 'signin' ? (
+                  <>
+                    <AuthSignIn setIsOpen={setIsOpen} vocabularies={vocabularies} />
+                    <p className='text-start text-gray-500'>
+                      {dontHaveAccount}&nbsp;
+                      <button
+                        onClick={() => setDisplayForm('signup')}
+                        className='text-docduit-red'
+                      >
+                        {signUp}
+                      </button>
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <AuthSignUp vocabularies={vocabularies} />
+                    <p className='text-start text-gray-500'>
+                      {alreadyHaveAccount}&nbsp;
+                      <button
+                        onClick={() => setDisplayForm('signin')}
+                        className='text-docduit-red'
+                      >
+                        {signIn}
+                      </button>
+                    </p>
+                  </>
+                )}
+              </div>
+              <p className='text-xl text-docduit-gray text-center'>{or}</p>
+            </div>
+          )}
           <div className='flex justify-center'>
             <AuthSignInGoogle />
           </div>

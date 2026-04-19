@@ -16,6 +16,9 @@ const googleClientId = trimEnv(
   process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
 );
 const googleClientSecret = trimEnv(process.env.GOOGLE_CLIENT_SECRET);
+const legacyApiUrl = trimEnv(process.env.NEXT_PUBLIC_API_URL);
+const isGoogleOnlyMode = process.env.NEXT_PUBLIC_CHAT_DEMO_MODE === 'true';
+const useLegacyBackendAuth = !isGoogleOnlyMode && Boolean(legacyApiUrl);
 
 const nextAuthUrl =
   trimEnv(process.env.NEXTAUTH_URL) ||
@@ -79,6 +82,7 @@ export const authOptions: AuthOptions = {
             nextAuthUrl,
             googleClientId: maskValue(googleClientId),
             googleClientSecretLength: googleClientSecret?.length ?? 0,
+            useLegacyBackendAuth,
           },
         });
         return;
@@ -172,6 +176,22 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user, account }) {
       if (account?.provider === 'google' && account.access_token) {
+        token.idToken = account.id_token;
+        token.googleAccessToken = account.access_token;
+        token.email = user?.email ?? token.email;
+        token.name = user?.name ?? token.name;
+        token.image = user?.image ?? token.image;
+        token.username =
+          user?.email ?? user?.name ?? token.username ?? token.email;
+
+        if (!useLegacyBackendAuth) {
+          delete token.accessToken;
+          delete token.refreshToken;
+          delete token.expiresAt;
+          delete token.error;
+          return token;
+        }
+
         try {
           const payload: GoogleLoginPayload = {
             access_token: account.access_token,
@@ -183,16 +203,15 @@ export const authOptions: AuthOptions = {
             username: string;
           };
           token.accessToken = response.data.access_token;
-          token.idToken = account.id_token;
-          token.googleAccessToken = account.access_token;
           token.refreshToken = response.data.refresh_token;
           token.expiresAt = decoded.exp * 1000;
           token.username = decoded.username || user?.email || user?.name || token.username;
-          token.email = user?.email;
-          token.name = user?.name;
-          token.image = user?.image;
+          delete token.error;
         } catch (error) {
-          console.error('Error logging in with Google backend:', error);
+          console.error('Error logging in with Google backend:', {
+            error,
+            apiUrl: process.env.NEXT_PUBLIC_API_URL,
+          });
           return {
             ...token,
             error: 'GoogleLoginError',
@@ -218,7 +237,7 @@ export const authOptions: AuthOptions = {
       const refreshThreshold = 60 * 1000; // 1 minute before expiration
       const now = Date.now();
 
-      if (token.expiresAt && now > token.expiresAt - refreshThreshold) {
+      if (useLegacyBackendAuth && token.expiresAt && now > token.expiresAt - refreshThreshold) {
         try {
           const response = await refreshToken(token.refreshToken as string);
           const decoded = decode(response.data.access_token) as {
@@ -250,7 +269,7 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token.error === 'RefreshAccessTokenError' || token.error === 'GoogleLoginError') {
+      if (token.error === 'RefreshAccessTokenError') {
         return {
           ...session,
           user: {},
@@ -269,6 +288,7 @@ export const authOptions: AuthOptions = {
         name: token.name as string,
         image: token.image as string,
       };
+      session.error = token.error as string | undefined;
       return session;
     },
   },
