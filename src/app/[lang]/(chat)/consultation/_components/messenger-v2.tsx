@@ -387,6 +387,9 @@ export default function MessengerV2({
         roomIdFromQuery,
         conversationId,
       );
+      if (!roomIdFromQuery && !conversationId && savedDocId) {
+        setConversationId(savedDocId);
+      }
       pendingHistoryRef.current = null;
       if (user?.email) {
         await mutate(['firebase-conversations', user.email]);

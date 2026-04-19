@@ -16,8 +16,11 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { firebaseAuth, firebaseFirestore } from '@/lib/firebase';
 import { ChatMessage } from '@/context/ChatContext';
 
-const scrubId = (value: string) =>
+const scrubUserId = (value: string) =>
   value.replace(/[.#$[\]/]/g, '_').replace(/\s+/g, '_').toLowerCase();
+
+const scrubDocumentId = (value: string) =>
+  value.replace(/[.#$[\]/]/g, '_').replace(/\s+/g, '_');
 
 const createConversationTitle = (messages: ChatMessage[]) => {
   const firstUserMessage = messages.find((message) => message.type_user === 'user')?.message?.trim();
@@ -73,14 +76,17 @@ export const saveConversationToFirestore = async (
   const conversationsCollection = collection(userDoc, 'conversations');
 
   const conversationDocId = roomId
-    ? scrubId(roomId)
+    ? scrubDocumentId(roomId)
     : conversationId
-    ? scrubId(conversationId)
+    ? scrubDocumentId(conversationId)
     : undefined;
 
   const conversationRef: DocumentReference = conversationDocId
     ? doc(conversationsCollection, conversationDocId)
     : doc(conversationsCollection);
+
+  const persistedConversationId =
+    conversationId ?? (!roomId ? conversationRef.id : null);
 
   const title = createConversationTitle(messages);
   const messageTimestamp = Timestamp.now();
@@ -92,12 +98,13 @@ export const saveConversationToFirestore = async (
       firebaseUid: firebaseUser.uid,
       userEmail,
       roomId: roomId ?? null,
-      conversationId: conversationId ?? null,
+      conversationId: persistedConversationId,
       title: title ?? null,
       messages: messages.map((message) => ({
         type_user: message.type_user,
         message: message.message,
-        conversation_id: message.conversation_id ?? null,
+        conversation_id:
+          message.conversation_id ?? persistedConversationId ?? null,
         room_id: message.room_id ?? null,
         createdAt: messageTimestamp,
       })),
@@ -178,8 +185,27 @@ export const loadConversationFromFirestore = async (
     let querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      const documentRef = doc(conversationsCollection, scrubId(conversationId));
-      const documentSnapshot = await getDoc(documentRef);
+      const conversationQuery = query(
+        conversationsCollection,
+        where('conversationId', '==', conversationId),
+      );
+      querySnapshot = await getDocs(conversationQuery);
+    }
+
+    if (querySnapshot.empty) {
+      const exactDocumentRef = doc(conversationsCollection, conversationId);
+      let documentSnapshot = await getDoc(exactDocumentRef);
+
+      if (!documentSnapshot.exists()) {
+        const sanitizedConversationId = scrubDocumentId(conversationId);
+        if (sanitizedConversationId !== conversationId) {
+          const sanitizedDocumentRef = doc(
+            conversationsCollection,
+            sanitizedConversationId,
+          );
+          documentSnapshot = await getDoc(sanitizedDocumentRef);
+        }
+      }
 
       if (!documentSnapshot.exists()) {
         return null;
