@@ -12,19 +12,42 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-const isFirebaseConfigValid = (config: Record<string, string | undefined>) =>
-  Object.values(config).every((value) => typeof value === 'string' && value.length > 0);
+const requiredFirebaseKeys = ['apiKey', 'authDomain', 'projectId', 'appId'] as const;
+
+const isFirebaseConfigValid = (
+  config: typeof firebaseConfig,
+): boolean =>
+  requiredFirebaseKeys.every((key) => {
+    const value = config[key];
+    return typeof value === 'string' && value.length > 0;
+  });
+
+const sanitizedFirebaseConfig = Object.fromEntries(
+  Object.entries(firebaseConfig).filter(
+    ([, value]) => typeof value === 'string' && value.length > 0,
+  ),
+);
 
 let firebaseApp;
 
 if (typeof window !== 'undefined' && isFirebaseConfigValid(firebaseConfig)) {
   try {
-    firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    firebaseApp = !getApps().length
+      ? initializeApp(sanitizedFirebaseConfig)
+      : getApp();
   } catch (error) {
     console.error('Firebase initialization failed:', error);
   }
 } else if (typeof window !== 'undefined') {
-  console.warn('Firebase is not initialized because configuration is missing or invalid.');
+  console.warn(
+    'Firebase is not initialized because required configuration is missing or invalid.',
+    {
+      hasApiKey: Boolean(firebaseConfig.apiKey),
+      hasAuthDomain: Boolean(firebaseConfig.authDomain),
+      hasProjectId: Boolean(firebaseConfig.projectId),
+      hasAppId: Boolean(firebaseConfig.appId),
+    },
+  );
 }
 
 export const firebaseAuth =

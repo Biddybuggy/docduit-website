@@ -358,6 +358,7 @@ export default function MessengerV2({
   }, [data?.data, templateCode]);
 
   const lastSavedConversationRef = useRef<string | null>(null);
+  const pendingHistoryRef = useRef<ChatMessage[] | null>(null);
 
   const waitForFirebaseAuth = async () => {
     const authInstance = firebaseAuth;
@@ -372,18 +373,12 @@ export default function MessengerV2({
       setTimeout(() => {
         unsubscribe();
         resolve(false);
-      }, 5000);
+      }, 15000);
     });
   };
 
-  const saveChatHistory = async (messages: ChatMessage[]) => {
+  const persistChatHistory = async (messages: ChatMessage[]) => {
     if (!user?.email || messages.length === 0) return;
-
-    const authReady = await waitForFirebaseAuth();
-    if (!authReady) {
-      console.warn('Firebase auth is not ready yet; skipping chat save.');
-      return;
-    }
 
     try {
       const savedDocId = await saveConversationToFirestore(
@@ -392,6 +387,7 @@ export default function MessengerV2({
         roomIdFromQuery,
         conversationId,
       );
+      pendingHistoryRef.current = null;
       if (user?.email) {
         await mutate(['firebase-conversations', user.email]);
       }
@@ -400,6 +396,32 @@ export default function MessengerV2({
       console.error('Failed to save chat history to Firestore:', error);
     }
   };
+
+  const saveChatHistory = async (messages: ChatMessage[]) => {
+    if (!user?.email || messages.length === 0) return;
+
+    const authReady = await waitForFirebaseAuth();
+    if (!authReady) {
+      pendingHistoryRef.current = messages;
+      console.warn('Firebase auth is not ready yet; queueing chat save.');
+      return;
+    }
+
+    return persistChatHistory(messages);
+  };
+
+  useEffect(() => {
+    const authInstance = firebaseAuth;
+    if (!authInstance || !user?.email) return;
+
+    const unsubscribe = onAuthStateChanged(authInstance, (firebaseUser) => {
+      if (firebaseUser && pendingHistoryRef.current?.length) {
+        void persistChatHistory(pendingHistoryRef.current);
+      }
+    });
+
+    return unsubscribe;
+  }, [user?.email, roomIdFromQuery, conversationId]);
 
   useEffect(() => {
     if (!user?.email || isLoading || !chatRoomMessages?.length) return;
