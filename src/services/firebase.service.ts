@@ -16,9 +16,6 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { firebaseAuth, firebaseFirestore } from '@/lib/firebase';
 import { ChatMessage } from '@/context/ChatContext';
 
-const scrubUserId = (value: string) =>
-  value.replace(/[.#$[\]/]/g, '_').replace(/\s+/g, '_').toLowerCase();
-
 const scrubDocumentId = (value: string) =>
   value.replace(/[.#$[\]/]/g, '_').replace(/\s+/g, '_');
 
@@ -85,12 +82,17 @@ export const saveConversationToFirestore = async (
     ? doc(conversationsCollection, conversationDocId)
     : doc(conversationsCollection);
 
+  const existingConversation = await getDoc(conversationRef);
+  const existingConversationId = existingConversation.exists()
+    ? existingConversation.data().conversationId
+    : null;
   const persistedConversationId =
-    conversationId ?? (!roomId ? conversationRef.id : null);
+    conversationId ??
+    existingConversationId ??
+    (!roomId ? conversationRef.id : null);
 
   const title = createConversationTitle(messages);
   const messageTimestamp = Timestamp.now();
-  const existingConversation = await getDoc(conversationRef);
 
   await setDoc(
     conversationRef,
@@ -150,7 +152,7 @@ export const loadConversationsFromFirestore = async (
         id: doc.id,
         userEmail: data.userEmail,
         roomId: data.roomId,
-        conversationId: data.conversationId,
+        conversationId: data.conversationId ?? doc.id,
         title: data.title ?? null,
         messages: data.messages.map((msg: any) => ({
           type_user: msg.type_user,
@@ -216,7 +218,7 @@ export const loadConversationFromFirestore = async (
         id: documentSnapshot.id,
         userEmail: data.userEmail,
         roomId: data.roomId,
-        conversationId: data.conversationId,
+        conversationId: data.conversationId ?? documentSnapshot.id,
         title: data.title ?? null,
         messages: data.messages.map((msg: any) => ({
           type_user: msg.type_user,
@@ -236,7 +238,7 @@ export const loadConversationFromFirestore = async (
       id: docSnapshot.id,
       userEmail: data.userEmail,
       roomId: data.roomId,
-      conversationId: data.conversationId,
+      conversationId: data.conversationId ?? docSnapshot.id,
       title: data.title ?? null,
       messages: data.messages.map((msg: any) => ({
         type_user: msg.type_user,

@@ -40,6 +40,7 @@ const HistoryChatContent = ({
   );
 
   const {
+    conversationId: activeConversationId,
     setConversationId,
     setMessage,
     setChatType,
@@ -100,7 +101,7 @@ const HistoryChatContent = ({
 
         // Set the loaded conversation
         setChatRoomMessages(fullConversation.messages);
-        setConversationId(fullConversation.conversationId);
+        setConversationId(fullConversation.conversationId || fullConversation.id);
         setRoomIdFromQuery(fullConversation.roomId);
 
         // Update URL with room ID
@@ -150,18 +151,23 @@ const HistoryChatContent = ({
                 })()
               : `Conversation ${conversation.id.substring(0, 8)}`;
 
-            const isActive = roomId === conversation.roomId || roomId === conversation.id;
+            const isActive =
+              roomId === conversation.roomId ||
+              roomId === conversation.id ||
+              activeConversationId === conversation.conversationId ||
+              activeConversationId === conversation.id;
 
             return (
               <Button
                 key={conversation.id}
                 variant='ghost'
                 className={cn(
-                  `flex items-center gap-2 rounded-md py-2 text-sm font-medium overflow-hidden whitespace-nowrap my-1 ${isActive ? 'bg-white text-black' : ''}`,
+                  'my-1 flex w-full items-center justify-start overflow-hidden rounded-lg border border-white/15 bg-transparent px-3 py-2 text-left text-sm font-medium whitespace-nowrap text-white hover:bg-white/10 hover:text-white',
+                  isActive && 'bg-white/15 text-white ring-1 ring-white/25',
                 )}
                 onClick={() => handleRoomClick(conversation)}
               >
-                <div>{title}</div>
+                <div className='truncate'>{title}</div>
               </Button>
             );
           })}
