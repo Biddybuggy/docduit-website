@@ -1,5 +1,6 @@
 'use client';
-import { Menu } from 'lucide-react';
+import Link from 'next/link';
+import { Home, Menu } from 'lucide-react';
 import {
   Sheet,
   SheetClose,
@@ -14,7 +15,6 @@ import NewConsultationBtn from './new-consultation-btn';
 import { Suspense, useState } from 'react';
 import AuthenticationSection from '@/app/[lang]/_components/auth/authentication-section';
 import { LocalesButton } from './header-chat';
-import { useAuth } from '@/hooks/useAuth';
 
 const SheetSideChat = ({
   vocabularies,
@@ -24,7 +24,6 @@ const SheetSideChat = ({
   language: string;
 }) => {
   const [openSheet, setOpenSheet] = useState(false);
-  const { user } = useAuth();
   return (
     <Sheet open={openSheet} onOpenChange={setOpenSheet}>
       <SheetTrigger>
@@ -51,12 +50,24 @@ const SheetSideChat = ({
             <SheetTitle className='justify-start text-start'></SheetTitle>
           </SheetHeader>
           <div className='flex flex-col py-6 px-4 text-white h-full w-full justify-between'>
-            <Suspense fallback={null}>
-              <HistoryChatContent
-                vocabularies={vocabularies}
-                onHistoryClick={() => setOpenSheet(false)}
-              />
-            </Suspense>
+            <div className='flex min-h-0 flex-1 flex-col gap-4'>
+              <Link
+                href={`/${language}`}
+                className='flex items-center gap-3 rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/15'
+                onClick={() => setOpenSheet(false)}
+              >
+                <Home size={18} />
+                <span>{vocabularies.navigation.home}</span>
+              </Link>
+              <div className='min-h-0 flex-1'>
+                <Suspense fallback={null}>
+                  <HistoryChatContent
+                    vocabularies={vocabularies}
+                    onHistoryClick={() => setOpenSheet(false)}
+                  />
+                </Suspense>
+              </div>
+            </div>
             <div className='flex flex-col'>
               <AuthenticationSection vocabularies={vocabularies} />
               <LocalesButton label={vocabularies.common.language} />
