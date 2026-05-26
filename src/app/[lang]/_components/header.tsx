@@ -14,6 +14,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Locale } from '../_utils/dictionaries';
 import AuthenticationSection from './auth/authentication-section';
 import { ReactQueryProvider } from '@/lib/react-query';
@@ -28,6 +29,20 @@ export type NavigationItem = {
 };
 
 export const LocalesButton = ({ label }: { label?: string }) => {
+  const pathname = usePathname();
+
+  const getLocaleHref = (targetLocale: Locale) => {
+    const currentPath = pathname || '/id';
+    const segments = currentPath.split('/');
+
+    if (segments[1] === 'id' || segments[1] === 'en') {
+      segments[1] = targetLocale;
+      return segments.join('/') || `/${targetLocale}`;
+    }
+
+    return `/${targetLocale}${currentPath}`;
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
@@ -38,14 +53,10 @@ export const LocalesButton = ({ label }: { label?: string }) => {
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuItem>
-          <Link href='/id' onClick={() => (window.location.href = '/id')}>
-            🇮🇩 Bahasa
-          </Link>
+          <Link href={getLocaleHref('id')}>🇮🇩 Bahasa</Link>
         </DropdownMenuItem>
         <DropdownMenuItem>
-          <Link href='/en' onClick={() => (window.location.href = '/en')}>
-            🇺🇸 English
-          </Link>
+          <Link href={getLocaleHref('en')}>🇺🇸 English</Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -128,6 +139,15 @@ export default function HeaderComponent({
       name: vocabularies.navigation.articles,
       href: `/${lang}/#articles`,
       gaEvent: 'click_articles_section',
+    },
+    {
+      name:
+        vocabularies.navigation.financialTwin ??
+        (lang === 'id'
+          ? 'Financial Twin Simulator'
+          : 'Financial Twin Simulator'),
+      href: `/${lang}/financial-twin-simulator`,
+      gaEvent: 'navigate_to_financial_twin_simulator',
     },
   ];
 

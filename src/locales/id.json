@@ -50,7 +50,109 @@
     "aboutUs": "About Us",
     "calculator": "Kalkulator",
     "articles": "Artikel",
+    "financialTwin": "Financial Twin",
     "signIn": "Masuk"
+  },
+  "twinSimulator": {
+    "pageTitle": "Financial Twin Simulator",
+    "pageSubtitle": "Masukkan beberapa angka bulanan, lalu bandingkan tiga kemungkinan: kalau kebiasaanmu tetap sama, kalau kamu memperbaiki pola pengeluaran, dan kalau ada pengeluaran tambahan atau biaya tak terduga.",
+    "introTitle": "Arti tiga jalur ini",
+    "introBody": "Ini bukan prediksi pasti. Simulator ini membantumu melihat pilihan harian mana yang paling berpengaruh ke tabungan, utang, dan tujuanmu.",
+    "formTitle": "Gambaran Keuangan Bulanan",
+    "formHelper": "Gunakan angka bulanan yang mendekati kondisi asli. Tidak harus sempurna, yang penting cukup realistis.",
+    "runButton": "Jalankan Simulasi",
+    "summaryTitle": "Hasil Simulasi",
+    "summaryHelper": "Setiap kartu menunjukkan kondisi di akhir timeline. Uang setelah dikurangi utang berarti tabungan dan investasi dikurangi sisa utang.",
+    "chartTitle": "Uang Setelah Utang, Bulan ke Bulan",
+    "chartHelper": "Grafik ini menunjukkan tabungan dikurangi utang dari waktu ke waktu. Garis yang lebih tinggi berarti ruang yang lebih besar untuk tujuan atau dana darurat.",
+    "disclaimerTitle": "Disclaimer Edukasi",
+    "disclaimerBody": "Alat ini hanya untuk edukasi dan perencanaan. Simulator ini tidak merekomendasikan produk keuangan, tidak menjanjikan imbal hasil investasi, dan tidak menggantikan nasihat profesional.",
+    "noResultText": "Jalankan simulasi untuk membandingkan kebiasaan saat ini, kebiasaan yang lebih baik, dan jalur yang lebih berisiko.",
+    "scenarioLabels": {
+      "current": "Kebiasaan Saat Ini",
+      "improved": "Kebiasaan Lebih Baik",
+      "risky": "Jalur Lebih Berisiko"
+    },
+    "scenarioExplanations": {
+      "current": {
+        "title": "Kebiasaan Saat Ini",
+        "body": "Memakai pemasukan, pengeluaran, cicilan, dan tabungan persis seperti yang kamu isi."
+      },
+      "improved": {
+        "title": "Kebiasaan Lebih Baik",
+        "body": "Mengurangi pengeluaran gaya hidup 20% dan makan/transport 10%. Jika masih ada utang, 60% uang ekstra dipakai untuk utang dan 40% untuk tabungan."
+      },
+      "risky": {
+        "title": "Jalur Lebih Berisiko",
+        "body": "Menaikkan pengeluaran fleksibel dan menambahkan satu biaya tak terduga agar kamu bisa melihat seberapa kuat rencanamu."
+      }
+    },
+    "fields": {
+      "monthlyIncome": "Penghasilan bersih bulanan",
+      "currentSavings": "Uang yang sudah ditabung/diinvestasikan",
+      "essentialSpending": "Pengeluaran wajib",
+      "lifestyleSpending": "Pengeluaran gaya hidup",
+      "foodTransportSpending": "Makan & transport",
+      "otherSpending": "Pengeluaran fleksibel lain",
+      "debtBalance": "Sisa utang / paylater",
+      "monthlyDebtPayment": "Pembayaran utang per bulan",
+      "goalAmount": "Target dana",
+      "timeHorizon": "Timeline",
+      "expectedReturn": "Asumsi imbal hasil tahunan",
+      "riskBehavior": "Tingkat risiko untuk jalur berisiko"
+    },
+    "fieldHelp": {
+      "monthlyIncome": "Pakai jumlah yang benar-benar masuk ke rekening setiap bulan.",
+      "currentSavings": "Masukkan kas, tabungan, dan investasi yang bisa dipakai untuk tujuan ini.",
+      "essentialSpending": "Sewa, tagihan, biaya sekolah, asuransi, dan biaya lain yang sulit dihindari.",
+      "lifestyleSpending": "Nongkrong, hiburan, hobi, belanja, langganan, dan self-reward.",
+      "foodTransportSpending": "Makan harian, belanja bahan makanan, transport, ojek online, bensin, dan parkir.",
+      "otherSpending": "Pengeluaran bulanan lain yang belum masuk kategori di atas.",
+      "debtBalance": "Total sisa pinjaman, kartu kredit, cicilan, atau paylater.",
+      "monthlyDebtPayment": "Jumlah yang biasanya kamu bayarkan untuk utang setiap bulan.",
+      "goalAmount": "Jumlah uang yang ingin kamu punya di akhir timeline.",
+      "timeHorizon": "Berapa bulan ke depan yang ingin disimulasikan.",
+      "expectedReturn": "Asumsi pertumbuhan tahunan untuk tabungan atau investasi. Isi 0 kalau tidak ingin memakai asumsi return.",
+      "riskBehavior": "Ini menentukan seberapa besar kenaikan pengeluaran dan biaya tak terduga pada jalur berisiko."
+    },
+    "riskLevels": {
+      "low": "Rendah",
+      "medium": "Sedang",
+      "high": "Tinggi"
+    },
+    "cards": {
+      "emergencyFundLabel": "Ketahanan dana darurat",
+      "goalReached": "Tercapai",
+      "goalNotReached": "Belum tercapai",
+      "biggestBottleneckTitle": "Hal Utama yang Menahanmu",
+      "bestNextActionTitle": "Langkah Terbaik Berikutnya"
+    },
+    "resultLabels": {
+      "finalNetPosition": "Uang setelah dikurangi utang:",
+      "goalStatus": "Status target:",
+      "alreadyReached": "Sudah tercapai",
+      "reachedInMonth": "Tercapai di bulan",
+      "notSet": "Belum dihitung",
+      "monthsOfEssentials": "bulan pengeluaran wajib"
+    },
+    "insights": {
+      "biggestBottleneck": {
+        "overspending": "Bottleneck terbesarmu ada di pengeluaran — porsi besar penghasilan masih habis untuk gaya hidup dan biaya yang bisa diatur.",
+        "highDebt": "Bottleneck terbesarmu adalah utang yang sudah ada. Porsi besar arus kasmu terkunci di cicilan.",
+        "shortHorizon": "Bottleneck terbesarmu adalah horizon waktu yang terlalu pendek untuk besarnya tujuan.",
+        "lowIncome": "Bottleneck terbesarmu adalah pendapatan yang relatif kecil dibanding ukuran tujuan dan pengeluaran.",
+        "alreadyAtGoal": "Secara angka kamu sudah mencapai tujuan ini — fokus berikutnya adalah menjaga dan mengembangkan aset yang ada.",
+        "noSavingsCapacity": "Saat ini hampir tidak ada ruang untuk menabung setelah membayar pengeluaran dan cicilan."
+      },
+      "bestNextAction": {
+        "cutLifestyleSpending": "Perketat pengeluaran gaya hidup, makan, dan hal non-esensial supaya lebih banyak arus kas mengalir ke tabungan dan pelunasan utang.",
+        "buildEmergencyFund": "Prioritaskan membangun dana darurat agar ketika ada kejadian tak terduga, kamu tidak harus menambah utang baru.",
+        "focusOnDebt": "Fokus melunasi utang berbunga tinggi terlebih dahulu agar tabungan di masa depan tidak terus terbebani bunga.",
+        "extendHorizon": "Pertimbangkan untuk memperpanjang horizon waktu atau memecah tujuan besar menjadi beberapa milestone yang lebih kecil.",
+        "increaseIncome": "Cari cara menambah penghasilan (side job, upgrade skill, atau langkah karier) sambil tetap mengontrol pengeluaran dasar.",
+        "maintainGoodHabits": "Kamu sudah berada di jalur yang baik — pertahankan kebiasaan sekarang, pantau rencana secara berkala, dan jaga progresmu."
+      }
+    }
   },
   "home": {
     "introduction": {
@@ -73,6 +175,21 @@
       "benefit3": {
         "title": "Bangun Kebiasaan Investasi",
         "description": "Wujudkan tujuan finansialmu dengan panduan investasi praktis."
+      }
+    },
+    "financialTwinPromo": {
+      "title": "Financial Twin Simulator",
+      "description": "Bandingkan jalur uangmu sekarang dengan kebiasaan yang lebih baik dan pilihan yang lebih berisiko sebelum mengambil keputusan.",
+      "cta": "Coba simulator",
+      "labels": {
+        "current": "Saat Ini",
+        "improved": "Lebih Baik",
+        "risky": "Berisiko"
+      },
+      "benefits": {
+        "current": "Lihat arah kebiasaan keuanganmu saat ini.",
+        "improved": "Temukan perubahan yang bisa mendekatkanmu ke tujuan.",
+        "risky": "Pahami dampak pilihan berisiko pada rencanamu."
       }
     },
     "feature": {

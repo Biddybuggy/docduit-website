@@ -51,7 +51,109 @@
     "aboutUs": "About Us",
     "calculator": "Calculator",
     "articles": "Articles",
+    "financialTwin": "Financial Twin",
     "signIn": "Sign In"
+  },
+  "twinSimulator": {
+    "pageTitle": "Financial Twin Simulator",
+    "pageSubtitle": "Enter a few monthly numbers and compare three possible versions of your financial future: what happens if nothing changes, what improves if you adjust your habits, and what could go wrong if spending or surprise costs rise.",
+    "introTitle": "What the three paths mean",
+    "introBody": "This is a planning sandbox, not a forecast. It helps you see which daily choices have the biggest effect on savings, debt, and your goal.",
+    "formTitle": "Your Monthly Money Snapshot",
+    "formHelper": "Use approximate monthly numbers. The simulator is most useful when the inputs feel realistic, even if they are not perfect.",
+    "runButton": "Run Simulation",
+    "summaryTitle": "What the Simulator Found",
+    "summaryHelper": "Each card shows where you could land by the end of your timeline. Money after debt means savings and investments minus unpaid debt.",
+    "chartTitle": "Money After Debt, Month by Month",
+    "chartHelper": "The line chart tracks savings minus debt over time. A higher line means more room to fund goals or handle emergencies.",
+    "disclaimerTitle": "Educational Disclaimer",
+    "disclaimerBody": "This tool is for learning and planning only. It does not recommend financial products, promise investment returns, or replace advice from a qualified professional.",
+    "noResultText": "Run the simulation to see how your current habits, better habits, and a riskier path compare.",
+    "scenarioLabels": {
+      "current": "Current habits",
+      "improved": "Better habits",
+      "risky": "Riskier path"
+    },
+    "scenarioExplanations": {
+      "current": {
+        "title": "Current habits",
+        "body": "Keeps your income, spending, debt payment, and savings exactly as entered."
+      },
+      "improved": {
+        "title": "Better habits",
+        "body": "Cuts lifestyle spending by 20% and food/transport by 10%. If you still have debt, 60% of the extra cash goes to debt and 40% goes to savings."
+      },
+      "risky": {
+        "title": "Riskier path",
+        "body": "Raises flexible spending and adds one surprise cost during the timeline, so you can see how fragile the plan might be."
+      }
+    },
+    "fields": {
+      "monthlyIncome": "Monthly take-home income",
+      "currentSavings": "Money already saved or invested",
+      "essentialSpending": "Must-pay spending",
+      "lifestyleSpending": "Lifestyle spending",
+      "foodTransportSpending": "Food and transport",
+      "otherSpending": "Other flexible spending",
+      "debtBalance": "Debt or paylater balance",
+      "monthlyDebtPayment": "Debt payment per month",
+      "goalAmount": "Target amount",
+      "timeHorizon": "Timeline",
+      "expectedReturn": "Expected yearly return",
+      "riskBehavior": "Risk setting for the riskier path"
+    },
+    "fieldHelp": {
+      "monthlyIncome": "Use the amount that actually reaches your account each month.",
+      "currentSavings": "Include cash, savings, and investments you could use toward this goal.",
+      "essentialSpending": "Rent, bills, school fees, insurance, and other costs you cannot easily skip.",
+      "lifestyleSpending": "Eating out, entertainment, hobbies, shopping, subscriptions, and treats.",
+      "foodTransportSpending": "Regular meals, groceries, commuting, ride-hailing, fuel, and parking.",
+      "otherSpending": "Anything monthly that does not fit the categories above.",
+      "debtBalance": "The unpaid amount across loans, credit cards, installments, or paylater.",
+      "monthlyDebtPayment": "The amount you normally pay toward debt every month.",
+      "goalAmount": "The amount you want to have saved by the end of the timeline.",
+      "timeHorizon": "How many months you want the simulator to look ahead.",
+      "expectedReturn": "A simple yearly growth assumption for savings or investments. Use 0 if you do not want to assume growth.",
+      "riskBehavior": "This controls how much extra spending and how large the surprise cost is in the riskier path."
+    },
+    "riskLevels": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "cards": {
+      "emergencyFundLabel": "Emergency cover",
+      "goalReached": "Reached",
+      "goalNotReached": "Not reached",
+      "biggestBottleneckTitle": "Main Thing Holding You Back",
+      "bestNextActionTitle": "Best Next Move"
+    },
+    "resultLabels": {
+      "finalNetPosition": "Money after debt:",
+      "goalStatus": "Goal status:",
+      "alreadyReached": "Already reached",
+      "reachedInMonth": "Reached in month",
+      "notSet": "Not available",
+      "monthsOfEssentials": "months of must-pay spending"
+    },
+    "insights": {
+      "biggestBottleneck": {
+        "overspending": "The biggest drag is flexible spending. Too much of your monthly income is leaving before it can become savings or debt reduction.",
+        "highDebt": "Debt is the biggest drag. A large part of your cash flow is tied up in repayments instead of moving toward your goal.",
+        "shortHorizon": "The goal may be too large for the timeline. The plan improves, but it may need more months to work.",
+        "lowIncome": "Your income is stretched compared with the goal and monthly expenses. Spending control helps, but income may also need attention.",
+        "alreadyAtGoal": "You already have enough saved for this target. The next step is protecting it and deciding what to do with any extra cash flow.",
+        "noSavingsCapacity": "There is almost no monthly room left after spending and debt payments. The plan needs breathing space before it can grow."
+      },
+      "bestNextAction": {
+        "cutLifestyleSpending": "Start with one or two flexible spending cuts and send that money directly to savings or debt. Small recurring changes matter most here.",
+        "buildEmergencyFund": "Build an emergency buffer first, so one surprise expense does not push the plan backward.",
+        "focusOnDebt": "Prioritize the most expensive debt and keep repayments consistent. Reducing debt improves every future month.",
+        "extendHorizon": "Give the goal more time or split it into smaller milestones. That makes the monthly pressure more realistic.",
+        "increaseIncome": "Look for additional income while keeping expenses steady. Extra income has the biggest effect when it is not absorbed by new spending.",
+        "maintainGoodHabits": "You are already in a strong position. Keep the habit, protect the money, and review the plan regularly."
+      }
+    }
   },
   "home": {
     "introduction": {
@@ -74,6 +176,21 @@
       "benefit3": {
         "title": "Build Investment Habits",
         "description": "Achieve your financial goals with practical investment guides."
+      }
+    },
+    "financialTwinPromo": {
+      "title": "Financial Twin Simulator",
+      "description": "See how today’s habits could shape your savings, debt, and next financial goal.",
+      "cta": "Open simulator",
+      "labels": {
+        "current": "Current habits",
+        "improved": "Better habits",
+        "risky": "Riskier path"
+      },
+      "benefits": {
+        "current": "See where your current income, spending, and debt payments may lead.",
+        "improved": "Find out how modest spending changes could improve the outcome.",
+        "risky": "Stress-test your plan against extra spending and one surprise cost."
       }
     },
     "feature": {
