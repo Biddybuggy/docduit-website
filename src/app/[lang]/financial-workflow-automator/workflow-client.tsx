@@ -447,11 +447,13 @@ export default function FinancialWorkflowAutomatorClient({
                           key={file.key}
                           type='button'
                           variant='outline'
-                          className='justify-start'
+                          className='min-w-0 justify-start overflow-hidden'
                           onClick={() => downloadWorkflowFile(file)}
                         >
-                          <Download />
-                          {file.fileName}
+                          <Download className='shrink-0' />
+                          <span className='min-w-0 truncate'>
+                            {file.fileName}
+                          </span>
                         </Button>
                       ))}
                   </div>
