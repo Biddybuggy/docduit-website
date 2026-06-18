@@ -16,7 +16,7 @@ export default async function FinancialWorkflowAutomatorPage({
 
   if (!session?.user?.email) {
     redirect(
-      `/api/auth/signin/google?callbackUrl=${encodeURIComponent(
+      `/login?callbackUrl=${encodeURIComponent(
         `/${lang}/financial-workflow-automator`,
       )}`,
     );

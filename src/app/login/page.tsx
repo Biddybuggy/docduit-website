@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, Suspense } from 'react';
+import { useEffect, Suspense, useState } from 'react';
 import { signIn } from 'next-auth/react';
 
 const ERROR_HELP: Record<string, string> = {
@@ -16,6 +16,8 @@ const ERROR_HELP: Record<string, string> = {
     'The OAuth callback handler failed. This often points to Vercel environment variables, token exchange issues, or a server-side auth error during callback processing.',
   AccessDenied:
     'Access was denied during sign-in.',
+  google:
+    'Google sign-in could not be completed. Please try signing in again.',
   Default:
     'A general authentication error occurred.',
 };
@@ -26,15 +28,18 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
   const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   useEffect(() => {
     if (status === 'authenticated') {
       router.push(callbackUrl);
-    } else if (status === 'unauthenticated' && !error) {
-      // Only auto sign-in if there's no error
-      signIn('google', { callbackUrl });
     }
-  }, [status, router, callbackUrl, error]);
+  }, [status, router, callbackUrl]);
+
+  const handleGoogleSignIn = async () => {
+    setIsSigningIn(true);
+    await signIn('google', { callbackUrl });
+  };
 
   if (status === 'loading') {
     return (
@@ -44,31 +49,40 @@ function LoginPageContent() {
     );
   }
 
-  if (error) {
-    const helpText =
-      ERROR_HELP[error] ||
-      `Authentication returned the error code "${error}". Check the Vercel function logs for the matching NextAuth error entry.`;
+  const helpText = error ? ERROR_HELP[error] || ERROR_HELP.Default : '';
 
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-xl px-6">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Login Failed</h1>
-          <p className="text-gray-600 mb-2">{helpText}</p>
-          <p className="text-sm text-gray-500 mb-6">
-            Error code: <span className="font-mono">{error}</span>
+  return (
+    <div className="min-h-screen bg-[#f7faf9] px-5 py-10">
+      <div className="mx-auto flex min-h-[calc(100vh-80px)] max-w-md items-center justify-center">
+        <div className="w-full rounded-lg border border-[#dfe7ea] bg-white p-8 text-center shadow-sm">
+          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-docduit-blue">
+            Docduit
           </p>
+          <h1 className="text-2xl font-bold text-[#16243d]">
+            Sign in to continue
+          </h1>
+          <p className="mt-3 text-sm text-[#607086]">
+            This feature is available for signed-in users. Sign in with Google
+            and we will bring you back here.
+          </p>
+
+          {helpText && (
+            <p className="mt-5 rounded-md border border-docduit-red/20 bg-docduit-red/10 px-3 py-2 text-sm text-docduit-red">
+              {helpText}
+            </p>
+          )}
+
           <button
-            onClick={() => signIn('google', { callbackUrl })}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            onClick={handleGoogleSignIn}
+            disabled={isSigningIn}
+            className="mt-6 w-full rounded-full bg-docduit-blue px-4 py-3 text-sm font-semibold text-white transition hover:bg-docduit-blue/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Try Again
+            {isSigningIn ? 'Signing in...' : 'Sign in with Google'}
           </button>
         </div>
       </div>
-    );
-  }
-
-  return null; // Will redirect
+    </div>
+  );
 }
 
 export default function LoginPage() {
