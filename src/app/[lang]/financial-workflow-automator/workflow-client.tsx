@@ -79,13 +79,12 @@ function getCopy(lang: Locale) {
     return {
       title: 'Otomatisasi Alur Keuangan Pintar',
       subtitle:
-        'Unggah faktur, periksa hasil ekstraksi, lalu buat file kalender, ekspor CSV, dan notifikasi tanpa izin Google tambahan.',
+        'Unggah faktur, periksa hasil ekstraksi, lalu buat pengingat, ekspor data, dan notifikasi keuangan.',
       signedInTitle: 'Pengguna yang masuk',
       signedInBody:
-        'Akun ini hanya dipakai untuk masuk ke Docduit. Pengingat kalender dan data spreadsheet akan dibuat sebagai file yang bisa kamu unduh.',
+        'Akun ini dipakai untuk menyimpan sesi masukmu. Hasil kalender dan spreadsheet akan dibuat sebagai file yang bisa kamu unduh.',
       intakeTitle: 'Unggah faktur',
       invoiceFile: 'File faktur (PDF, gambar, DOCX, TXT, atau CSV)',
-      financeEmail: 'Email keuangan',
       actions: 'Aksi',
       uploadFirst: 'Unggah faktur terlebih dahulu.',
       processing: 'Memproses...',
@@ -132,13 +131,12 @@ function getCopy(lang: Locale) {
   return {
     title: 'Smart Financial Workflow Automator',
     subtitle:
-      'Upload an invoice, review extracted fields, then generate calendar files, CSV exports, and notifications without extra Google permissions.',
+      'Upload an invoice, review extracted fields, then create reminders, export data, and send finance notifications.',
     signedInTitle: 'Signed-in user',
     signedInBody:
-      'This account is only used to sign in to Docduit. Calendar reminders and spreadsheet data are created as downloadable files.',
+      'This account keeps your Docduit session active. Calendar and spreadsheet outputs are created as downloadable files.',
     intakeTitle: 'Invoice intake',
     invoiceFile: 'Invoice file (PDF, image, DOCX, TXT, or CSV)',
-    financeEmail: 'Finance email',
     actions: 'Actions',
     uploadFirst: 'Upload an invoice first.',
     processing: 'Processing...',
@@ -187,7 +185,6 @@ export default function FinancialWorkflowAutomatorClient({
   userEmail,
 }: Props) {
   const [file, setFile] = useState<File | null>(null);
-  const [financeEmail, setFinanceEmail] = useState('docduit48@gmail.com');
   const [selectedActions, setSelectedActions] = useState<
     Record<string, boolean>
   >(() =>
@@ -216,7 +213,6 @@ export default function FinancialWorkflowAutomatorClient({
     const body = new FormData();
     body.set('file', file);
     body.set('execute', String(execute));
-    body.set('financeEmail', financeEmail);
     body.set('lang', lang);
     Object.entries(selectedActions).forEach(([key, value]) => {
       body.set(key, String(value));
@@ -285,16 +281,6 @@ export default function FinancialWorkflowAutomatorClient({
                     type='file'
                     accept='.pdf,.png,.jpg,.jpeg,.docx,.txt,.csv,application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/csv'
                     onChange={handleFileChange}
-                  />
-                </div>
-
-                <div className='space-y-2'>
-                  <Label htmlFor='finance-email'>{copy.financeEmail}</Label>
-                  <Input
-                    id='finance-email'
-                    type='email'
-                    value={financeEmail}
-                    onChange={(event) => setFinanceEmail(event.target.value)}
                   />
                 </div>
 

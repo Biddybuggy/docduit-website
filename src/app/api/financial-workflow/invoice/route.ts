@@ -39,7 +39,6 @@ export async function POST(request: NextRequest) {
     const workflow = shouldExecute
       ? await runInvoiceWorkflow(fields, {
           lang,
-          financeEmail: stringFromForm(formData.get('financeEmail')),
           createCalendarFile: formData.get('calendar') !== 'false',
           createCsvExport: formData.get('csv') !== 'false',
           sendEmailNotification: formData.get('email') !== 'false',
@@ -65,8 +64,4 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
-}
-
-function stringFromForm(value: FormDataEntryValue | null) {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }

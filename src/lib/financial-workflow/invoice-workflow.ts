@@ -1,4 +1,5 @@
 import { createRequire } from 'module';
+import { pathToFileURL } from 'url';
 import mammoth from 'mammoth';
 
 export type InvoiceFields = {
@@ -105,6 +106,7 @@ async function extractInvoiceText(file: File): Promise<string> {
   if (contentType.includes('pdf') || fileName.endsWith('.pdf')) {
     ensurePdfJsNodeGlobals();
     const { PDFParse } = nodeRequire('pdf-parse') as typeof import('pdf-parse');
+    PDFParse.setWorker(resolvePdfWorkerUrl());
     const parser = new PDFParse({ data: buffer });
     try {
       const result = await parser.getText();
@@ -572,6 +574,13 @@ function ensurePdfJsNodeGlobals() {
   if (!globals.ImageData && canvas.ImageData)
     globals.ImageData = canvas.ImageData;
   if (!globals.Path2D && canvas.Path2D) globals.Path2D = canvas.Path2D;
+}
+
+function resolvePdfWorkerUrl() {
+  const workerPath = nodeRequire.resolve(
+    'pdfjs-dist/legacy/build/pdf.worker.mjs',
+  );
+  return pathToFileURL(workerPath).toString();
 }
 
 function completed(
