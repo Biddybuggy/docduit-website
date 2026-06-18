@@ -24,6 +24,7 @@ export type GeneratedWorkflowFile = {
 };
 
 type WorkflowOptions = {
+  lang?: 'id' | 'en';
   financeEmail?: string;
   createCalendarFile?: boolean;
   createCsvExport?: boolean;
@@ -56,6 +57,7 @@ export async function runInvoiceWorkflow(
   actions: WorkflowActionStatus[];
   files: GeneratedWorkflowFile[];
 }> {
+  const copy = getWorkflowCopy(options.lang);
   const actions: WorkflowActionStatus[] = [];
   const files: GeneratedWorkflowFile[] = [];
 
@@ -63,42 +65,31 @@ export async function runInvoiceWorkflow(
     const calendarFile = createCalendarReminderFile(fields);
     if (calendarFile) {
       files.push(calendarFile);
-      actions.push(
-        completed(
-          'calendar',
-          'Calendar reminder file generated. Download it and open it with your calendar app.',
-        ),
-      );
+      actions.push(completed('calendar', copy.calendarGenerated, copy));
     } else {
-      actions.push(failed('calendar', 'No valid due date was found.'));
+      actions.push(failed('calendar', copy.noDueDate, copy));
     }
   } else {
-    actions.push(
-      skipped('calendar', 'Calendar reminder file was not requested.'),
-    );
+    actions.push(skipped('calendar', copy.calendarSkipped, copy));
   }
 
   if (options.createCsvExport) {
     files.push(createInvoiceCsvFile(fields));
-    actions.push(
-      completed('csv', 'CSV export generated for spreadsheet import.'),
-    );
+    actions.push(completed('csv', copy.csvGenerated, copy));
   } else {
-    actions.push(skipped('csv', 'CSV export was not requested.'));
+    actions.push(skipped('csv', copy.csvSkipped, copy));
   }
 
   if (options.sendEmailNotification) {
-    actions.push(await sendFinanceEmail(fields, options.financeEmail));
+    actions.push(await sendFinanceEmail(fields, copy, options.financeEmail));
   } else {
-    actions.push(
-      skipped('email', 'Finance email notification was not requested.'),
-    );
+    actions.push(skipped('email', copy.emailSkipped, copy));
   }
 
   if (options.sendSlackNotification) {
-    actions.push(await sendSlackNotification(fields));
+    actions.push(await sendSlackNotification(fields, copy));
   } else {
-    actions.push(skipped('slack', 'Slack notification was not requested.'));
+    actions.push(skipped('slack', copy.slackSkipped, copy));
   }
 
   return { actions, files };
@@ -330,6 +321,7 @@ function createInvoiceCsvFile(fields: InvoiceFields): GeneratedWorkflowFile {
 
 async function sendFinanceEmail(
   fields: InvoiceFields,
+  copy: WorkflowCopy,
   financeEmail?: string,
 ): Promise<WorkflowActionStatus> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -338,11 +330,11 @@ async function sendFinanceEmail(
   const to = financeEmail || process.env.FINANCE_TEAM_EMAIL;
 
   if (!apiKey) {
-    return skipped('email', 'RESEND_API_KEY is not configured.');
+    return skipped('email', copy.emailProviderMissing, copy);
   }
 
   if (!to) {
-    return skipped('email', 'FINANCE_TEAM_EMAIL is not configured.');
+    return skipped('email', copy.financeEmailMissing, copy);
   }
 
   try {
@@ -370,21 +362,19 @@ async function sendFinanceEmail(
       throw new Error(body || `Email provider returned ${response.status}`);
     }
 
-    return completed(
-      'email',
-      `Finance notification sent to ${to} from Docduit.`,
-    );
+    return completed('email', copy.emailSent(to), copy);
   } catch (error) {
-    return failed('email', getErrorMessage(error));
+    return failed('email', getErrorMessage(error), copy);
   }
 }
 
 async function sendSlackNotification(
   fields: InvoiceFields,
+  copy: WorkflowCopy,
 ): Promise<WorkflowActionStatus> {
   const webhookUrl = process.env.SLACK_FINANCE_WEBHOOK_URL;
   if (!webhookUrl) {
-    return skipped('slack', 'SLACK_FINANCE_WEBHOOK_URL is not configured.');
+    return skipped('slack', copy.slackWebhookMissing, copy);
   }
 
   try {
@@ -398,9 +388,9 @@ async function sendSlackNotification(
     if (!response.ok) {
       throw new Error(`Slack returned ${response.status}`);
     }
-    return completed('slack', 'Slack finance notification sent.');
+    return completed('slack', copy.slackSent, copy);
   } catch (error) {
-    return failed('slack', getErrorMessage(error));
+    return failed('slack', getErrorMessage(error), copy);
   }
 }
 
@@ -487,31 +477,81 @@ function safeFileName(value: string) {
 function completed(
   key: WorkflowActionStatus['key'],
   detail: string,
+  copy: WorkflowCopy,
 ): WorkflowActionStatus {
-  return { key, label: labelFor(key), status: 'completed', detail };
+  return { key, label: labelFor(key, copy), status: 'completed', detail };
 }
 
 function skipped(
   key: WorkflowActionStatus['key'],
   detail: string,
+  copy: WorkflowCopy,
 ): WorkflowActionStatus {
-  return { key, label: labelFor(key), status: 'skipped', detail };
+  return { key, label: labelFor(key, copy), status: 'skipped', detail };
 }
 
 function failed(
   key: WorkflowActionStatus['key'],
   detail: string,
+  copy: WorkflowCopy,
 ): WorkflowActionStatus {
-  return { key, label: labelFor(key), status: 'failed', detail };
+  return { key, label: labelFor(key, copy), status: 'failed', detail };
 }
 
-function labelFor(key: WorkflowActionStatus['key']) {
+type WorkflowCopy = ReturnType<typeof getWorkflowCopy>;
+
+function getWorkflowCopy(lang: WorkflowOptions['lang']) {
+  if (lang === 'id') {
+    return {
+      labels: {
+        calendar: 'File kalender',
+        email: 'Email Docduit',
+        csv: 'Ekspor CSV',
+        slack: 'Slack',
+      },
+      calendarGenerated:
+        'File pengingat kalender berhasil dibuat. Unduh file ini lalu buka dengan aplikasi kalender.',
+      calendarSkipped: 'File pengingat kalender tidak diminta.',
+      noDueDate: 'Tanggal jatuh tempo yang valid tidak ditemukan.',
+      csvGenerated: 'Ekspor CSV berhasil dibuat untuk diimpor ke spreadsheet.',
+      csvSkipped: 'Ekspor CSV tidak diminta.',
+      emailSkipped: 'Notifikasi email keuangan tidak diminta.',
+      emailProviderMissing: 'RESEND_API_KEY belum dikonfigurasi.',
+      financeEmailMissing: 'FINANCE_TEAM_EMAIL belum dikonfigurasi.',
+      emailSent: (to: string) =>
+        `Notifikasi keuangan berhasil dikirim ke ${to} dari Docduit.`,
+      slackSkipped: 'Notifikasi Slack tidak diminta.',
+      slackWebhookMissing: 'SLACK_FINANCE_WEBHOOK_URL belum dikonfigurasi.',
+      slackSent: 'Notifikasi Slack keuangan berhasil dikirim.',
+    };
+  }
+
   return {
-    calendar: 'Calendar file',
-    email: 'Docduit email',
-    csv: 'CSV export',
-    slack: 'Slack',
-  }[key];
+    labels: {
+      calendar: 'Calendar file',
+      email: 'Docduit email',
+      csv: 'CSV export',
+      slack: 'Slack',
+    },
+    calendarGenerated:
+      'Calendar reminder file generated. Download it and open it with your calendar app.',
+    calendarSkipped: 'Calendar reminder file was not requested.',
+    noDueDate: 'No valid due date was found.',
+    csvGenerated: 'CSV export generated for spreadsheet import.',
+    csvSkipped: 'CSV export was not requested.',
+    emailSkipped: 'Finance email notification was not requested.',
+    emailProviderMissing: 'RESEND_API_KEY is not configured.',
+    financeEmailMissing: 'FINANCE_TEAM_EMAIL is not configured.',
+    emailSent: (to: string) =>
+      `Finance notification sent to ${to} from Docduit.`,
+    slackSkipped: 'Slack notification was not requested.',
+    slackWebhookMissing: 'SLACK_FINANCE_WEBHOOK_URL is not configured.',
+    slackSent: 'Slack finance notification sent.',
+  };
+}
+
+function labelFor(key: WorkflowActionStatus['key'], copy: WorkflowCopy) {
+  return copy.labels[key];
 }
 
 function getErrorMessage(error: unknown) {

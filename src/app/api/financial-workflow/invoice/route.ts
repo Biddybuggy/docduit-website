@@ -34,9 +34,11 @@ export async function POST(request: NextRequest) {
 
     const { fields, rawText } = await parse_invoice(file);
     const shouldExecute = formData.get('execute') === 'true';
+    const lang = formData.get('lang') === 'id' ? 'id' : 'en';
 
     const workflow = shouldExecute
       ? await runInvoiceWorkflow(fields, {
+          lang,
           financeEmail: stringFromForm(formData.get('financeEmail')),
           createCalendarFile: formData.get('calendar') !== 'false',
           createCsvExport: formData.get('csv') !== 'false',

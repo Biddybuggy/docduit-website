@@ -4,7 +4,6 @@ import { ChangeEvent, useMemo, useState } from 'react';
 import {
   Bell,
   CalendarDays,
-  CheckCircle2,
   Download,
   FileText,
   Mail,
@@ -56,37 +55,146 @@ type Props = {
   vocabularies: any;
 };
 
-const actionOptions = [
+const actionConfigs = [
   {
     key: 'calendar',
-    label: 'Calendar file',
-    description: 'Generate an .ics reminder that opens in any calendar app.',
     icon: CalendarDays,
     defaultChecked: true,
   },
   {
     key: 'email',
-    label: 'Email finance',
-    description:
-      'Send from Docduit email if the app email provider is configured.',
     icon: Mail,
     defaultChecked: true,
   },
   {
     key: 'csv',
-    label: 'CSV export',
-    description: 'Generate a spreadsheet-ready invoice row.',
     icon: Sheet,
     defaultChecked: true,
   },
   {
     key: 'slack',
-    label: 'Slack alert',
-    description: 'Post a concise notice to the finance channel.',
     icon: Bell,
     defaultChecked: false,
   },
-];
+] as const;
+
+type ActionKey = (typeof actionConfigs)[number]['key'];
+
+function getCopy(lang: Locale) {
+  if (lang === 'id') {
+    return {
+      title: 'Otomatisasi Alur Keuangan Pintar',
+      subtitle:
+        'Unggah faktur, periksa hasil ekstraksi, lalu buat file kalender, ekspor CSV, dan notifikasi tanpa izin Google tambahan.',
+      signedInTitle: 'Pengguna yang masuk',
+      signedInBody:
+        'Akun ini hanya dipakai untuk masuk ke Docduit. Pengingat kalender dan data spreadsheet akan dibuat sebagai file yang bisa kamu unduh.',
+      intakeTitle: 'Unggah faktur',
+      invoiceFile: 'File faktur',
+      financeEmail: 'Email keuangan',
+      actions: 'Aksi',
+      uploadFirst: 'Unggah faktur terlebih dahulu.',
+      processing: 'Memproses...',
+      preview: 'Pratinjau',
+      generate: 'Buat',
+      extractedInvoice: 'Data faktur',
+      parsedPlaceholder:
+        'Data hasil ekstraksi akan muncul di sini setelah pratinjau atau pembuatan file.',
+      vendor: 'Vendor',
+      invoiceNumber: 'Nomor faktur',
+      amount: 'Jumlah',
+      dueDate: 'Tanggal jatuh tempo',
+      unknown: 'Tidak diketahui',
+      workflowStatus: 'Status alur kerja',
+      previewStatus:
+        'Mode pratinjau mengekstrak dan memvalidasi faktur tanpa menjalankan aksi eksternal.',
+      generatedFiles: 'File yang dibuat',
+      rawTextPreview: 'Pratinjau teks mentah',
+      workflowFailed: 'Alur kerja gagal.',
+      statusLabels: {
+        completed: 'selesai',
+        skipped: 'dilewati',
+        failed: 'gagal',
+      },
+      actionLabels: {
+        calendar: {
+          label: 'File kalender',
+          description:
+            'Buat pengingat .ics yang bisa dibuka di aplikasi kalender.',
+        },
+        email: {
+          label: 'Email keuangan',
+          description:
+            'Kirim dari email Docduit jika penyedia email aplikasi sudah dikonfigurasi.',
+        },
+        csv: {
+          label: 'Ekspor CSV',
+          description: 'Buat baris faktur yang siap diimpor ke spreadsheet.',
+        },
+        slack: {
+          label: 'Notifikasi Slack',
+          description: 'Kirim pemberitahuan singkat ke kanal keuangan.',
+        },
+      },
+    };
+  }
+
+  return {
+    title: 'Smart Financial Workflow Automator',
+    subtitle:
+      'Upload an invoice, review extracted fields, then generate calendar files, CSV exports, and notifications without extra Google permissions.',
+    signedInTitle: 'Signed-in user',
+    signedInBody:
+      'This account is only used to sign in to Docduit. Calendar reminders and spreadsheet data are created as downloadable files.',
+    intakeTitle: 'Invoice intake',
+    invoiceFile: 'Invoice file',
+    financeEmail: 'Finance email',
+    actions: 'Actions',
+    uploadFirst: 'Upload an invoice first.',
+    processing: 'Processing...',
+    preview: 'Preview',
+    generate: 'Generate',
+    extractedInvoice: 'Extracted invoice',
+    parsedPlaceholder:
+      'Parsed fields will appear here after preview or generation.',
+    vendor: 'Vendor',
+    invoiceNumber: 'Invoice number',
+    amount: 'Amount',
+    dueDate: 'Due date',
+    unknown: 'Unknown',
+    workflowStatus: 'Workflow status',
+    previewStatus:
+      'Preview mode extracts and validates the invoice without creating external actions.',
+    generatedFiles: 'Generated files',
+    rawTextPreview: 'Raw text preview',
+    workflowFailed: 'Workflow failed.',
+    statusLabels: {
+      completed: 'completed',
+      skipped: 'skipped',
+      failed: 'failed',
+    },
+    actionLabels: {
+      calendar: {
+        label: 'Calendar file',
+        description:
+          'Generate an .ics reminder that opens in any calendar app.',
+      },
+      email: {
+        label: 'Email finance',
+        description:
+          'Send from Docduit email if the app email provider is configured.',
+      },
+      csv: {
+        label: 'CSV export',
+        description: 'Generate a spreadsheet-ready invoice row.',
+      },
+      slack: {
+        label: 'Slack alert',
+        description: 'Post a concise notice to the finance channel.',
+      },
+    },
+  };
+}
 
 export default function FinancialWorkflowAutomatorClient({
   lang,
@@ -98,26 +206,14 @@ export default function FinancialWorkflowAutomatorClient({
     Record<string, boolean>
   >(() =>
     Object.fromEntries(
-      actionOptions.map((action) => [action.key, action.defaultChecked]),
+      actionConfigs.map((action) => [action.key, action.defaultChecked]),
     ),
   );
   const [result, setResult] = useState<WorkflowResponse | null>(null);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const copy = useMemo(
-    () => ({
-      title:
-        lang === 'id'
-          ? 'Smart Financial Workflow Automator'
-          : 'Smart Financial Workflow Automator',
-      subtitle:
-        lang === 'id'
-          ? 'Unggah invoice, cek hasil ekstraksi, lalu buat file kalender, CSV, dan notifikasi tanpa izin Google tambahan.'
-          : 'Upload an invoice, review extracted fields, then generate calendar files, CSV exports, and notifications without extra Google permissions.',
-    }),
-    [lang],
-  );
+  const copy = useMemo(() => getCopy(lang), [lang]);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     setFile(event.target.files?.[0] || null);
@@ -127,7 +223,7 @@ export default function FinancialWorkflowAutomatorClient({
 
   const submitWorkflow = async (execute: boolean) => {
     if (!file) {
-      setError('Upload an invoice first.');
+      setError(copy.uploadFirst);
       return;
     }
 
@@ -135,6 +231,7 @@ export default function FinancialWorkflowAutomatorClient({
     body.set('file', file);
     body.set('execute', String(execute));
     body.set('financeEmail', financeEmail);
+    body.set('lang', lang);
     Object.entries(selectedActions).forEach(([key, value]) => {
       body.set(key, String(value));
     });
@@ -149,11 +246,11 @@ export default function FinancialWorkflowAutomatorClient({
       });
       const data = (await response.json()) as WorkflowResponse;
       if (!response.ok) {
-        throw new Error(data.error || 'Workflow failed.');
+        throw new Error(data.error || copy.workflowFailed);
       }
       setResult(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Workflow failed.');
+      setError(err instanceof Error ? err.message : copy.workflowFailed);
     } finally {
       setIsSubmitting(false);
     }
@@ -164,10 +261,6 @@ export default function FinancialWorkflowAutomatorClient({
       <div className='mx-auto flex max-w-6xl flex-col gap-6'>
         <section className='grid gap-6 lg:grid-cols-[1fr_360px]'>
           <div className='flex flex-col justify-center gap-4'>
-            <div className='inline-flex w-fit items-center gap-2 rounded-full border border-docduit-blue/20 bg-white px-3 py-1 text-sm font-medium text-docduit-blue'>
-              <CheckCircle2 className='h-4 w-4' />
-              No sensitive Google scopes
-            </div>
             <div>
               <h1 className='text-3xl font-bold text-[#16243d] md:text-5xl'>
                 {copy.title}
@@ -180,15 +273,11 @@ export default function FinancialWorkflowAutomatorClient({
 
           <Card className='rounded-lg border-docduit-blue/10 shadow-sm'>
             <CardHeader>
-              <CardTitle className='text-lg'>Signed-in user</CardTitle>
+              <CardTitle className='text-lg'>{copy.signedInTitle}</CardTitle>
             </CardHeader>
             <CardContent className='space-y-2 text-sm text-[#526173]'>
               <p className='font-medium text-[#16243d]'>{userEmail}</p>
-              <p>
-                This workflow only uses your account to sign in. Calendar and
-                spreadsheet outputs are downloadable files, not private Google
-                account writes.
-              </p>
+              <p>{copy.signedInBody}</p>
             </CardContent>
           </Card>
         </section>
@@ -198,13 +287,13 @@ export default function FinancialWorkflowAutomatorClient({
             <CardHeader>
               <CardTitle className='flex items-center gap-2 text-xl'>
                 <Upload className='h-5 w-5 text-docduit-red' />
-                Invoice intake
+                {copy.intakeTitle}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <form className='space-y-5'>
                 <div className='space-y-2'>
-                  <Label htmlFor='invoice-file'>Invoice file</Label>
+                  <Label htmlFor='invoice-file'>{copy.invoiceFile}</Label>
                   <Input
                     id='invoice-file'
                     type='file'
@@ -214,7 +303,7 @@ export default function FinancialWorkflowAutomatorClient({
                 </div>
 
                 <div className='space-y-2'>
-                  <Label htmlFor='finance-email'>Finance email</Label>
+                  <Label htmlFor='finance-email'>{copy.financeEmail}</Label>
                   <Input
                     id='finance-email'
                     type='email'
@@ -224,10 +313,11 @@ export default function FinancialWorkflowAutomatorClient({
                 </div>
 
                 <div className='space-y-3'>
-                  <Label>Actions</Label>
+                  <Label>{copy.actions}</Label>
                   <div className='grid gap-3'>
-                    {actionOptions.map((action) => {
+                    {actionConfigs.map((action) => {
                       const Icon = action.icon;
+                      const actionCopy = copy.actionLabels[action.key];
                       return (
                         <label
                           key={action.key}
@@ -247,10 +337,10 @@ export default function FinancialWorkflowAutomatorClient({
                           <Icon className='mt-0.5 h-5 w-5 text-docduit-blue' />
                           <span>
                             <span className='block text-sm font-semibold text-[#16243d]'>
-                              {action.label}
+                              {actionCopy.label}
                             </span>
                             <span className='block text-xs text-[#607086]'>
-                              {action.description}
+                              {actionCopy.description}
                             </span>
                           </span>
                         </label>
@@ -274,7 +364,7 @@ export default function FinancialWorkflowAutomatorClient({
                     onClick={() => void submitWorkflow(false)}
                   >
                     <FileText />
-                    {isSubmitting ? 'Processing...' : 'Preview'}
+                    {isSubmitting ? copy.processing : copy.preview}
                   </Button>
                   <Button
                     type='button'
@@ -284,7 +374,7 @@ export default function FinancialWorkflowAutomatorClient({
                     onClick={() => void submitWorkflow(true)}
                   >
                     <Send />
-                    Generate
+                    {copy.generate}
                   </Button>
                 </div>
               </form>
@@ -294,32 +384,34 @@ export default function FinancialWorkflowAutomatorClient({
           <div className='space-y-6'>
             <Card className='rounded-lg border-0 shadow-sm'>
               <CardHeader>
-                <CardTitle className='text-xl'>Extracted invoice</CardTitle>
+                <CardTitle className='text-xl'>
+                  {copy.extractedInvoice}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {result ? (
                   <div className='grid gap-3 sm:grid-cols-2'>
-                    <Field label='Vendor' value={result.invoice.vendor} />
+                    <Field label={copy.vendor} value={result.invoice.vendor} />
                     <Field
-                      label='Invoice number'
+                      label={copy.invoiceNumber}
                       value={result.invoice.invoiceNumber}
                     />
                     <Field
-                      label='Amount'
+                      label={copy.amount}
                       value={
                         result.invoice.amount === null
-                          ? 'Unknown'
+                          ? copy.unknown
                           : `${result.invoice.currency} ${result.invoice.amount.toLocaleString()}`
                       }
                     />
                     <Field
-                      label='Due date'
-                      value={result.invoice.dueDate || 'Unknown'}
+                      label={copy.dueDate}
+                      value={result.invoice.dueDate || copy.unknown}
                     />
                   </div>
                 ) : (
                   <p className='text-sm text-[#607086]'>
-                    Parsed fields will appear here after preview or execution.
+                    {copy.parsedPlaceholder}
                   </p>
                 )}
               </CardContent>
@@ -327,7 +419,7 @@ export default function FinancialWorkflowAutomatorClient({
 
             <Card className='rounded-lg border-0 shadow-sm'>
               <CardHeader>
-                <CardTitle className='text-xl'>Workflow status</CardTitle>
+                <CardTitle className='text-xl'>{copy.workflowStatus}</CardTitle>
               </CardHeader>
               <CardContent>
                 {result?.actions.length ? (
@@ -352,7 +444,7 @@ export default function FinancialWorkflowAutomatorClient({
                                 'bg-red-100 text-red-700',
                             )}
                           >
-                            {action.status}
+                            {copy.statusLabels[action.status]}
                           </span>
                         </div>
                         <p className='mt-1 text-sm text-[#607086]'>
@@ -362,10 +454,7 @@ export default function FinancialWorkflowAutomatorClient({
                     ))}
                   </div>
                 ) : (
-                  <p className='text-sm text-[#607086]'>
-                    Preview mode extracts and validates the invoice without
-                    creating external actions.
-                  </p>
+                  <p className='text-sm text-[#607086]'>{copy.previewStatus}</p>
                 )}
               </CardContent>
             </Card>
@@ -373,7 +462,9 @@ export default function FinancialWorkflowAutomatorClient({
             {result?.files.some((file) => file.content) && (
               <Card className='rounded-lg border-0 shadow-sm'>
                 <CardHeader>
-                  <CardTitle className='text-xl'>Generated files</CardTitle>
+                  <CardTitle className='text-xl'>
+                    {copy.generatedFiles}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className='grid gap-3 sm:grid-cols-2'>
@@ -399,7 +490,9 @@ export default function FinancialWorkflowAutomatorClient({
             {result?.rawTextPreview && (
               <Card className='rounded-lg border-0 shadow-sm'>
                 <CardHeader>
-                  <CardTitle className='text-xl'>Raw text preview</CardTitle>
+                  <CardTitle className='text-xl'>
+                    {copy.rawTextPreview}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <pre className='max-h-56 overflow-auto whitespace-pre-wrap rounded-lg bg-[#16243d] p-4 text-xs text-white'>
