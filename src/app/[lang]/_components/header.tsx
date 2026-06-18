@@ -149,6 +149,13 @@ export default function HeaderComponent({
       href: `/${lang}/financial-twin-simulator`,
       gaEvent: 'navigate_to_financial_twin_simulator',
     },
+    {
+      name:
+        vocabularies.navigation.workflowAutomator ??
+        (lang === 'id' ? 'Workflow Automator' : 'Workflow Automator'),
+      href: `/${lang}/financial-workflow-automator`,
+      gaEvent: 'navigate_to_financial_workflow_automator',
+    },
   ];
 
   return (

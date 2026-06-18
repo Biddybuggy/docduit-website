@@ -22,7 +22,9 @@ const useLegacyBackendAuth = !isGoogleOnlyMode && Boolean(legacyApiUrl);
 
 const nextAuthUrl =
   trimEnv(process.env.NEXTAUTH_URL) ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000');
 
 process.env.NEXTAUTH_URL = nextAuthUrl;
 
@@ -205,7 +207,8 @@ export const authOptions: AuthOptions = {
           token.accessToken = response.data.access_token;
           token.refreshToken = response.data.refresh_token;
           token.expiresAt = decoded.exp * 1000;
-          token.username = decoded.username || user?.email || user?.name || token.username;
+          token.username =
+            decoded.username || user?.email || user?.name || token.username;
           delete token.error;
         } catch (error) {
           console.error('Error logging in with Google backend:', {
@@ -237,7 +240,11 @@ export const authOptions: AuthOptions = {
       const refreshThreshold = 60 * 1000; // 1 minute before expiration
       const now = Date.now();
 
-      if (useLegacyBackendAuth && token.expiresAt && now > token.expiresAt - refreshThreshold) {
+      if (
+        useLegacyBackendAuth &&
+        token.expiresAt &&
+        now > token.expiresAt - refreshThreshold
+      ) {
         try {
           const response = await refreshToken(token.refreshToken as string);
           const decoded = decode(response.data.access_token) as {
