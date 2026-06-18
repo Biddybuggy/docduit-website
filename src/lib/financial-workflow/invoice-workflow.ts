@@ -10,7 +10,7 @@ export type InvoiceFields = {
 };
 
 export type WorkflowActionStatus = {
-  key: 'calendar' | 'email' | 'csv' | 'slack';
+  key: 'calendar' | 'email' | 'csv';
   label: string;
   status: 'completed' | 'skipped' | 'failed';
   detail: string;
@@ -29,7 +29,6 @@ type WorkflowOptions = {
   createCalendarFile?: boolean;
   createCsvExport?: boolean;
   sendEmailNotification?: boolean;
-  sendSlackNotification?: boolean;
 };
 
 const OPENAI_MODEL = process.env.OPENAI_INVOICE_MODEL || 'gpt-4o-mini';
@@ -39,6 +38,15 @@ export async function parse_invoice(file: File): Promise<{
   rawText: string;
   fields: InvoiceFields;
 }> {
+  if (isImageInvoice(file)) {
+    const fields = await extractInvoiceFieldsFromImage(file);
+
+    return {
+      rawText: `Image invoice: ${file.name}`,
+      fields,
+    };
+  }
+
   const rawText = await extractInvoiceText(file);
   const fields = await extractInvoiceFields(rawText);
 
@@ -86,12 +94,6 @@ export async function runInvoiceWorkflow(
     actions.push(skipped('email', copy.emailSkipped, copy));
   }
 
-  if (options.sendSlackNotification) {
-    actions.push(await sendSlackNotification(fields, copy));
-  } else {
-    actions.push(skipped('slack', copy.slackSkipped, copy));
-  }
-
   return { actions, files };
 }
 
@@ -101,6 +103,7 @@ async function extractInvoiceText(file: File): Promise<string> {
   const fileName = file.name.toLowerCase();
 
   if (contentType.includes('pdf') || fileName.endsWith('.pdf')) {
+    ensurePdfJsNodeGlobals();
     const { PDFParse } = nodeRequire('pdf-parse') as typeof import('pdf-parse');
     const parser = new PDFParse({ data: buffer });
     try {
@@ -128,7 +131,7 @@ async function extractInvoiceText(file: File): Promise<string> {
   }
 
   throw new Error(
-    'Unsupported invoice file. Upload a PDF, DOCX, TXT, or CSV file.',
+    'Unsupported invoice file. Upload a PDF, DOCX, TXT, CSV, PNG, or JPG file.',
   );
 }
 
@@ -202,6 +205,82 @@ async function extractWithOpenAI(
     };
   } catch {
     return {};
+  }
+}
+
+async function extractInvoiceFieldsFromImage(
+  file: File,
+): Promise<InvoiceFields> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error(
+      'Image invoices require OPENAI_API_KEY because PNG and JPG files need vision extraction.',
+    );
+  }
+
+  const dataUrl = await fileToDataUrl(file);
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Extract invoice fields from an invoice image. Return only JSON with keys: vendor, invoiceNumber, amount, currency, dueDate. dueDate must be YYYY-MM-DD. amount must be a number without currency symbols. Use null for amount if unreadable and empty strings for unknown text fields.',
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Extract the invoice fields from this image.',
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: dataUrl,
+                detail: 'high',
+              },
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(
+      body || `OpenAI image extraction returned ${response.status}`,
+    );
+  }
+
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const content = data.choices?.[0]?.message?.content;
+
+  if (!content) {
+    throw new Error('OpenAI did not return invoice fields for this image.');
+  }
+
+  try {
+    const parsed = JSON.parse(content) as Partial<InvoiceFields>;
+    return validateInvoiceFields({
+      vendor: asString(parsed.vendor),
+      invoiceNumber: asString(parsed.invoiceNumber),
+      amount: parseAmount(parsed.amount),
+      currency: asString(parsed.currency) || guessCurrency(content),
+      dueDate: normalizeDate(asString(parsed.dueDate)),
+    });
+  } catch {
+    throw new Error('OpenAI returned an invalid invoice extraction response.');
   }
 }
 
@@ -368,32 +447,6 @@ async function sendFinanceEmail(
   }
 }
 
-async function sendSlackNotification(
-  fields: InvoiceFields,
-  copy: WorkflowCopy,
-): Promise<WorkflowActionStatus> {
-  const webhookUrl = process.env.SLACK_FINANCE_WEBHOOK_URL;
-  if (!webhookUrl) {
-    return skipped('slack', copy.slackWebhookMissing, copy);
-  }
-
-  try {
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: `Invoice ${fields.invoiceNumber} from ${fields.vendor} for ${formatMoney(fields)} is due ${fields.dueDate || 'soon'}.`,
-      }),
-    });
-    if (!response.ok) {
-      throw new Error(`Slack returned ${response.status}`);
-    }
-    return completed('slack', copy.slackSent, copy);
-  } catch (error) {
-    return failed('slack', getErrorMessage(error), copy);
-  }
-}
-
 function findMatch(text: string, regex: RegExp) {
   const match = text.match(regex);
   if (!match) return '';
@@ -437,6 +490,28 @@ function asString(value: unknown) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function isImageInvoice(file: File) {
+  const contentType = file.type.toLowerCase();
+  const fileName = file.name.toLowerCase();
+
+  return (
+    contentType === 'image/png' ||
+    contentType === 'image/jpeg' ||
+    fileName.endsWith('.png') ||
+    fileName.endsWith('.jpg') ||
+    fileName.endsWith('.jpeg')
+  );
+}
+
+async function fileToDataUrl(file: File) {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const mimeType =
+    file.type ||
+    (file.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+
+  return `data:${mimeType};base64,${buffer.toString('base64')}`;
+}
+
 function addDays(date: string, days: number) {
   const parsed = new Date(`${date}T00:00:00.000Z`);
   parsed.setUTCDate(parsed.getUTCDate() + days);
@@ -474,6 +549,31 @@ function safeFileName(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, '-');
 }
 
+function ensurePdfJsNodeGlobals() {
+  const canvas = nodeRequire('@napi-rs/canvas') as {
+    DOMMatrix?: typeof DOMMatrix;
+    DOMPoint?: typeof DOMPoint;
+    DOMRect?: typeof DOMRect;
+    ImageData?: typeof ImageData;
+    Path2D?: typeof Path2D;
+  };
+  const globals = globalThis as typeof globalThis & {
+    DOMMatrix?: typeof DOMMatrix;
+    DOMPoint?: typeof DOMPoint;
+    DOMRect?: typeof DOMRect;
+    ImageData?: typeof ImageData;
+    Path2D?: typeof Path2D;
+  };
+
+  if (!globals.DOMMatrix && canvas.DOMMatrix)
+    globals.DOMMatrix = canvas.DOMMatrix;
+  if (!globals.DOMPoint && canvas.DOMPoint) globals.DOMPoint = canvas.DOMPoint;
+  if (!globals.DOMRect && canvas.DOMRect) globals.DOMRect = canvas.DOMRect;
+  if (!globals.ImageData && canvas.ImageData)
+    globals.ImageData = canvas.ImageData;
+  if (!globals.Path2D && canvas.Path2D) globals.Path2D = canvas.Path2D;
+}
+
 function completed(
   key: WorkflowActionStatus['key'],
   detail: string,
@@ -507,7 +607,6 @@ function getWorkflowCopy(lang: WorkflowOptions['lang']) {
         calendar: 'File kalender',
         email: 'Email Docduit',
         csv: 'Ekspor CSV',
-        slack: 'Slack',
       },
       calendarGenerated:
         'File pengingat kalender berhasil dibuat. Unduh file ini lalu buka dengan aplikasi kalender.',
@@ -520,9 +619,6 @@ function getWorkflowCopy(lang: WorkflowOptions['lang']) {
       financeEmailMissing: 'FINANCE_TEAM_EMAIL belum dikonfigurasi.',
       emailSent: (to: string) =>
         `Notifikasi keuangan berhasil dikirim ke ${to} dari Docduit.`,
-      slackSkipped: 'Notifikasi Slack tidak diminta.',
-      slackWebhookMissing: 'SLACK_FINANCE_WEBHOOK_URL belum dikonfigurasi.',
-      slackSent: 'Notifikasi Slack keuangan berhasil dikirim.',
     };
   }
 
@@ -531,7 +627,6 @@ function getWorkflowCopy(lang: WorkflowOptions['lang']) {
       calendar: 'Calendar file',
       email: 'Docduit email',
       csv: 'CSV export',
-      slack: 'Slack',
     },
     calendarGenerated:
       'Calendar reminder file generated. Download it and open it with your calendar app.',
@@ -544,9 +639,6 @@ function getWorkflowCopy(lang: WorkflowOptions['lang']) {
     financeEmailMissing: 'FINANCE_TEAM_EMAIL is not configured.',
     emailSent: (to: string) =>
       `Finance notification sent to ${to} from Docduit.`,
-    slackSkipped: 'Slack notification was not requested.',
-    slackWebhookMissing: 'SLACK_FINANCE_WEBHOOK_URL is not configured.',
-    slackSent: 'Slack finance notification sent.',
   };
 }
 

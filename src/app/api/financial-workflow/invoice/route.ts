@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
           createCalendarFile: formData.get('calendar') !== 'false',
           createCsvExport: formData.get('csv') !== 'false',
           sendEmailNotification: formData.get('email') !== 'false',
-          sendSlackNotification: formData.get('slack') === 'true',
         })
       : { actions: [], files: [] };
 

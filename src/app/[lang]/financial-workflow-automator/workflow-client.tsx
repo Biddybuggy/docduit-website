@@ -2,7 +2,6 @@
 
 import { ChangeEvent, useMemo, useState } from 'react';
 import {
-  Bell,
   CalendarDays,
   Download,
   FileText,
@@ -71,11 +70,6 @@ const actionConfigs = [
     icon: Sheet,
     defaultChecked: true,
   },
-  {
-    key: 'slack',
-    icon: Bell,
-    defaultChecked: false,
-  },
 ] as const;
 
 type ActionKey = (typeof actionConfigs)[number]['key'];
@@ -90,7 +84,7 @@ function getCopy(lang: Locale) {
       signedInBody:
         'Akun ini hanya dipakai untuk masuk ke Docduit. Pengingat kalender dan data spreadsheet akan dibuat sebagai file yang bisa kamu unduh.',
       intakeTitle: 'Unggah faktur',
-      invoiceFile: 'File faktur',
+      invoiceFile: 'File faktur (PDF, gambar, DOCX, TXT, atau CSV)',
       financeEmail: 'Email keuangan',
       actions: 'Aksi',
       uploadFirst: 'Unggah faktur terlebih dahulu.',
@@ -131,10 +125,6 @@ function getCopy(lang: Locale) {
           label: 'Ekspor CSV',
           description: 'Buat baris faktur yang siap diimpor ke spreadsheet.',
         },
-        slack: {
-          label: 'Notifikasi Slack',
-          description: 'Kirim pemberitahuan singkat ke kanal keuangan.',
-        },
       },
     };
   }
@@ -147,7 +137,7 @@ function getCopy(lang: Locale) {
     signedInBody:
       'This account is only used to sign in to Docduit. Calendar reminders and spreadsheet data are created as downloadable files.',
     intakeTitle: 'Invoice intake',
-    invoiceFile: 'Invoice file',
+    invoiceFile: 'Invoice file (PDF, image, DOCX, TXT, or CSV)',
     financeEmail: 'Finance email',
     actions: 'Actions',
     uploadFirst: 'Upload an invoice first.',
@@ -187,10 +177,6 @@ function getCopy(lang: Locale) {
       csv: {
         label: 'CSV export',
         description: 'Generate a spreadsheet-ready invoice row.',
-      },
-      slack: {
-        label: 'Slack alert',
-        description: 'Post a concise notice to the finance channel.',
       },
     },
   };
@@ -297,7 +283,7 @@ export default function FinancialWorkflowAutomatorClient({
                   <Input
                     id='invoice-file'
                     type='file'
-                    accept='.pdf,.docx,.txt,.csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/csv'
+                    accept='.pdf,.png,.jpg,.jpeg,.docx,.txt,.csv,application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/csv'
                     onChange={handleFileChange}
                   />
                 </div>
