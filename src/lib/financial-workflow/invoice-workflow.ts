@@ -1,5 +1,4 @@
 import { createRequire } from 'module';
-import { pathToFileURL } from 'url';
 import mammoth from 'mammoth';
 
 export type InvoiceFields = {
@@ -104,16 +103,11 @@ async function extractInvoiceText(file: File): Promise<string> {
   const fileName = file.name.toLowerCase();
 
   if (contentType.includes('pdf') || fileName.endsWith('.pdf')) {
-    ensurePdfJsNodeGlobals();
-    const { PDFParse } = nodeRequire('pdf-parse') as typeof import('pdf-parse');
-    PDFParse.setWorker(resolvePdfWorkerUrl());
-    const parser = new PDFParse({ data: buffer });
-    try {
-      const result = await parser.getText();
-      return normalizeWhitespace(result.text);
-    } finally {
-      await parser.destroy();
-    }
+    const parsePdf = nodeRequire('pdf-parse') as (
+      data: Buffer,
+    ) => Promise<{ text?: string }>;
+    const result = await parsePdf(buffer);
+    return normalizeWhitespace(result.text || '');
   }
 
   if (
@@ -549,38 +543,6 @@ function csvCell(value: string | number | null) {
 
 function safeFileName(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, '-');
-}
-
-function ensurePdfJsNodeGlobals() {
-  const canvas = nodeRequire('@napi-rs/canvas') as {
-    DOMMatrix?: typeof DOMMatrix;
-    DOMPoint?: typeof DOMPoint;
-    DOMRect?: typeof DOMRect;
-    ImageData?: typeof ImageData;
-    Path2D?: typeof Path2D;
-  };
-  const globals = globalThis as typeof globalThis & {
-    DOMMatrix?: typeof DOMMatrix;
-    DOMPoint?: typeof DOMPoint;
-    DOMRect?: typeof DOMRect;
-    ImageData?: typeof ImageData;
-    Path2D?: typeof Path2D;
-  };
-
-  if (!globals.DOMMatrix && canvas.DOMMatrix)
-    globals.DOMMatrix = canvas.DOMMatrix;
-  if (!globals.DOMPoint && canvas.DOMPoint) globals.DOMPoint = canvas.DOMPoint;
-  if (!globals.DOMRect && canvas.DOMRect) globals.DOMRect = canvas.DOMRect;
-  if (!globals.ImageData && canvas.ImageData)
-    globals.ImageData = canvas.ImageData;
-  if (!globals.Path2D && canvas.Path2D) globals.Path2D = canvas.Path2D;
-}
-
-function resolvePdfWorkerUrl() {
-  const workerPath = nodeRequire.resolve(
-    'pdfjs-dist/legacy/build/pdf.worker.mjs',
-  );
-  return pathToFileURL(workerPath).toString();
 }
 
 function completed(
