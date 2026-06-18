@@ -5,7 +5,6 @@ import {
   CalendarDays,
   Download,
   FileText,
-  Mail,
   Send,
   Sheet,
   Upload,
@@ -61,25 +60,18 @@ const actionConfigs = [
     defaultChecked: true,
   },
   {
-    key: 'email',
-    icon: Mail,
-    defaultChecked: true,
-  },
-  {
     key: 'csv',
     icon: Sheet,
     defaultChecked: true,
   },
 ] as const;
 
-type ActionKey = (typeof actionConfigs)[number]['key'];
-
 function getCopy(lang: Locale) {
   if (lang === 'id') {
     return {
       title: 'Otomatisasi Alur Keuangan Pintar',
       subtitle:
-        'Unggah faktur, periksa hasil ekstraksi, lalu buat pengingat, ekspor data, dan notifikasi keuangan.',
+        'Unggah faktur, periksa hasil ekstraksi, lalu buat pengingat kalender dan ekspor data.',
       signedInTitle: 'Pengguna yang masuk',
       signedInBody:
         'Akun ini dipakai untuk menyimpan sesi masukmu. Hasil kalender dan spreadsheet akan dibuat sebagai file yang bisa kamu unduh.',
@@ -115,11 +107,6 @@ function getCopy(lang: Locale) {
           description:
             'Buat pengingat .ics yang bisa dibuka di aplikasi kalender.',
         },
-        email: {
-          label: 'Email keuangan',
-          description:
-            'Kirim dari email Docduit jika penyedia email aplikasi sudah dikonfigurasi.',
-        },
         csv: {
           label: 'Ekspor CSV',
           description: 'Buat baris faktur yang siap diimpor ke spreadsheet.',
@@ -131,7 +118,7 @@ function getCopy(lang: Locale) {
   return {
     title: 'Smart Financial Workflow Automator',
     subtitle:
-      'Upload an invoice, review extracted fields, then create reminders, export data, and send finance notifications.',
+      'Upload an invoice, review extracted fields, then create calendar reminders and export data.',
     signedInTitle: 'Signed-in user',
     signedInBody:
       'This account keeps your Docduit session active. Calendar and spreadsheet outputs are created as downloadable files.',
@@ -166,11 +153,6 @@ function getCopy(lang: Locale) {
         label: 'Calendar file',
         description:
           'Generate an .ics reminder that opens in any calendar app.',
-      },
-      email: {
-        label: 'Email finance',
-        description:
-          'Send from Docduit email if the app email provider is configured.',
       },
       csv: {
         label: 'CSV export',
@@ -439,7 +421,7 @@ export default function FinancialWorkflowAutomatorClient({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className='grid gap-3 sm:grid-cols-2'>
+                  <div className='grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'>
                     {result.files
                       .filter((file) => file.content)
                       .map((file) => (
@@ -447,11 +429,11 @@ export default function FinancialWorkflowAutomatorClient({
                           key={file.key}
                           type='button'
                           variant='outline'
-                          className='min-w-0 justify-start overflow-hidden'
+                          className='w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal'
                           onClick={() => downloadWorkflowFile(file)}
                         >
                           <Download className='shrink-0' />
-                          <span className='min-w-0 truncate'>
+                          <span className='block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left'>
                             {file.fileName}
                           </span>
                         </Button>

@@ -10,7 +10,7 @@ export type InvoiceFields = {
 };
 
 export type WorkflowActionStatus = {
-  key: 'calendar' | 'email' | 'csv';
+  key: 'calendar' | 'csv';
   label: string;
   status: 'completed' | 'skipped' | 'failed';
   detail: string;
@@ -25,10 +25,8 @@ export type GeneratedWorkflowFile = {
 
 type WorkflowOptions = {
   lang?: 'id' | 'en';
-  financeEmail?: string;
   createCalendarFile?: boolean;
   createCsvExport?: boolean;
-  sendEmailNotification?: boolean;
 };
 
 const OPENAI_MODEL = process.env.OPENAI_INVOICE_MODEL || 'gpt-4o-mini';
@@ -86,12 +84,6 @@ export async function runInvoiceWorkflow(
     actions.push(completed('csv', copy.csvGenerated, copy));
   } else {
     actions.push(skipped('csv', copy.csvSkipped, copy));
-  }
-
-  if (options.sendEmailNotification) {
-    actions.push(await sendFinanceEmail(fields, copy, options.financeEmail));
-  } else {
-    actions.push(skipped('email', copy.emailSkipped, copy));
   }
 
   return { actions, files };
@@ -394,55 +386,6 @@ function createInvoiceCsvFile(fields: InvoiceFields): GeneratedWorkflowFile {
   };
 }
 
-async function sendFinanceEmail(
-  fields: InvoiceFields,
-  copy: WorkflowCopy,
-  financeEmail?: string,
-): Promise<WorkflowActionStatus> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from =
-    process.env.FINANCE_FROM_EMAIL || 'Docduit <notifications@docduit.com>';
-  const to = financeEmail || process.env.FINANCE_TEAM_EMAIL;
-
-  if (!apiKey) {
-    return skipped('email', copy.emailProviderMissing, copy);
-  }
-
-  if (!to) {
-    return skipped('email', copy.financeEmailMissing, copy);
-  }
-
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from,
-        to,
-        subject: `Invoice ${fields.invoiceNumber} due ${fields.dueDate || 'soon'}`,
-        text: [
-          `Vendor: ${fields.vendor}`,
-          `Invoice number: ${fields.invoiceNumber}`,
-          `Amount: ${formatMoney(fields)}`,
-          `Due date: ${fields.dueDate || 'Unknown'}`,
-        ].join('\n'),
-      }),
-    });
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      throw new Error(body || `Email provider returned ${response.status}`);
-    }
-
-    return completed('email', copy.emailSent(to), copy);
-  } catch (error) {
-    return failed('email', getErrorMessage(error), copy);
-  }
-}
-
 function findMatch(text: string, regex: RegExp) {
   const match = text.match(regex);
   if (!match) return '';
@@ -576,7 +519,6 @@ function getWorkflowCopy(lang: WorkflowOptions['lang']) {
     return {
       labels: {
         calendar: 'File kalender',
-        email: 'Email Docduit',
         csv: 'Ekspor CSV',
       },
       calendarGenerated:
@@ -585,18 +527,12 @@ function getWorkflowCopy(lang: WorkflowOptions['lang']) {
       noDueDate: 'Tanggal jatuh tempo yang valid tidak ditemukan.',
       csvGenerated: 'Ekspor CSV berhasil dibuat untuk diimpor ke spreadsheet.',
       csvSkipped: 'Ekspor CSV tidak diminta.',
-      emailSkipped: 'Notifikasi email keuangan tidak diminta.',
-      emailProviderMissing: 'RESEND_API_KEY belum dikonfigurasi.',
-      financeEmailMissing: 'FINANCE_TEAM_EMAIL belum dikonfigurasi.',
-      emailSent: (to: string) =>
-        `Notifikasi keuangan berhasil dikirim ke ${to} dari Docduit.`,
     };
   }
 
   return {
     labels: {
       calendar: 'Calendar file',
-      email: 'Docduit email',
       csv: 'CSV export',
     },
     calendarGenerated:
@@ -605,18 +541,9 @@ function getWorkflowCopy(lang: WorkflowOptions['lang']) {
     noDueDate: 'No valid due date was found.',
     csvGenerated: 'CSV export generated for spreadsheet import.',
     csvSkipped: 'CSV export was not requested.',
-    emailSkipped: 'Finance email notification was not requested.',
-    emailProviderMissing: 'RESEND_API_KEY is not configured.',
-    financeEmailMissing: 'FINANCE_TEAM_EMAIL is not configured.',
-    emailSent: (to: string) =>
-      `Finance notification sent to ${to} from Docduit.`,
   };
 }
 
 function labelFor(key: WorkflowActionStatus['key'], copy: WorkflowCopy) {
   return copy.labels[key];
-}
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Action failed.';
 }
