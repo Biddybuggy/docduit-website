@@ -103,7 +103,7 @@ async function extractInvoiceText(file: File): Promise<string> {
   const fileName = file.name.toLowerCase();
 
   if (contentType.includes('pdf') || fileName.endsWith('.pdf')) {
-    const parsePdf = nodeRequire('pdf-parse') as (
+    const parsePdf = nodeRequire('pdf-parse/lib/pdf-parse.js') as (
       data: Buffer,
     ) => Promise<{ text?: string }>;
     const result = await parsePdf(buffer);
