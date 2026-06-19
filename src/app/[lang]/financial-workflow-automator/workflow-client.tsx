@@ -1,8 +1,11 @@
 'use client';
 
-import { ChangeEvent, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import {
   CalendarDays,
+  CheckCircle2,
+  CircleDollarSign,
+  Clock3,
   Download,
   FileText,
   Send,
@@ -14,6 +17,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import {
+  InvoiceTrackerEntry,
+  InvoiceTrackerInput,
+  InvoiceTrackerStatus,
+  loadInvoiceTrackerEntriesFromFirestore,
+  saveInvoiceTrackerEntriesToFirestore,
+  updateInvoiceTrackerStatusInFirestore,
+} from '@/services/firebase.service';
 import { Locale } from '../_utils/dictionaries';
 
 type InvoiceFields = {
@@ -22,6 +33,12 @@ type InvoiceFields = {
   amount: number | null;
   currency: string;
   dueDate: string;
+  paymentDetails: {
+    payee: string;
+    bankName: string;
+    bankAccountNumber: string;
+    instructions: string;
+  };
 };
 
 type ActionStatus = {
@@ -39,7 +56,19 @@ type WorkflowFile = {
 };
 
 type WorkflowResponse = {
-  invoice: InvoiceFields;
+  invoice?: InvoiceFields;
+  actions?: ActionStatus[];
+  files?: WorkflowFile[];
+  items: WorkflowItem[];
+  mode: 'preview' | 'executed';
+  rawTextPreview?: string;
+  error?: string;
+};
+
+type WorkflowItem = {
+  id: string;
+  fileName: string;
+  invoice?: InvoiceFields;
   actions: ActionStatus[];
   files: WorkflowFile[];
   mode: 'preview' | 'executed';
@@ -76,9 +105,11 @@ function getCopy(lang: Locale) {
       signedInBody:
         'Akun ini dipakai untuk menyimpan sesi masukmu. Hasil kalender dan spreadsheet akan dibuat sebagai file yang bisa kamu unduh.',
       intakeTitle: 'Unggah faktur',
-      invoiceFile: 'File faktur (PDF, gambar, DOCX, TXT, atau CSV)',
+      invoiceFile: 'File faktur (maksimal 10)',
+      selectedFiles: 'file dipilih',
       actions: 'Aksi',
-      uploadFirst: 'Unggah faktur terlebih dahulu.',
+      uploadFirst: 'Unggah minimal satu faktur terlebih dahulu.',
+      uploadLimit: 'Pilih maksimal 10 file faktur.',
       processing: 'Memproses...',
       preview: 'Pratinjau',
       generate: 'Buat',
@@ -89,6 +120,11 @@ function getCopy(lang: Locale) {
       invoiceNumber: 'Nomor faktur',
       amount: 'Jumlah',
       dueDate: 'Tanggal jatuh tempo',
+      paymentDetails: 'Detail pembayaran',
+      payee: 'Penerima',
+      bankName: 'Bank',
+      bankAccountNumber: 'Nomor rekening',
+      paymentInstructions: 'Instruksi',
       unknown: 'Tidak diketahui',
       workflowStatus: 'Status alur kerja',
       previewStatus:
@@ -96,6 +132,14 @@ function getCopy(lang: Locale) {
       generatedFiles: 'File yang dibuat',
       rawTextPreview: 'Pratinjau teks mentah',
       workflowFailed: 'Alur kerja gagal.',
+      invoiceTracker: 'Pelacak faktur',
+      trackerEmpty: 'Faktur yang berhasil diproses akan muncul di sini.',
+      trackerSaved: 'Tersimpan di pelacak faktur.',
+      trackerSaveFailed: 'Data faktur diproses, tetapi gagal disimpan.',
+      pending: 'Belum dibayar',
+      paid: 'Dibayar',
+      markPaid: 'Tandai dibayar',
+      markPending: 'Tandai belum dibayar',
       statusLabels: {
         completed: 'selesai',
         skipped: 'dilewati',
@@ -123,9 +167,11 @@ function getCopy(lang: Locale) {
     signedInBody:
       'This account keeps your Docduit session active. Calendar and spreadsheet outputs are created as downloadable files.',
     intakeTitle: 'Invoice intake',
-    invoiceFile: 'Invoice file (PDF, image, DOCX, TXT, or CSV)',
+    invoiceFile: 'Invoice files (up to 10)',
+    selectedFiles: 'files selected',
     actions: 'Actions',
-    uploadFirst: 'Upload an invoice first.',
+    uploadFirst: 'Upload at least one invoice first.',
+    uploadLimit: 'Choose up to 10 invoice files.',
     processing: 'Processing...',
     preview: 'Preview',
     generate: 'Generate',
@@ -136,6 +182,11 @@ function getCopy(lang: Locale) {
     invoiceNumber: 'Invoice number',
     amount: 'Amount',
     dueDate: 'Due date',
+    paymentDetails: 'Payment details',
+    payee: 'Payee',
+    bankName: 'Bank',
+    bankAccountNumber: 'Bank account',
+    paymentInstructions: 'Instructions',
     unknown: 'Unknown',
     workflowStatus: 'Workflow status',
     previewStatus:
@@ -143,6 +194,14 @@ function getCopy(lang: Locale) {
     generatedFiles: 'Generated files',
     rawTextPreview: 'Raw text preview',
     workflowFailed: 'Workflow failed.',
+    invoiceTracker: 'Invoice tracker',
+    trackerEmpty: 'Successfully processed invoices will appear here.',
+    trackerSaved: 'Saved to invoice tracker.',
+    trackerSaveFailed: 'Invoices were processed, but tracker save failed.',
+    pending: 'Pending',
+    paid: 'Paid',
+    markPaid: 'Mark paid',
+    markPending: 'Mark pending',
     statusLabels: {
       completed: 'completed',
       skipped: 'skipped',
@@ -166,7 +225,7 @@ export default function FinancialWorkflowAutomatorClient({
   lang,
   userEmail,
 }: Props) {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [selectedActions, setSelectedActions] = useState<
     Record<string, boolean>
   >(() =>
@@ -176,24 +235,62 @@ export default function FinancialWorkflowAutomatorClient({
   );
   const [result, setResult] = useState<WorkflowResponse | null>(null);
   const [error, setError] = useState('');
+  const [trackerMessage, setTrackerMessage] = useState('');
+  const [trackerEntries, setTrackerEntries] = useState<InvoiceTrackerEntry[]>(
+    [],
+  );
+  const [isTrackerLoading, setIsTrackerLoading] = useState(true);
+  const [updatingTrackerId, setUpdatingTrackerId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const copy = useMemo(() => getCopy(lang), [lang]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTracker = async () => {
+      setIsTrackerLoading(true);
+
+      const entries = await loadInvoiceTrackerEntriesFromFirestore(userEmail);
+
+      if (isMounted) {
+        setTrackerEntries(entries);
+        setIsTrackerLoading(false);
+      }
+    };
+
+    void loadTracker();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userEmail]);
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setFile(event.target.files?.[0] || null);
+    const selectedFiles = Array.from(event.target.files || []);
+
+    if (selectedFiles.length > 10) {
+      setFiles(selectedFiles.slice(0, 10));
+      setError(copy.uploadLimit);
+    } else {
+      setFiles(selectedFiles);
+      setError('');
+    }
+
     setResult(null);
-    setError('');
+    setTrackerMessage('');
   };
 
   const submitWorkflow = async (execute: boolean) => {
-    if (!file) {
+    if (!files.length) {
       setError(copy.uploadFirst);
       return;
     }
 
     const body = new FormData();
-    body.set('file', file);
+    files.forEach((file) => {
+      body.append('files', file);
+    });
     body.set('execute', String(execute));
     body.set('lang', lang);
     Object.entries(selectedActions).forEach(([key, value]) => {
@@ -202,6 +299,7 @@ export default function FinancialWorkflowAutomatorClient({
 
     setIsSubmitting(true);
     setError('');
+    setTrackerMessage('');
 
     try {
       const response = await fetch('/api/financial-workflow/invoice', {
@@ -210,13 +308,56 @@ export default function FinancialWorkflowAutomatorClient({
       });
       const data = (await response.json()) as WorkflowResponse;
       if (!response.ok) {
+        if (data.items?.length) {
+          setResult(data);
+        }
+
         throw new Error(data.error || copy.workflowFailed);
       }
       setResult(data);
+
+      const trackerInputs = getTrackerInputs(data.items, userEmail);
+
+      if (trackerInputs.length) {
+        try {
+          await saveInvoiceTrackerEntriesToFirestore(trackerInputs);
+          setTrackerEntries((prev) => mergeTrackerEntries(prev, trackerInputs));
+          setTrackerMessage(copy.trackerSaved);
+        } catch (trackerError) {
+          console.error(
+            'Failed to save invoice tracker entries:',
+            trackerError,
+          );
+          setTrackerMessage(copy.trackerSaveFailed);
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : copy.workflowFailed);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const updateTrackerStatus = async (
+    entry: InvoiceTrackerEntry,
+    status: InvoiceTrackerStatus,
+  ) => {
+    setUpdatingTrackerId(entry.id);
+
+    try {
+      await updateInvoiceTrackerStatusInFirestore(entry.id, status);
+      setTrackerEntries((prev) =>
+        prev.map((item) =>
+          item.id === entry.id
+            ? { ...item, status, updatedAt: new Date() }
+            : item,
+        ),
+      );
+    } catch (trackerError) {
+      console.error('Failed to update invoice tracker status:', trackerError);
+      setTrackerMessage(copy.trackerSaveFailed);
+    } finally {
+      setUpdatingTrackerId('');
     }
   };
 
@@ -261,9 +402,15 @@ export default function FinancialWorkflowAutomatorClient({
                   <Input
                     id='invoice-file'
                     type='file'
+                    multiple
                     accept='.pdf,.png,.jpg,.jpeg,.docx,.txt,.csv,application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/csv'
                     onChange={handleFileChange}
                   />
+                  {files.length > 0 && (
+                    <p className='text-xs text-[#607086]'>
+                      {files.length} {copy.selectedFiles}
+                    </p>
+                  )}
                 </div>
 
                 <div className='space-y-3'>
@@ -309,6 +456,12 @@ export default function FinancialWorkflowAutomatorClient({
                   </p>
                 )}
 
+                {trackerMessage && (
+                  <p className='rounded-md border border-docduit-blue/20 bg-docduit-blue/10 px-3 py-2 text-sm text-docduit-blue'>
+                    {trackerMessage}
+                  </p>
+                )}
+
                 <div className='flex flex-col gap-3 sm:flex-row'>
                   <Button
                     type='button'
@@ -342,27 +495,11 @@ export default function FinancialWorkflowAutomatorClient({
                   {copy.extractedInvoice}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                {result ? (
-                  <div className='grid gap-3 sm:grid-cols-2'>
-                    <Field label={copy.vendor} value={result.invoice.vendor} />
-                    <Field
-                      label={copy.invoiceNumber}
-                      value={result.invoice.invoiceNumber}
-                    />
-                    <Field
-                      label={copy.amount}
-                      value={
-                        result.invoice.amount === null
-                          ? copy.unknown
-                          : `${result.invoice.currency} ${result.invoice.amount.toLocaleString()}`
-                      }
-                    />
-                    <Field
-                      label={copy.dueDate}
-                      value={result.invoice.dueDate || copy.unknown}
-                    />
-                  </div>
+              <CardContent className='space-y-4'>
+                {result?.items.length ? (
+                  result.items.map((item) => (
+                    <InvoiceResultCard key={item.id} item={item} copy={copy} />
+                  ))
                 ) : (
                   <p className='text-sm text-[#607086]'>
                     {copy.parsedPlaceholder}
@@ -373,90 +510,33 @@ export default function FinancialWorkflowAutomatorClient({
 
             <Card className='rounded-lg border-0 shadow-sm'>
               <CardHeader>
-                <CardTitle className='text-xl'>{copy.workflowStatus}</CardTitle>
+                <CardTitle className='flex items-center gap-2 text-xl'>
+                  <CircleDollarSign className='h-5 w-5 text-docduit-blue' />
+                  {copy.invoiceTracker}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                {result?.actions.length ? (
+                {isTrackerLoading ? (
+                  <p className='text-sm text-[#607086]'>{copy.processing}</p>
+                ) : trackerEntries.length ? (
                   <div className='grid gap-3'>
-                    {result.actions.map((action) => (
-                      <div
-                        key={action.key}
-                        className='rounded-lg border border-[#dfe7ea] bg-white p-3'
-                      >
-                        <div className='flex items-center justify-between gap-3'>
-                          <p className='font-semibold text-[#16243d]'>
-                            {action.label}
-                          </p>
-                          <span
-                            className={cn(
-                              'rounded-full px-2 py-1 text-xs font-semibold',
-                              action.status === 'completed' &&
-                                'bg-emerald-100 text-emerald-700',
-                              action.status === 'skipped' &&
-                                'bg-slate-100 text-slate-600',
-                              action.status === 'failed' &&
-                                'bg-red-100 text-red-700',
-                            )}
-                          >
-                            {copy.statusLabels[action.status]}
-                          </span>
-                        </div>
-                        <p className='mt-1 text-sm text-[#607086]'>
-                          {action.detail}
-                        </p>
-                      </div>
+                    {trackerEntries.map((entry) => (
+                      <TrackerEntryCard
+                        key={entry.id}
+                        entry={entry}
+                        copy={copy}
+                        isUpdating={updatingTrackerId === entry.id}
+                        onUpdateStatus={(status) =>
+                          void updateTrackerStatus(entry, status)
+                        }
+                      />
                     ))}
                   </div>
                 ) : (
-                  <p className='text-sm text-[#607086]'>{copy.previewStatus}</p>
+                  <p className='text-sm text-[#607086]'>{copy.trackerEmpty}</p>
                 )}
               </CardContent>
             </Card>
-
-            {result?.files.some((file) => file.content) && (
-              <Card className='rounded-lg border-0 shadow-sm'>
-                <CardHeader>
-                  <CardTitle className='text-xl'>
-                    {copy.generatedFiles}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'>
-                    {result.files
-                      .filter((file) => file.content)
-                      .map((file) => (
-                        <Button
-                          key={file.key}
-                          type='button'
-                          variant='outline'
-                          className='w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal'
-                          onClick={() => downloadWorkflowFile(file)}
-                        >
-                          <Download className='shrink-0' />
-                          <span className='block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left'>
-                            {file.fileName}
-                          </span>
-                        </Button>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {result?.rawTextPreview && (
-              <Card className='rounded-lg border-0 shadow-sm'>
-                <CardHeader>
-                  <CardTitle className='text-xl'>
-                    {copy.rawTextPreview}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <pre className='max-h-56 overflow-auto whitespace-pre-wrap rounded-lg bg-[#16243d] p-4 text-xs text-white'>
-                    {result.rawTextPreview}
-                  </pre>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </section>
       </div>
@@ -474,6 +554,282 @@ function downloadWorkflowFile(file: WorkflowFile) {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
+}
+
+type Copy = ReturnType<typeof getCopy>;
+
+function InvoiceResultCard({ item, copy }: { item: WorkflowItem; copy: Copy }) {
+  if (item.error || !item.invoice) {
+    return (
+      <div className='rounded-lg border border-docduit-red/20 bg-docduit-red/10 p-4'>
+        <p className='font-semibold text-docduit-red'>{item.fileName}</p>
+        <p className='mt-1 text-sm text-docduit-red'>
+          {item.error || copy.workflowFailed}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className='space-y-4 rounded-lg border border-[#dfe7ea] bg-white p-4'>
+      <div className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
+        <p className='break-words font-semibold text-[#16243d]'>
+          {item.fileName}
+        </p>
+        <span className='w-fit rounded-full bg-docduit-blue/10 px-2 py-1 text-xs font-semibold text-docduit-blue'>
+          {item.mode === 'executed' ? copy.generate : copy.preview}
+        </span>
+      </div>
+
+      <div className='grid gap-3 sm:grid-cols-2'>
+        <Field label={copy.vendor} value={item.invoice.vendor} />
+        <Field label={copy.invoiceNumber} value={item.invoice.invoiceNumber} />
+        <Field
+          label={copy.amount}
+          value={formatInvoiceAmount(item.invoice, copy.unknown)}
+        />
+        <Field
+          label={copy.dueDate}
+          value={item.invoice.dueDate || copy.unknown}
+        />
+      </div>
+
+      <div>
+        <p className='mb-2 text-xs font-medium uppercase text-[#607086]'>
+          {copy.paymentDetails}
+        </p>
+        <div className='grid gap-3 sm:grid-cols-2'>
+          <Field
+            label={copy.payee}
+            value={item.invoice.paymentDetails.payee || copy.unknown}
+          />
+          <Field
+            label={copy.bankName}
+            value={item.invoice.paymentDetails.bankName || copy.unknown}
+          />
+          <Field
+            label={copy.bankAccountNumber}
+            value={
+              item.invoice.paymentDetails.bankAccountNumber || copy.unknown
+            }
+          />
+          <Field
+            label={copy.paymentInstructions}
+            value={item.invoice.paymentDetails.instructions || copy.unknown}
+          />
+        </div>
+      </div>
+
+      <WorkflowStatusList item={item} copy={copy} />
+
+      {item.files.some((file) => file.content) && (
+        <div>
+          <p className='mb-2 text-xs font-medium uppercase text-[#607086]'>
+            {copy.generatedFiles}
+          </p>
+          <div className='grid min-w-0 gap-3 sm:grid-cols-2'>
+            {item.files
+              .filter((file) => file.content)
+              .map((file) => (
+                <Button
+                  key={`${item.id}-${file.key}`}
+                  type='button'
+                  variant='outline'
+                  className='w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal'
+                  onClick={() => downloadWorkflowFile(file)}
+                >
+                  <Download className='shrink-0' />
+                  <span className='block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left'>
+                    {file.fileName}
+                  </span>
+                </Button>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {item.rawTextPreview && (
+        <details>
+          <summary className='cursor-pointer text-sm font-semibold text-[#16243d]'>
+            {copy.rawTextPreview}
+          </summary>
+          <pre className='mt-2 max-h-56 overflow-auto whitespace-pre-wrap rounded-lg bg-[#16243d] p-4 text-xs text-white'>
+            {item.rawTextPreview}
+          </pre>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function WorkflowStatusList({
+  item,
+  copy,
+}: {
+  item: WorkflowItem;
+  copy: Copy;
+}) {
+  if (!item.actions.length) {
+    return <p className='text-sm text-[#607086]'>{copy.previewStatus}</p>;
+  }
+
+  return (
+    <div>
+      <p className='mb-2 text-xs font-medium uppercase text-[#607086]'>
+        {copy.workflowStatus}
+      </p>
+      <div className='grid gap-3'>
+        {item.actions.map((action) => (
+          <div
+            key={`${item.id}-${action.key}`}
+            className='rounded-lg border border-[#dfe7ea] bg-[#f8fbfb] p-3'
+          >
+            <div className='flex items-center justify-between gap-3'>
+              <p className='font-semibold text-[#16243d]'>{action.label}</p>
+              <span
+                className={cn(
+                  'rounded-full px-2 py-1 text-xs font-semibold',
+                  action.status === 'completed' &&
+                    'bg-emerald-100 text-emerald-700',
+                  action.status === 'skipped' && 'bg-slate-100 text-slate-600',
+                  action.status === 'failed' && 'bg-red-100 text-red-700',
+                )}
+              >
+                {copy.statusLabels[action.status]}
+              </span>
+            </div>
+            <p className='mt-1 text-sm text-[#607086]'>{action.detail}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TrackerEntryCard({
+  entry,
+  copy,
+  isUpdating,
+  onUpdateStatus,
+}: {
+  entry: InvoiceTrackerEntry;
+  copy: Copy;
+  isUpdating: boolean;
+  onUpdateStatus: (status: InvoiceTrackerStatus) => void;
+}) {
+  const nextStatus = entry.status === 'paid' ? 'pending' : 'paid';
+
+  return (
+    <div className='rounded-lg border border-[#dfe7ea] bg-white p-4'>
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
+        <div className='min-w-0'>
+          <p className='break-words font-semibold text-[#16243d]'>
+            {entry.vendor}
+          </p>
+          <p className='text-sm text-[#607086]'>
+            {entry.invoiceNumber} - {formatInvoiceAmount(entry, copy.unknown)}
+          </p>
+          <p className='text-sm text-[#607086]'>
+            {copy.dueDate}: {entry.dueDate || copy.unknown}
+          </p>
+        </div>
+        <span
+          className={cn(
+            'flex w-fit items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold',
+            entry.status === 'paid'
+              ? 'bg-emerald-100 text-emerald-700'
+              : 'bg-amber-100 text-amber-700',
+          )}
+        >
+          {entry.status === 'paid' ? (
+            <CheckCircle2 className='h-3.5 w-3.5' />
+          ) : (
+            <Clock3 className='h-3.5 w-3.5' />
+          )}
+          {entry.status === 'paid' ? copy.paid : copy.pending}
+        </span>
+      </div>
+
+      <div className='mt-3 grid gap-2 text-sm text-[#526173] sm:grid-cols-2'>
+        <p>
+          {copy.payee}: {entry.paymentDetails.payee || copy.unknown}
+        </p>
+        <p>
+          {copy.bankName}: {entry.paymentDetails.bankName || copy.unknown}
+        </p>
+        <p>
+          {copy.bankAccountNumber}:{' '}
+          {entry.paymentDetails.bankAccountNumber || copy.unknown}
+        </p>
+        <p>
+          {copy.paymentInstructions}:{' '}
+          {entry.paymentDetails.instructions || copy.unknown}
+        </p>
+      </div>
+
+      <Button
+        type='button'
+        variant='outline'
+        className='mt-4'
+        disabled={isUpdating}
+        onClick={() => onUpdateStatus(nextStatus)}
+      >
+        {entry.status === 'paid' ? copy.markPending : copy.markPaid}
+      </Button>
+    </div>
+  );
+}
+
+function getTrackerInputs(
+  items: WorkflowItem[],
+  userEmail: string,
+): InvoiceTrackerInput[] {
+  return items
+    .filter((item): item is WorkflowItem & { invoice: InvoiceFields } =>
+      Boolean(item.invoice && !item.error),
+    )
+    .map((item) => ({
+      id: item.id,
+      userEmail,
+      fileName: item.fileName,
+      vendor: item.invoice.vendor,
+      invoiceNumber: item.invoice.invoiceNumber,
+      amount: item.invoice.amount,
+      currency: item.invoice.currency,
+      dueDate: item.invoice.dueDate,
+      paymentDetails: item.invoice.paymentDetails,
+      status: 'pending',
+    }));
+}
+
+function mergeTrackerEntries(
+  current: InvoiceTrackerEntry[],
+  incoming: InvoiceTrackerInput[],
+): InvoiceTrackerEntry[] {
+  const now = new Date();
+  const incomingEntries = incoming.map((entry) => ({
+    ...entry,
+    createdAt: now,
+    updatedAt: now,
+  }));
+  const merged = new Map<string, InvoiceTrackerEntry>();
+
+  [...incomingEntries, ...current].forEach((entry) => {
+    merged.set(entry.id, entry);
+  });
+
+  return Array.from(merged.values()).sort((a, b) =>
+    (a.dueDate || '9999-12-31').localeCompare(b.dueDate || '9999-12-31'),
+  );
+}
+
+function formatInvoiceAmount(
+  invoice: Pick<InvoiceFields, 'amount' | 'currency'>,
+  unknown: string,
+) {
+  if (invoice.amount === null) return unknown;
+
+  return `${invoice.currency} ${invoice.amount.toLocaleString()}`;
 }
 
 function Field({ label, value }: { label: string; value: string }) {

@@ -20,7 +20,9 @@ const scrubDocumentId = (value: string) =>
   value.replace(/[.#$[\]/]/g, '_').replace(/\s+/g, '_');
 
 const createConversationTitle = (messages: ChatMessage[]) => {
-  const firstUserMessage = messages.find((message) => message.type_user === 'user')?.message?.trim();
+  const firstUserMessage = messages
+    .find((message) => message.type_user === 'user')
+    ?.message?.trim();
   if (!firstUserMessage) return null;
   return firstUserMessage.length > 50
     ? `${firstUserMessage.substring(0, 50).trim()}...`
@@ -75,8 +77,8 @@ export const saveConversationToFirestore = async (
   const conversationDocId = roomId
     ? scrubDocumentId(roomId)
     : conversationId
-    ? scrubDocumentId(conversationId)
-    : undefined;
+      ? scrubDocumentId(conversationId)
+      : undefined;
 
   const conversationRef: DocumentReference = conversationDocId
     ? doc(conversationsCollection, conversationDocId)
@@ -112,7 +114,7 @@ export const saveConversationToFirestore = async (
       })),
       updatedAt: serverTimestamp(),
       createdAt: existingConversation.exists()
-        ? existingConversation.data().createdAt ?? messageTimestamp
+        ? (existingConversation.data().createdAt ?? messageTimestamp)
         : serverTimestamp(),
     },
     { merge: true },
@@ -132,6 +134,134 @@ export interface FirestoreConversation {
   updatedAt: Date;
 }
 
+export type InvoiceTrackerStatus = 'pending' | 'paid';
+
+export interface InvoiceTrackerPaymentDetails {
+  payee: string;
+  bankName: string;
+  bankAccountNumber: string;
+  instructions: string;
+}
+
+export interface InvoiceTrackerEntry {
+  id: string;
+  userEmail: string;
+  fileName: string;
+  vendor: string;
+  invoiceNumber: string;
+  amount: number | null;
+  currency: string;
+  dueDate: string;
+  paymentDetails: InvoiceTrackerPaymentDetails;
+  status: InvoiceTrackerStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type InvoiceTrackerInput = Omit<
+  InvoiceTrackerEntry,
+  'createdAt' | 'updatedAt'
+>;
+
+const getInvoiceTrackersCollection = async () => {
+  const db = getFirestoreDb();
+  const firebaseUser = await waitForFirebaseUser();
+  const userDoc = doc(db, 'users', firebaseUser.uid);
+
+  return collection(userDoc, 'invoiceTrackers');
+};
+
+export const saveInvoiceTrackerEntriesToFirestore = async (
+  entries: InvoiceTrackerInput[],
+): Promise<void> => {
+  if (!entries.length) return;
+
+  const trackersCollection = await getInvoiceTrackersCollection();
+  const timestamp = Timestamp.now();
+
+  await Promise.all(
+    entries.map((entry) =>
+      setDoc(
+        doc(trackersCollection, scrubDocumentId(entry.id)),
+        {
+          ...entry,
+          paymentDetails: {
+            payee: entry.paymentDetails.payee,
+            bankName: entry.paymentDetails.bankName,
+            bankAccountNumber: entry.paymentDetails.bankAccountNumber,
+            instructions: entry.paymentDetails.instructions,
+          },
+          createdAt: timestamp,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      ),
+    ),
+  );
+};
+
+export const loadInvoiceTrackerEntriesFromFirestore = async (
+  userEmail: string,
+): Promise<InvoiceTrackerEntry[]> => {
+  try {
+    const trackersCollection = await getInvoiceTrackersCollection();
+    const q = query(trackersCollection, orderBy('dueDate', 'asc'), limit(100));
+    const querySnapshot = await getDocs(q);
+    const entries: InvoiceTrackerEntry[] = [];
+
+    querySnapshot.forEach((docSnapshot) => {
+      const data = docSnapshot.data();
+
+      entries.push({
+        id: docSnapshot.id,
+        userEmail: data.userEmail ?? userEmail,
+        fileName: data.fileName ?? '',
+        vendor: data.vendor ?? '',
+        invoiceNumber: data.invoiceNumber ?? '',
+        amount:
+          typeof data.amount === 'number' && Number.isFinite(data.amount)
+            ? data.amount
+            : null,
+        currency: data.currency ?? 'USD',
+        dueDate: data.dueDate ?? '',
+        paymentDetails: {
+          payee: data.paymentDetails?.payee ?? '',
+          bankName: data.paymentDetails?.bankName ?? '',
+          bankAccountNumber: data.paymentDetails?.bankAccountNumber ?? '',
+          instructions: data.paymentDetails?.instructions ?? '',
+        },
+        status: data.status === 'paid' ? 'paid' : 'pending',
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+      });
+    });
+
+    return entries;
+  } catch (error) {
+    console.error(
+      'Failed to load invoice tracker entries from Firestore:',
+      error,
+    );
+    return [];
+  }
+};
+
+export const updateInvoiceTrackerStatusInFirestore = async (
+  entryId: string,
+  status: InvoiceTrackerStatus,
+): Promise<void> => {
+  const trackersCollection = await getInvoiceTrackersCollection();
+
+  await setDoc(
+    doc(trackersCollection, scrubDocumentId(entryId)),
+    {
+      status,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+};
+
 export const loadConversationsFromFirestore = async (
   userEmail: string,
 ): Promise<FirestoreConversation[]> => {
@@ -142,7 +272,11 @@ export const loadConversationsFromFirestore = async (
     const userDoc = doc(db, 'users', userId);
     const conversationsCollection = collection(userDoc, 'conversations');
 
-    const q = query(conversationsCollection, orderBy('updatedAt', 'desc'), limit(50));
+    const q = query(
+      conversationsCollection,
+      orderBy('updatedAt', 'desc'),
+      limit(50),
+    );
     const querySnapshot = await getDocs(q);
 
     const conversations: FirestoreConversation[] = [];
@@ -183,7 +317,10 @@ export const loadConversationFromFirestore = async (
     const userDocRef = doc(db, 'users', userId);
     const conversationsCollection = collection(userDocRef, 'conversations');
 
-    const q = query(conversationsCollection, where('roomId', '==', conversationId));
+    const q = query(
+      conversationsCollection,
+      where('roomId', '==', conversationId),
+    );
     let querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {

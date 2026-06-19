@@ -7,6 +7,7 @@ export type InvoiceFields = {
   amount: number | null;
   currency: string;
   dueDate: string;
+  paymentDetails: PaymentDetails;
 };
 
 export type WorkflowActionStatus = {
@@ -27,6 +28,13 @@ type WorkflowOptions = {
   lang?: 'id' | 'en';
   createCalendarFile?: boolean;
   createCsvExport?: boolean;
+};
+
+export type PaymentDetails = {
+  payee: string;
+  bankName: string;
+  bankAccountNumber: string;
+  instructions: string;
 };
 
 const OPENAI_MODEL = process.env.OPENAI_INVOICE_MODEL || 'gpt-4o-mini';
@@ -136,6 +144,10 @@ async function extractInvoiceFields(rawText: string): Promise<InvoiceFields> {
     amount: llmFields.amount ?? fallbackFields.amount,
     currency: llmFields.currency || fallbackFields.currency,
     dueDate: llmFields.dueDate || fallbackFields.dueDate,
+    paymentDetails: mergePaymentDetails(
+      llmFields.paymentDetails,
+      fallbackFields.paymentDetails,
+    ),
   };
 
   return validateInvoiceFields(merged);
@@ -162,7 +174,7 @@ async function extractWithOpenAI(
         {
           role: 'system',
           content:
-            'Extract invoice fields from raw text. Return only JSON with keys: vendor, invoiceNumber, amount, currency, dueDate. dueDate must be YYYY-MM-DD. amount must be a number without currency symbols.',
+            'Extract invoice fields from raw text. Return only JSON with keys: vendor, invoiceNumber, amount, currency, dueDate, paymentDetails. paymentDetails must contain payee, bankName, bankAccountNumber, instructions. dueDate must be YYYY-MM-DD. amount must be a number without currency symbols. Use null for amount if unreadable and empty strings for unknown text fields.',
         },
         {
           role: 'user',
@@ -190,6 +202,7 @@ async function extractWithOpenAI(
       amount: parseAmount(parsed.amount),
       currency: asString(parsed.currency) || guessCurrency(content),
       dueDate: normalizeDate(asString(parsed.dueDate)),
+      paymentDetails: parsePaymentDetails(parsed.paymentDetails),
     };
   } catch {
     return {};
@@ -220,7 +233,7 @@ async function extractInvoiceFieldsFromImage(
         {
           role: 'system',
           content:
-            'Extract invoice fields from an invoice image. Return only JSON with keys: vendor, invoiceNumber, amount, currency, dueDate. dueDate must be YYYY-MM-DD. amount must be a number without currency symbols. Use null for amount if unreadable and empty strings for unknown text fields.',
+            'Extract invoice fields from an invoice image. Return only JSON with keys: vendor, invoiceNumber, amount, currency, dueDate, paymentDetails. paymentDetails must contain payee, bankName, bankAccountNumber, instructions. dueDate must be YYYY-MM-DD. amount must be a number without currency symbols. Use null for amount if unreadable and empty strings for unknown text fields.',
         },
         {
           role: 'user',
@@ -266,6 +279,7 @@ async function extractInvoiceFieldsFromImage(
       amount: parseAmount(parsed.amount),
       currency: asString(parsed.currency) || guessCurrency(content),
       dueDate: normalizeDate(asString(parsed.dueDate)),
+      paymentDetails: parsePaymentDetails(parsed.paymentDetails),
     });
   } catch {
     throw new Error('OpenAI returned an invalid invoice extraction response.');
@@ -304,7 +318,50 @@ function extractWithRules(rawText: string): Partial<InvoiceFields> {
     amount: parseAmount(amountText),
     currency: guessCurrency(rawText),
     dueDate,
+    paymentDetails: extractPaymentDetailsWithRules(rawText),
   };
+}
+
+function extractPaymentDetailsWithRules(rawText: string): PaymentDetails {
+  const payee =
+    findMatch(
+      rawText,
+      /(?:payment\s*(?:to|made\s*to)|pay\s*to|beneficiary|account\s*name|nama\s*(?:rekening|penerima))\s*[:#-]?\s*([^\n\r]+)/i,
+    ) || '';
+  const bankName =
+    findMatch(
+      rawText,
+      /(?:bank\s*(?:name)?|nama\s*bank)\s*[:#-]?\s*([A-Za-z][A-Za-z0-9 .-]{1,40})/i,
+    ) ||
+    rawText.match(
+      /\b(BCA|BRI|BNI|Mandiri|CIMB|Permata|Danamon|OCBC|HSBC|DBS)\b/i,
+    )?.[1] ||
+    '';
+  const bankAccountNumber =
+    findMatch(
+      rawText,
+      /(?:bank\s*account|account\s*(?:number|no\.?)|acct\.?\s*no\.?|rekening|no\.?\s*rek(?:ening)?)\s*[:#-]?\s*([0-9][0-9 .-]{5,30})/i,
+    ) ||
+    findMatch(
+      rawText,
+      /(?:bank\s*account|account|rekening)\s*(?:is|adalah)?\s*(?:BCA|BRI|BNI|Mandiri|CIMB|Permata|Danamon|OCBC|HSBC|DBS)?\s*[:#-]?\s*([0-9][0-9 .-]{5,30})/i,
+    ) ||
+    findMatch(
+      rawText,
+      /\b(?:BCA|BRI|BNI|Mandiri|CIMB|Permata|Danamon|OCBC|HSBC|DBS)\b\s*[:#-]?\s*([0-9][0-9 .-]{5,30})/i,
+    );
+  const instructions =
+    findMatch(
+      rawText,
+      /(?:payment\s*instructions?|transfer\s*instructions?|instruksi\s*pembayaran)\s*[:#-]?\s*([^\n\r]+)/i,
+    ) || '';
+
+  return parsePaymentDetails({
+    payee: cleanPayee(payee),
+    bankName: cleanInlineText(bankName),
+    bankAccountNumber: normalizeAccountNumber(bankAccountNumber),
+    instructions: cleanInlineText(instructions),
+  });
 }
 
 function validateInvoiceFields(fields: Partial<InvoiceFields>): InvoiceFields {
@@ -316,6 +373,46 @@ function validateInvoiceFields(fields: Partial<InvoiceFields>): InvoiceFields {
     amount: parseAmount(fields.amount),
     currency: asString(fields.currency) || 'USD',
     dueDate: dueDate || '',
+    paymentDetails: parsePaymentDetails(fields.paymentDetails),
+  };
+}
+
+function parsePaymentDetails(value: unknown): PaymentDetails {
+  if (!value || typeof value !== 'object') {
+    return emptyPaymentDetails();
+  }
+
+  const details = value as Partial<PaymentDetails>;
+
+  return {
+    payee: cleanInlineText(asString(details.payee)),
+    bankName: cleanInlineText(asString(details.bankName)),
+    bankAccountNumber: normalizeAccountNumber(
+      asString(details.bankAccountNumber),
+    ),
+    instructions: cleanInlineText(asString(details.instructions)),
+  };
+}
+
+function mergePaymentDetails(
+  primary?: PaymentDetails,
+  fallback?: PaymentDetails,
+): PaymentDetails {
+  return {
+    payee: primary?.payee || fallback?.payee || '',
+    bankName: primary?.bankName || fallback?.bankName || '',
+    bankAccountNumber:
+      primary?.bankAccountNumber || fallback?.bankAccountNumber || '',
+    instructions: primary?.instructions || fallback?.instructions || '',
+  };
+}
+
+function emptyPaymentDetails(): PaymentDetails {
+  return {
+    payee: '',
+    bankName: '',
+    bankAccountNumber: '',
+    instructions: '',
   };
 }
 
@@ -329,7 +426,13 @@ function createCalendarReminderFile(
   const eventEnd = addDays(fields.dueDate, 1).replace(/-/g, '');
   const uid = `${fields.invoiceNumber}-${fields.dueDate}@docduit`;
   const summary = `Pay invoice to ${fields.vendor}`;
-  const description = `Invoice ${fields.invoiceNumber} for ${formatMoney(fields)}.`;
+  const paymentSummary = formatPaymentDetails(fields.paymentDetails);
+  const description = [
+    `Invoice ${fields.invoiceNumber} for ${formatMoney(fields)}.`,
+    paymentSummary ? `Payment details: ${paymentSummary}.` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const content = [
     'BEGIN:VCALENDAR',
@@ -367,6 +470,10 @@ function createInvoiceCsvFile(fields: InvoiceFields): GeneratedWorkflowFile {
     'Amount',
     'Currency',
     'Due Date',
+    'Payment Payee',
+    'Bank Name',
+    'Bank Account Number',
+    'Payment Instructions',
   ];
   const row = [
     fields.vendor,
@@ -374,6 +481,10 @@ function createInvoiceCsvFile(fields: InvoiceFields): GeneratedWorkflowFile {
     fields.amount ?? '',
     fields.currency,
     fields.dueDate,
+    fields.paymentDetails.payee,
+    fields.paymentDetails.bankName,
+    fields.paymentDetails.bankAccountNumber,
+    fields.paymentDetails.instructions,
   ];
 
   return {
@@ -464,6 +575,17 @@ function formatMoney(fields: InvoiceFields) {
   })}`;
 }
 
+function formatPaymentDetails(details: PaymentDetails) {
+  const fragments = [
+    details.payee ? `payment to be made to ${details.payee}` : '',
+    details.bankName ? `bank ${details.bankName}` : '',
+    details.bankAccountNumber ? `account ${details.bankAccountNumber}` : '',
+    details.instructions,
+  ].filter(Boolean);
+
+  return fragments.join(', ');
+}
+
 function formatIcsDateTime(date: Date) {
   return date
     .toISOString()
@@ -486,6 +608,23 @@ function csvCell(value: string | number | null) {
 
 function safeFileName(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, '-');
+}
+
+function cleanInlineText(value: string) {
+  return value
+    .replace(/\s+/g, ' ')
+    .replace(/[.;,\s]+$/g, '')
+    .trim();
+}
+
+function cleanPayee(value: string) {
+  return cleanInlineText(
+    value.split(/\s*,?\s*(?:bank|account|rekening)\b/i)[0],
+  );
+}
+
+function normalizeAccountNumber(value: string) {
+  return cleanInlineText(value).replace(/[^\d]/g, '');
 }
 
 function completed(
