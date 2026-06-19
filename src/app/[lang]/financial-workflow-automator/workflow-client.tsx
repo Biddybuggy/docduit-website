@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import {
   InvoiceTrackerEntry,
   InvoiceTrackerInput,
+  InvoiceTrackerProcessingStatus,
   InvoiceTrackerStatus,
   loadInvoiceTrackerEntriesFromFirestore,
   saveInvoiceTrackerEntriesToFirestore,
@@ -59,6 +60,7 @@ type WorkflowResponse = {
   invoice?: InvoiceFields;
   actions?: ActionStatus[];
   files?: WorkflowFile[];
+  batchFiles?: WorkflowFile[];
   items: WorkflowItem[];
   mode: 'preview' | 'executed';
   rawTextPreview?: string;
@@ -121,6 +123,7 @@ function getCopy(lang: Locale) {
       amount: 'Jumlah',
       dueDate: 'Tanggal jatuh tempo',
       paymentDetails: 'Detail pembayaran',
+      paymentSummary: 'Ringkasan pembayaran',
       payee: 'Penerima',
       bankName: 'Bank',
       bankAccountNumber: 'Nomor rekening',
@@ -130,12 +133,15 @@ function getCopy(lang: Locale) {
       previewStatus:
         'Mode pratinjau mengekstrak dan memvalidasi faktur tanpa menjalankan aksi eksternal.',
       generatedFiles: 'File yang dibuat',
+      downloadTrackerCsv: 'Unduh CSV pelacak',
       rawTextPreview: 'Pratinjau teks mentah',
       workflowFailed: 'Alur kerja gagal.',
       invoiceTracker: 'Pelacak faktur',
-      trackerEmpty: 'Faktur yang berhasil diproses akan muncul di sini.',
+      trackerEmpty: 'Faktur yang kamu unggah akan muncul di sini.',
       trackerSaved: 'Tersimpan di pelacak faktur.',
       trackerSaveFailed: 'Data faktur diproses, tetapi gagal disimpan.',
+      processingTracker: 'Memproses',
+      reviewNeeded: 'Perlu ditinjau',
       pending: 'Belum dibayar',
       paid: 'Dibayar',
       markPaid: 'Tandai dibayar',
@@ -153,7 +159,7 @@ function getCopy(lang: Locale) {
         },
         csv: {
           label: 'Ekspor CSV',
-          description: 'Buat baris faktur yang siap diimpor ke spreadsheet.',
+          description: 'Buat satu file CSV untuk semua faktur yang diunggah.',
         },
       },
     };
@@ -183,6 +189,7 @@ function getCopy(lang: Locale) {
     amount: 'Amount',
     dueDate: 'Due date',
     paymentDetails: 'Payment details',
+    paymentSummary: 'Payment summary',
     payee: 'Payee',
     bankName: 'Bank',
     bankAccountNumber: 'Bank account',
@@ -192,12 +199,15 @@ function getCopy(lang: Locale) {
     previewStatus:
       'Preview mode extracts and validates the invoice without creating external actions.',
     generatedFiles: 'Generated files',
+    downloadTrackerCsv: 'Download tracker CSV',
     rawTextPreview: 'Raw text preview',
     workflowFailed: 'Workflow failed.',
     invoiceTracker: 'Invoice tracker',
-    trackerEmpty: 'Successfully processed invoices will appear here.',
+    trackerEmpty: 'Uploaded invoices will appear here.',
     trackerSaved: 'Saved to invoice tracker.',
     trackerSaveFailed: 'Invoices were processed, but tracker save failed.',
+    processingTracker: 'Processing',
+    reviewNeeded: 'Needs review',
     pending: 'Pending',
     paid: 'Paid',
     markPaid: 'Mark paid',
@@ -215,7 +225,7 @@ function getCopy(lang: Locale) {
       },
       csv: {
         label: 'CSV export',
-        description: 'Generate a spreadsheet-ready invoice row.',
+        description: 'Generate one CSV file for all uploaded invoices.',
       },
     },
   };
@@ -287,10 +297,20 @@ export default function FinancialWorkflowAutomatorClient({
       return;
     }
 
+    const pendingTrackerInputs = createPendingTrackerInputs(
+      files,
+      userEmail,
+      copy.processingTracker,
+    );
     const body = new FormData();
+
     files.forEach((file) => {
       body.append('files', file);
     });
+    body.set(
+      'fileIds',
+      JSON.stringify(pendingTrackerInputs.map((item) => item.id)),
+    );
     body.set('execute', String(execute));
     body.set('lang', lang);
     Object.entries(selectedActions).forEach(([key, value]) => {
@@ -300,8 +320,23 @@ export default function FinancialWorkflowAutomatorClient({
     setIsSubmitting(true);
     setError('');
     setTrackerMessage('');
+    let receivedInvoiceItems = false;
 
     try {
+      setTrackerEntries((prev) =>
+        mergeTrackerEntries(prev, pendingTrackerInputs),
+      );
+
+      try {
+        await saveInvoiceTrackerEntriesToFirestore(pendingTrackerInputs);
+      } catch (trackerError) {
+        console.error(
+          'Failed to save pending invoice tracker entries:',
+          trackerError,
+        );
+        setTrackerMessage(copy.trackerSaveFailed);
+      }
+
       const response = await fetch('/api/financial-workflow/invoice', {
         method: 'POST',
         body,
@@ -309,19 +344,37 @@ export default function FinancialWorkflowAutomatorClient({
       const data = (await response.json()) as WorkflowResponse;
       if (!response.ok) {
         if (data.items?.length) {
+          receivedInvoiceItems = true;
           setResult(data);
+          const failedTrackerInputs = getTrackerInputs(
+            data.items,
+            pendingTrackerInputs,
+            userEmail,
+            copy.reviewNeeded,
+          );
+          setTrackerEntries((prev) =>
+            mergeTrackerEntries(prev, failedTrackerInputs),
+          );
+          await saveInvoiceTrackerEntriesToFirestore(failedTrackerInputs);
         }
 
         throw new Error(data.error || copy.workflowFailed);
       }
+      receivedInvoiceItems = true;
       setResult(data);
 
-      const trackerInputs = getTrackerInputs(data.items, userEmail);
+      const trackerInputs = getTrackerInputs(
+        data.items,
+        pendingTrackerInputs,
+        userEmail,
+        copy.reviewNeeded,
+      );
 
       if (trackerInputs.length) {
+        setTrackerEntries((prev) => mergeTrackerEntries(prev, trackerInputs));
+
         try {
           await saveInvoiceTrackerEntriesToFirestore(trackerInputs);
-          setTrackerEntries((prev) => mergeTrackerEntries(prev, trackerInputs));
           setTrackerMessage(copy.trackerSaved);
         } catch (trackerError) {
           console.error(
@@ -332,6 +385,29 @@ export default function FinancialWorkflowAutomatorClient({
         }
       }
     } catch (err) {
+      if (!receivedInvoiceItems) {
+        const failedTrackerInputs = pendingTrackerInputs.map((entry) => ({
+          ...entry,
+          processingStatus: 'failed' as const,
+          invoiceNumber:
+            entry.processingStatus === 'processing'
+              ? copy.reviewNeeded
+              : entry.invoiceNumber,
+        }));
+
+        setTrackerEntries((prev) =>
+          mergeTrackerEntries(prev, failedTrackerInputs),
+        );
+        saveInvoiceTrackerEntriesToFirestore(failedTrackerInputs).catch(
+          (trackerError) => {
+            console.error(
+              'Failed to save failed invoice tracker entries:',
+              trackerError,
+            );
+          },
+        );
+      }
+
       setError(err instanceof Error ? err.message : copy.workflowFailed);
     } finally {
       setIsSubmitting(false);
@@ -496,6 +572,27 @@ export default function FinancialWorkflowAutomatorClient({
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
+                {result?.batchFiles?.some((file) => file.content) && (
+                  <div className='grid min-w-0 gap-3 sm:grid-cols-2'>
+                    {result.batchFiles
+                      .filter((file) => file.content)
+                      .map((file) => (
+                        <Button
+                          key={file.fileName}
+                          type='button'
+                          variant='outline'
+                          className='w-full min-w-0 max-w-full justify-start overflow-hidden whitespace-normal'
+                          onClick={() => downloadWorkflowFile(file)}
+                        >
+                          <Download className='shrink-0' />
+                          <span className='block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left'>
+                            {file.fileName}
+                          </span>
+                        </Button>
+                      ))}
+                  </div>
+                )}
+
                 {result?.items.length ? (
                   result.items.map((item) => (
                     <InvoiceResultCard key={item.id} item={item} copy={copy} />
@@ -509,11 +606,27 @@ export default function FinancialWorkflowAutomatorClient({
             </Card>
 
             <Card className='rounded-lg border-0 shadow-sm'>
-              <CardHeader>
-                <CardTitle className='flex items-center gap-2 text-xl'>
-                  <CircleDollarSign className='h-5 w-5 text-docduit-blue' />
-                  {copy.invoiceTracker}
-                </CardTitle>
+              <CardHeader className='gap-3'>
+                <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+                  <CardTitle className='flex items-center gap-2 text-xl'>
+                    <CircleDollarSign className='h-5 w-5 text-docduit-blue' />
+                    {copy.invoiceTracker}
+                  </CardTitle>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    disabled={!trackerEntries.length}
+                    className='w-full justify-start sm:w-auto'
+                    onClick={() =>
+                      downloadWorkflowFile(
+                        createTrackerCsvFile(trackerEntries, copy),
+                      )
+                    }
+                  >
+                    <Download />
+                    {copy.downloadTrackerCsv}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {isTrackerLoading ? (
@@ -554,6 +667,56 @@ function downloadWorkflowFile(file: WorkflowFile) {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
+}
+
+function createTrackerCsvFile(
+  entries: InvoiceTrackerEntry[],
+  copy: Copy,
+): WorkflowFile {
+  const headers = [
+    'File Name',
+    'Vendor',
+    'Invoice Number',
+    'Amount',
+    'Currency',
+    'Due Date',
+    'Payment Status',
+    'Processing Status',
+    'Payment Payee',
+    'Bank Name',
+    'Bank Account Number',
+    'Payment Instructions',
+    'Payment Summary',
+  ];
+  const rows = entries.map((entry) => [
+    entry.fileName,
+    entry.vendor,
+    entry.invoiceNumber,
+    entry.amount ?? '',
+    entry.currency,
+    entry.dueDate,
+    entry.status === 'paid' ? copy.paid : copy.pending,
+    formatProcessingStatus(entry.processingStatus, copy),
+    entry.paymentDetails.payee,
+    entry.paymentDetails.bankName,
+    entry.paymentDetails.bankAccountNumber,
+    entry.paymentDetails.instructions,
+    formatPaymentSummary(entry.paymentDetails, copy),
+  ]);
+
+  return {
+    key: 'csv',
+    fileName: `invoice-tracker-${new Date().toISOString().slice(0, 10)}.csv`,
+    mimeType: 'text/csv;charset=utf-8',
+    content: [headers, ...rows]
+      .map((values) => values.map(csvCell).join(','))
+      .join('\n'),
+  };
+}
+
+function csvCell(value: string | number | null) {
+  const text = value === null ? '' : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
 }
 
 type Copy = ReturnType<typeof getCopy>;
@@ -616,6 +779,11 @@ function InvoiceResultCard({ item, copy }: { item: WorkflowItem; copy: Copy }) {
           <Field
             label={copy.paymentInstructions}
             value={item.invoice.paymentDetails.instructions || copy.unknown}
+          />
+          <Field
+            label={copy.paymentSummary}
+            value={formatPaymentSummary(item.invoice.paymentDetails, copy)}
+            className='sm:col-span-2'
           />
         </div>
       </div>
@@ -736,17 +904,15 @@ function TrackerEntryCard({
         <span
           className={cn(
             'flex w-fit items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold',
-            entry.status === 'paid'
-              ? 'bg-emerald-100 text-emerald-700'
-              : 'bg-amber-100 text-amber-700',
+            getTrackerBadgeClassName(entry),
           )}
         >
-          {entry.status === 'paid' ? (
+          {entry.status === 'paid' && entry.processingStatus === 'ready' ? (
             <CheckCircle2 className='h-3.5 w-3.5' />
           ) : (
             <Clock3 className='h-3.5 w-3.5' />
           )}
-          {entry.status === 'paid' ? copy.paid : copy.pending}
+          {getTrackerBadgeLabel(entry, copy)}
         </span>
       </div>
 
@@ -765,13 +931,17 @@ function TrackerEntryCard({
           {copy.paymentInstructions}:{' '}
           {entry.paymentDetails.instructions || copy.unknown}
         </p>
+        <p className='sm:col-span-2'>
+          {copy.paymentSummary}:{' '}
+          {formatPaymentSummary(entry.paymentDetails, copy)}
+        </p>
       </div>
 
       <Button
         type='button'
         variant='outline'
         className='mt-4'
-        disabled={isUpdating}
+        disabled={isUpdating || entry.processingStatus === 'processing'}
         onClick={() => onUpdateStatus(nextStatus)}
       >
         {entry.status === 'paid' ? copy.markPending : copy.markPaid}
@@ -782,13 +952,30 @@ function TrackerEntryCard({
 
 function getTrackerInputs(
   items: WorkflowItem[],
+  pendingItems: InvoiceTrackerInput[],
   userEmail: string,
+  reviewNeededLabel: string,
 ): InvoiceTrackerInput[] {
-  return items
-    .filter((item): item is WorkflowItem & { invoice: InvoiceFields } =>
-      Boolean(item.invoice && !item.error),
-    )
-    .map((item) => ({
+  const pendingById = new Map(pendingItems.map((item) => [item.id, item]));
+
+  return items.map((item) => {
+    if (!item.invoice || item.error) {
+      const pendingItem = pendingById.get(item.id);
+
+      return {
+        ...(pendingItem ??
+          createEmptyTrackerInput(
+            item.id,
+            item.fileName,
+            userEmail,
+            reviewNeededLabel,
+          )),
+        invoiceNumber: reviewNeededLabel,
+        processingStatus: 'failed',
+      };
+    }
+
+    return {
       id: item.id,
       userEmail,
       fileName: item.fileName,
@@ -799,7 +986,50 @@ function getTrackerInputs(
       dueDate: item.invoice.dueDate,
       paymentDetails: item.invoice.paymentDetails,
       status: 'pending',
-    }));
+      processingStatus: 'ready',
+    };
+  });
+}
+
+function createPendingTrackerInputs(
+  files: File[],
+  userEmail: string,
+  processingLabel: string,
+): InvoiceTrackerInput[] {
+  return files.map((file) =>
+    createEmptyTrackerInput(
+      crypto.randomUUID(),
+      file.name,
+      userEmail,
+      processingLabel,
+    ),
+  );
+}
+
+function createEmptyTrackerInput(
+  id: string,
+  fileName: string,
+  userEmail: string,
+  invoiceNumber: string,
+): InvoiceTrackerInput {
+  return {
+    id,
+    userEmail,
+    fileName,
+    vendor: fileName,
+    invoiceNumber,
+    amount: null,
+    currency: '',
+    dueDate: '',
+    paymentDetails: {
+      payee: '',
+      bankName: '',
+      bankAccountNumber: '',
+      instructions: '',
+    },
+    status: 'pending',
+    processingStatus: 'processing',
+  };
 }
 
 function mergeTrackerEntries(
@@ -823,18 +1053,82 @@ function mergeTrackerEntries(
   );
 }
 
+function getTrackerBadgeClassName(entry: InvoiceTrackerEntry) {
+  if (entry.processingStatus === 'processing') {
+    return 'bg-slate-100 text-slate-700';
+  }
+
+  if (entry.processingStatus === 'failed') {
+    return 'bg-red-100 text-red-700';
+  }
+
+  return entry.status === 'paid'
+    ? 'bg-emerald-100 text-emerald-700'
+    : 'bg-amber-100 text-amber-700';
+}
+
+function getTrackerBadgeLabel(entry: InvoiceTrackerEntry, copy: Copy) {
+  const processingStatus = formatProcessingStatus(entry.processingStatus, copy);
+  if (processingStatus) return processingStatus;
+
+  return entry.status === 'paid' ? copy.paid : copy.pending;
+}
+
+function formatProcessingStatus(
+  processingStatus: InvoiceTrackerProcessingStatus,
+  copy: Copy,
+) {
+  if (processingStatus === 'processing') return copy.processingTracker;
+  if (processingStatus === 'failed') return copy.reviewNeeded;
+
+  return '';
+}
+
 function formatInvoiceAmount(
   invoice: Pick<InvoiceFields, 'amount' | 'currency'>,
   unknown: string,
 ) {
   if (invoice.amount === null) return unknown;
 
+  if (!invoice.currency) return invoice.amount.toLocaleString();
+
   return `${invoice.currency} ${invoice.amount.toLocaleString()}`;
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function formatPaymentSummary(
+  details: InvoiceFields['paymentDetails'],
+  copy: Copy,
+) {
+  const parts = [
+    details.payee ? `${copy.payee}: ${details.payee}` : '',
+    details.bankName ? `${copy.bankName}: ${details.bankName}` : '',
+    details.bankAccountNumber
+      ? `${copy.bankAccountNumber}: ${details.bankAccountNumber}`
+      : '',
+    details.instructions
+      ? `${copy.paymentInstructions}: ${details.instructions}`
+      : '',
+  ].filter(Boolean);
+
+  return parts.length ? parts.join(' | ') : copy.unknown;
+}
+
+function Field({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
   return (
-    <div className='rounded-lg border border-[#dfe7ea] bg-white p-3'>
+    <div
+      className={cn(
+        'rounded-lg border border-[#dfe7ea] bg-white p-3',
+        className,
+      )}
+    >
       <p className='text-xs font-medium uppercase text-[#607086]'>{label}</p>
       <p className='mt-1 break-words text-base font-semibold text-[#16243d]'>
         {value}

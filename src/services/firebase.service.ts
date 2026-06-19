@@ -135,6 +135,7 @@ export interface FirestoreConversation {
 }
 
 export type InvoiceTrackerStatus = 'pending' | 'paid';
+export type InvoiceTrackerProcessingStatus = 'processing' | 'ready' | 'failed';
 
 export interface InvoiceTrackerPaymentDetails {
   payee: string;
@@ -154,6 +155,7 @@ export interface InvoiceTrackerEntry {
   dueDate: string;
   paymentDetails: InvoiceTrackerPaymentDetails;
   status: InvoiceTrackerStatus;
+  processingStatus: InvoiceTrackerProcessingStatus;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -231,6 +233,11 @@ export const loadInvoiceTrackerEntriesFromFirestore = async (
           instructions: data.paymentDetails?.instructions ?? '',
         },
         status: data.status === 'paid' ? 'paid' : 'pending',
+        processingStatus:
+          data.processingStatus === 'failed' ||
+          data.processingStatus === 'processing'
+            ? data.processingStatus
+            : 'ready',
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
       });

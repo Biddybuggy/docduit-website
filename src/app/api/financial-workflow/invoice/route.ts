@@ -8,6 +8,7 @@ import type {
   WorkflowActionStatus,
 } from '@/lib/financial-workflow/invoice-workflow';
 import {
+  createInvoicesCsvFile,
   parse_invoice,
   runInvoiceWorkflow,
 } from '@/lib/financial-workflow/invoice-workflow';
@@ -62,10 +63,12 @@ export async function POST(request: NextRequest) {
     const shouldExecute = formData.get('execute') === 'true';
     const lang = formData.get('lang') === 'id' ? 'id' : 'en';
     const mode = shouldExecute ? 'executed' : 'preview';
+    const fileIds = parseFileIds(formData.get('fileIds'));
     const items: InvoiceWorkflowItem[] = [];
+    const batchFiles: GeneratedWorkflowFile[] = [];
 
-    for (const file of uploadedFiles) {
-      const itemId = randomUUID();
+    for (const [index, file] of uploadedFiles.entries()) {
+      const itemId = fileIds[index] || randomUUID();
 
       try {
         const { fields, rawText } = await parse_invoice(file);
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
           ? await runInvoiceWorkflow(fields, {
               lang,
               createCalendarFile: formData.get('calendar') !== 'false',
-              createCsvExport: formData.get('csv') !== 'false',
+              createCsvExport: false,
             })
           : { actions: [], files: [] };
 
@@ -116,11 +119,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (shouldExecute && formData.get('csv') !== 'false') {
+      batchFiles.push(
+        createInvoicesCsvFile(
+          items
+            .map((item) => item.invoice)
+            .filter((invoice): invoice is InvoiceFields => Boolean(invoice)),
+          `invoices-${new Date().toISOString().slice(0, 10)}.csv`,
+        ),
+      );
+    }
+
     return NextResponse.json({
       items,
       invoice: firstSuccessfulItem.invoice,
       actions: firstSuccessfulItem.actions,
       files: firstSuccessfulItem.files,
+      batchFiles,
       mode,
       rawTextPreview: firstSuccessfulItem.rawTextPreview,
     });
@@ -135,5 +150,20 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 },
     );
+  }
+}
+
+function parseFileIds(value: FormDataEntryValue | null) {
+  if (typeof value !== 'string') return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .filter(Boolean);
+  } catch {
+    return [];
   }
 }

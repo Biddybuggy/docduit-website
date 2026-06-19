@@ -87,14 +87,24 @@ export async function runInvoiceWorkflow(
     actions.push(skipped('calendar', copy.calendarSkipped, copy));
   }
 
-  if (options.createCsvExport) {
-    files.push(createInvoiceCsvFile(fields));
-    actions.push(completed('csv', copy.csvGenerated, copy));
-  } else {
-    actions.push(skipped('csv', copy.csvSkipped, copy));
-  }
-
   return { actions, files };
+}
+
+export function createInvoicesCsvFile(
+  invoices: InvoiceFields[],
+  fileName = 'invoice-tracker.csv',
+): GeneratedWorkflowFile {
+  const headers = getInvoiceCsvHeaders();
+  const rows = invoices.map((fields) => invoiceFieldsToCsvRow(fields));
+
+  return {
+    key: 'csv',
+    fileName: safeFileName(fileName),
+    mimeType: 'text/csv;charset=utf-8',
+    content: [headers, ...rows]
+      .map((values) => values.map(csvCell).join(','))
+      .join('\n'),
+  };
 }
 
 async function extractInvoiceText(file: File): Promise<string> {
@@ -463,8 +473,8 @@ function createCalendarReminderFile(
   };
 }
 
-function createInvoiceCsvFile(fields: InvoiceFields): GeneratedWorkflowFile {
-  const headers = [
+function getInvoiceCsvHeaders() {
+  return [
     'Vendor',
     'Invoice Number',
     'Amount',
@@ -475,7 +485,10 @@ function createInvoiceCsvFile(fields: InvoiceFields): GeneratedWorkflowFile {
     'Bank Account Number',
     'Payment Instructions',
   ];
-  const row = [
+}
+
+function invoiceFieldsToCsvRow(fields: InvoiceFields) {
+  return [
     fields.vendor,
     fields.invoiceNumber,
     fields.amount ?? '',
@@ -486,15 +499,6 @@ function createInvoiceCsvFile(fields: InvoiceFields): GeneratedWorkflowFile {
     fields.paymentDetails.bankAccountNumber,
     fields.paymentDetails.instructions,
   ];
-
-  return {
-    key: 'csv',
-    fileName: safeFileName(`invoice-${fields.invoiceNumber}.csv`),
-    mimeType: 'text/csv;charset=utf-8',
-    content: [headers, row]
-      .map((values) => values.map(csvCell).join(','))
-      .join('\n'),
-  };
 }
 
 function findMatch(text: string, regex: RegExp) {
