@@ -32,7 +32,7 @@ const SheetSideChat = ({
       <ReactQueryProvider>
         <SheetContent
           useOverlay
-          className='bg-docduit-blue overflow-auto'
+          className='flex h-[100dvh] flex-col overflow-hidden bg-docduit-blue p-0'
           side='left'
           customCloseControl={
             <div className='absolute top-4 left-0 px-5 flex justify-between w-full'>
@@ -46,10 +46,10 @@ const SheetSideChat = ({
             </div>
           }
         >
-          <SheetHeader>
-            <SheetTitle className='justify-start text-start'></SheetTitle>
+          <SheetHeader className='sr-only'>
+            <SheetTitle>Consultation menu</SheetTitle>
           </SheetHeader>
-          <div className='flex flex-col py-6 px-4 text-white h-full w-full justify-between'>
+          <div className='flex min-h-0 flex-1 flex-col px-4 pb-4 pt-20 text-white'>
             <div className='flex min-h-0 flex-1 flex-col gap-4'>
               <Link
                 href={`/${language}`}
@@ -59,7 +59,7 @@ const SheetSideChat = ({
                 <Home size={18} />
                 <span>{vocabularies.navigation.home}</span>
               </Link>
-              <div className='min-h-0 flex-1'>
+              <div className='flex min-h-0 flex-1'>
                 <Suspense fallback={null}>
                   <HistoryChatContent
                     vocabularies={vocabularies}
@@ -68,7 +68,7 @@ const SheetSideChat = ({
                 </Suspense>
               </div>
             </div>
-            <div className='flex flex-col'>
+            <div className='flex shrink-0 flex-col pt-4'>
               <AuthenticationSection vocabularies={vocabularies} />
               <LocalesButton label={vocabularies.common.language} />
             </div>

@@ -1,7 +1,9 @@
 'use client';
 
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
+  ArrowLeft,
   CalendarDays,
   CheckCircle2,
   CircleDollarSign,
@@ -101,6 +103,7 @@ function getCopy(lang: Locale) {
   if (lang === 'id') {
     return {
       title: 'Otomatisasi Alur Keuangan Pintar',
+      backToHome: 'Kembali ke beranda',
       subtitle:
         'Unggah faktur, periksa hasil ekstraksi, lalu buat pengingat kalender dan ekspor data.',
       signedInTitle: 'Pengguna yang masuk',
@@ -167,6 +170,7 @@ function getCopy(lang: Locale) {
 
   return {
     title: 'Smart Financial Workflow Automator',
+    backToHome: 'Back to home',
     subtitle:
       'Upload an invoice, review extracted fields, then create calendar reminders and export data.',
     signedInTitle: 'Signed-in user',
@@ -440,6 +444,17 @@ export default function FinancialWorkflowAutomatorClient({
   return (
     <main className='min-h-[calc(100vh-80px)] bg-[#f7faf9] px-5 py-8 lg:px-16 xl:px-24'>
       <div className='mx-auto flex max-w-6xl flex-col gap-6'>
+        <Button
+          asChild
+          variant='outline'
+          className='w-fit border-docduit-blue/20 text-docduit-blue hover:bg-docduit-blue/10 hover:text-docduit-blue'
+        >
+          <Link href={`/${lang}`}>
+            <ArrowLeft />
+            {copy.backToHome}
+          </Link>
+        </Button>
+
         <section className='grid gap-6 lg:grid-cols-[1fr_360px]'>
           <div className='flex flex-col justify-center gap-4'>
             <div>

@@ -123,7 +123,7 @@ const HistoryChatContent = ({
   };
 
   return (
-    <div className='space-y-6 overflow-y-auto scrollbar-hide'>
+    <div className='min-h-0 flex-1 space-y-6 overflow-y-auto scrollbar-hide'>
       {isLoading || userInfoLoading ? (
         <div className='space-y-4 px-4'>
           {[...Array(6)].map((_, index) => (
@@ -138,7 +138,7 @@ const HistoryChatContent = ({
           Gagal memuat riwayat obrolan. Silakan coba lagi.
         </p>
       ) : data && data.length > 0 ? (
-        <nav className='space-y-1 overflow-y-auto overflow-x-hidden'>
+        <nav className='space-y-1 overflow-x-hidden'>
           {data.map((conversation) => {
             const title = conversation.title
               ? conversation.title
