@@ -9,7 +9,7 @@ const ChatSkeleton = () => {
       <div className='flex items-end justify-end space-x-2'>
         <div className='p-4 rounded-lg bg-docduit-blue/10 rounded-br-none w-3/4 h-12 animate-pulse'></div>
       </div>
-      {/* Skeleton untuk second bot message (left) */}
+      {/* Skeleton for second bot message (left) */}
       <div className='flex items-end space-x-2'>
         <div className='p-4 rounded-lg bg-docduit-lightgray rounded-bl-none w-1/2 h-10 animate-pulse'></div>
       </div>
