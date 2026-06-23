@@ -494,7 +494,6 @@ export default function FinancialWorkflowAutomatorClient({
                     id='invoice-file'
                     type='file'
                     multiple
-                    accept='.pdf,.png,.jpg,.jpeg,.docx,.txt,.csv,application/pdf,image/png,image/jpeg,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/csv'
                     onChange={handleFileChange}
                   />
                   {files.length > 0 && (
@@ -1059,7 +1058,9 @@ function mergeTrackerEntries(
   }));
   const merged = new Map<string, InvoiceTrackerEntry>();
 
-  [...incomingEntries, ...current].forEach((entry) => {
+  // Apply newly processed entries last so they replace their optimistic
+  // "processing" versions already present in the tracker.
+  [...current, ...incomingEntries].forEach((entry) => {
     merged.set(entry.id, entry);
   });
 
