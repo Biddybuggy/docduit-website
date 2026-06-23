@@ -12,6 +12,7 @@ import {
   FileText,
   Send,
   Sheet,
+  Trash2,
   Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ import {
   InvoiceTrackerInput,
   InvoiceTrackerProcessingStatus,
   InvoiceTrackerStatus,
+  deleteInvoiceTrackerEntryFromFirestore,
   loadInvoiceTrackerEntriesFromFirestore,
   saveInvoiceTrackerEntriesToFirestore,
   updateInvoiceTrackerStatusInFirestore,
@@ -149,6 +151,7 @@ function getCopy(lang: Locale) {
       paid: 'Dibayar',
       markPaid: 'Tandai dibayar',
       markPending: 'Tandai belum dibayar',
+      deleteInvoice: 'Hapus faktur dari pelacak',
       statusLabels: {
         completed: 'selesai',
         skipped: 'dilewati',
@@ -216,6 +219,7 @@ function getCopy(lang: Locale) {
     paid: 'Paid',
     markPaid: 'Mark paid',
     markPending: 'Mark pending',
+    deleteInvoice: 'Remove invoice from tracker',
     statusLabels: {
       completed: 'completed',
       skipped: 'skipped',
@@ -441,6 +445,22 @@ export default function FinancialWorkflowAutomatorClient({
     }
   };
 
+  const deleteTrackerEntry = async (entry: InvoiceTrackerEntry) => {
+    if (!window.confirm(copy.deleteInvoice)) return;
+
+    setUpdatingTrackerId(entry.id);
+
+    try {
+      await deleteInvoiceTrackerEntryFromFirestore(entry.id);
+      setTrackerEntries((prev) => prev.filter((item) => item.id !== entry.id));
+    } catch (trackerError) {
+      console.error('Failed to delete invoice tracker entry:', trackerError);
+      setTrackerMessage(copy.trackerSaveFailed);
+    } finally {
+      setUpdatingTrackerId('');
+    }
+  };
+
   return (
     <main className='min-h-[calc(100vh-80px)] bg-[#f7faf9] px-5 py-8 lg:px-16 xl:px-24'>
       <div className='mx-auto flex max-w-6xl flex-col gap-6'>
@@ -656,6 +676,7 @@ export default function FinancialWorkflowAutomatorClient({
                         onUpdateStatus={(status) =>
                           void updateTrackerStatus(entry, status)
                         }
+                        onDelete={() => void deleteTrackerEntry(entry)}
                       />
                     ))}
                   </div>
@@ -893,11 +914,13 @@ function TrackerEntryCard({
   copy,
   isUpdating,
   onUpdateStatus,
+  onDelete,
 }: {
   entry: InvoiceTrackerEntry;
   copy: Copy;
   isUpdating: boolean;
   onUpdateStatus: (status: InvoiceTrackerStatus) => void;
+  onDelete: () => void;
 }) {
   const nextStatus = entry.status === 'paid' ? 'pending' : 'paid';
 
@@ -959,6 +982,18 @@ function TrackerEntryCard({
         onClick={() => onUpdateStatus(nextStatus)}
       >
         {entry.status === 'paid' ? copy.markPending : copy.markPaid}
+      </Button>
+      <Button
+        type='button'
+        variant='ghost'
+        size='icon'
+        className='mt-4 text-docduit-red hover:bg-red-50 hover:text-docduit-red'
+        disabled={isUpdating}
+        onClick={onDelete}
+        aria-label={copy.deleteInvoice}
+        title={copy.deleteInvoice}
+      >
+        <Trash2 className='h-4 w-4' />
       </Button>
     </div>
   );

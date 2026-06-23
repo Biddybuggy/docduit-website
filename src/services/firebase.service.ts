@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   DocumentReference,
   Timestamp,
@@ -267,6 +268,13 @@ export const updateInvoiceTrackerStatusInFirestore = async (
     },
     { merge: true },
   );
+};
+
+export const deleteInvoiceTrackerEntryFromFirestore = async (
+  entryId: string,
+): Promise<void> => {
+  const trackersCollection = await getInvoiceTrackersCollection();
+  await deleteDoc(doc(trackersCollection, scrubDocumentId(entryId)));
 };
 
 export const loadConversationsFromFirestore = async (
