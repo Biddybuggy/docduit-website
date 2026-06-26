@@ -43,6 +43,10 @@ import {
 } from '@/services/chat.service';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  detectPromptInjection,
+  sanitizeUserMessage,
+} from '@/lib/security/sanitize-ai-input';
 import ChatSkeleton from './chat-skeleton';
 import { ChatMessage, useChatContext } from '@/context/ChatContext';
 import { mutate } from 'swr';
@@ -440,14 +444,24 @@ export default function MessengerV2({
   }, [chatRoomMessages, isLoading, roomIdFromQuery, conversationId, user?.email]);
 
   const sendMessage = async (newMessage: string) => {
-    if (!newMessage) return;
+    const sanitizedMessage = sanitizeUserMessage(newMessage);
+    if (!sanitizedMessage) return;
+
+    if (detectPromptInjection(sanitizedMessage)) {
+      toast.error(
+        lang === 'en'
+          ? 'Your message contains disallowed instruction patterns.'
+          : 'Pesanmu mengandung pola instruksi yang tidak diizinkan.',
+      );
+      return;
+    }
 
     setIsLoading(true);
     const newChatsToAdd: ChatMessage[] = [
       ...(chatRoomMessages || []),
       {
         type_user: 'user',
-        message: newMessage,
+        message: sanitizedMessage,
       },
     ];
     setChatRoomMessages(newChatsToAdd);
@@ -456,7 +470,7 @@ export default function MessengerV2({
       ...(messagesToAdded || []),
       {
         type_user: 'user',
-        message: newMessage,
+        message: sanitizedMessage,
       },
     ];
     setMessagesToAdded(newChatsToSave);
@@ -622,7 +636,7 @@ export default function MessengerV2({
           }
         }
 
-        const { stream, userId } = await askDemoAIStream(newMessage, {
+        const { stream, userId } = await askDemoAIStream(sanitizedMessage, {
           userId: demoUserId ?? undefined,
           history: previousMessages,
         });
@@ -783,11 +797,11 @@ export default function MessengerV2({
             percakapan: [
               ...(previousMessages || []),
               {
-                jawaban: newMessage,
+                jawaban: sanitizedMessage,
                 pertanyaan: '-',
               },
             ],
-            topic: userChat ? userChat[0].message : newMessage,
+            topic: userChat ? userChat[0].message : sanitizedMessage,
           },
           room_id: lastConversation?.room_id || null,
         };
@@ -833,7 +847,15 @@ export default function MessengerV2({
     setIsLoading(true);
     try {
       if (isDemoMode) {
-        const lastAnswer = answers[answers.length - 1];
+        const lastAnswer = sanitizeUserMessage(answers[answers.length - 1] ?? '');
+        if (!lastAnswer || detectPromptInjection(lastAnswer)) {
+          toast.error(
+            lang === 'en'
+              ? 'Your message contains disallowed instruction patterns.'
+              : 'Pesanmu mengandung pola instruksi yang tidak diizinkan.',
+          );
+          return;
+        }
         const { message: botMessage, userId: newUserId } = await askDemoAI(
           lastAnswer,
           { userId: demoUserId ?? undefined }

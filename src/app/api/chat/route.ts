@@ -1,40 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildGuardedChatPayload } from '@/lib/security/sanitize-ai-input';
+import { chatRequestSchema } from '@/lib/security/schemas/chat';
+import { sanitizeErrorForClient } from '@/lib/security/api-response';
+import { checkRateLimit } from '@/lib/security/rate-limit';
+
+export const maxDuration = 60;
 
 const CF_WORKER_URL = process.env.CHAT_DEMO_CF_WORKER_URL;
 
 export async function POST(request: NextRequest) {
+  const rateLimitRes = await checkRateLimit(request, 'ai');
+  if (rateLimitRes) return rateLimitRes;
   try {
     const body = await request.json();
+    const parsed = chatRequestSchema.safeParse(body);
 
-    const userMessage =
-      typeof body.message === 'string' ? body.message.trim() : '';
-
-    const userId =
-      typeof body.userId === 'string' && body.userId.trim()
-        ? body.userId.trim()
-        : undefined;
-
-    const history = Array.isArray(body.history) ? body.history : undefined;
-
-    if (!userMessage) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'Invalid request' },
+        { status: 400 },
+      );
     }
+
+    const { message, userId, history } = parsed.data;
+    const guarded = buildGuardedChatPayload(message);
 
     if (!CF_WORKER_URL) {
       return NextResponse.json(
         { error: 'Chat service not configured' },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     const upstreamRes = await fetch(`${CF_WORKER_URL.replace(/\/$/, '')}/api/chat`, {
       method: 'POST',
+      signal: AbortSignal.timeout(30_000),
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
       },
       body: JSON.stringify({
-        message: userMessage,
+        message: guarded.message,
+        systemPrompt: guarded.systemGuardrail,
         ...(userId ? { userId } : {}),
         ...(history ? { history } : {}),
         stream: true,
@@ -42,20 +49,16 @@ export async function POST(request: NextRequest) {
     });
 
     if (!upstreamRes.ok) {
-      const errText = await upstreamRes.text().catch(() => '');
       return NextResponse.json(
-        {
-          error: 'AI request failed',
-          details: errText ? errText.slice(0, 2000) : undefined,
-        },
-        { status: upstreamRes.status >= 400 ? upstreamRes.status : 500 }
+        { error: 'AI request failed' },
+        { status: upstreamRes.status >= 400 ? upstreamRes.status : 500 },
       );
     }
 
     if (!upstreamRes.body) {
       return NextResponse.json(
         { error: 'No response body from AI stream' },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
@@ -77,9 +80,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Demo chat stream API error:', error);
     return NextResponse.json(
-      { error: 'Failed to get AI response' },
-      { status: 500 }
+      { error: sanitizeErrorForClient(error, 'Failed to get AI response') },
+      { status: 500 },
     );
   }
 }
-

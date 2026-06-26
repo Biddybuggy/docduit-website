@@ -3,6 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { cn, formatMonth } from '@/lib/utils';
+import {
+  validateCalculatorInput,
+  vehicleCalculatorSchema,
+} from '@/lib/security/schemas/calculator';
 import { useState } from 'react';
 
 interface LayoutProps {
@@ -34,9 +38,19 @@ export default function CalculationSection({
   const [price, setPrice] = useState<number>(35000000);
   const [budget, setBudget] = useState<number>(200000);
   const [downPayment, setDownPayment] = useState<number>(10);
+  const [formError, setFormError] = useState('');
 
   const handleSubmit = () => {
-    onSubmit({ term, price, budget, downPayment });
+    const payload = { term, price, budget, downPayment };
+    const validation = validateCalculatorInput(vehicleCalculatorSchema, payload);
+
+    if (!validation.success) {
+      setFormError(validation.error);
+      return;
+    }
+
+    setFormError('');
+    onSubmit(validation.data);
   };
 
   return (
@@ -138,6 +152,9 @@ export default function CalculationSection({
           </div>
         </div>
       </div>
+      {formError ? (
+        <p className='text-sm text-red-600 text-center'>{formError}</p>
+      ) : null}
       <Button onClick={handleSubmit} size='lg' variant='red'>
         {calculate}
       </Button>

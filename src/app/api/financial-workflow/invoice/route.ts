@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { randomUUID } from 'crypto';
 import { authOptions } from '@/services/auth';
+import { checkRateLimit } from '@/lib/security/rate-limit';
 import type {
   GeneratedWorkflowFile,
   InvoiceFields,
@@ -12,8 +13,16 @@ import {
   parse_invoice,
   runInvoiceWorkflow,
 } from '@/lib/financial-workflow/invoice-workflow';
+import {
+  invoiceWorkflowFormSchema,
+  isAllowedInvoiceFile,
+  MAX_INVOICE_FILES,
+  sanitizeInvoiceFileName,
+} from '@/lib/security/schemas/invoice-workflow';
+import { sanitizeErrorForClient } from '@/lib/security/api-response';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 type InvoiceWorkflowItem = {
   id: string;
@@ -22,11 +31,13 @@ type InvoiceWorkflowItem = {
   actions: WorkflowActionStatus[];
   files: GeneratedWorkflowFile[];
   mode: 'preview' | 'executed';
-  rawTextPreview: string;
   error?: string;
 };
 
 export async function POST(request: NextRequest) {
+  const rateLimitRes = await checkRateLimit(request, 'general');
+  if (rateLimitRes) return rateLimitRes;
+
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -41,6 +52,18 @@ export async function POST(request: NextRequest) {
 
   try {
     const formData = await request.formData();
+    const formValues = Object.fromEntries(
+      [...formData.entries()].filter(([, value]) => typeof value === 'string'),
+    );
+    const parsedForm = invoiceWorkflowFormSchema.safeParse(formValues);
+
+    if (!parsedForm.success) {
+      return NextResponse.json(
+        { error: parsedForm.error.issues[0]?.message ?? 'Invalid form data' },
+        { status: 400 },
+      );
+    }
+
     const uploadedFiles = [
       ...formData.getAll('files'),
       formData.get('file'),
@@ -53,17 +76,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (uploadedFiles.length > 10) {
+    if (uploadedFiles.length > MAX_INVOICE_FILES) {
       return NextResponse.json(
-        { error: 'Upload up to 10 invoice files at once.' },
+        { error: `Upload up to ${MAX_INVOICE_FILES} invoice files at once.` },
         { status: 400 },
       );
     }
 
-    const shouldExecute = formData.get('execute') === 'true';
-    const lang = formData.get('lang') === 'id' ? 'id' : 'en';
+    for (const file of uploadedFiles) {
+      if (!isAllowedInvoiceFile(file)) {
+        return NextResponse.json(
+          {
+            error:
+              'One or more files are invalid. Upload PDF, DOCX, TXT, CSV, PNG, or JPG files up to 10 MB each.',
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    const shouldExecute = parsedForm.data.execute === 'true';
+    const lang = parsedForm.data.lang === 'id' ? 'id' : 'en';
     const mode = shouldExecute ? 'executed' : 'preview';
-    const fileIds = parseFileIds(formData.get('fileIds'));
+    const fileIds = parsedForm.data.fileIds ?? [];
     const items: InvoiceWorkflowItem[] = [];
     const batchFiles: GeneratedWorkflowFile[] = [];
 
@@ -71,42 +106,40 @@ export async function POST(request: NextRequest) {
       const itemId = fileIds[index] || randomUUID();
 
       try {
-        const { fields, rawText } = await parse_invoice(file);
+        const { fields } = await parse_invoice(file);
 
         const workflow = shouldExecute
           ? await runInvoiceWorkflow(fields, {
               lang,
-              createCalendarFile: formData.get('calendar') !== 'false',
+              createCalendarFile: parsedForm.data.calendar !== 'false',
               createCsvExport: false,
             })
           : { actions: [], files: [] };
 
         items.push({
           id: itemId,
-          fileName: file.name,
+          fileName: sanitizeInvoiceFileName(file.name),
           invoice: fields,
           actions: workflow.actions,
           files: workflow.files,
           mode,
-          rawTextPreview: rawText.slice(0, 1500),
         });
       } catch (error) {
         items.push({
           id: itemId,
-          fileName: file.name,
+          fileName: sanitizeInvoiceFileName(file.name),
           actions: [],
           files: [],
           mode,
-          rawTextPreview: '',
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Failed to process this invoice.',
+          error: sanitizeErrorForClient(
+            error,
+            'Failed to process this invoice.',
+          ),
         });
       }
     }
 
-    const firstSuccessfulItem = items.find((item) => 'invoice' in item);
+    const firstSuccessfulItem = items.find((item) => item.invoice);
 
     if (!firstSuccessfulItem) {
       return NextResponse.json(
@@ -119,7 +152,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (shouldExecute && formData.get('csv') !== 'false') {
+    if (shouldExecute && parsedForm.data.csv !== 'false') {
       batchFiles.push(
         createInvoicesCsvFile(
           items
@@ -137,33 +170,17 @@ export async function POST(request: NextRequest) {
       files: firstSuccessfulItem.files,
       batchFiles,
       mode,
-      rawTextPreview: firstSuccessfulItem.rawTextPreview,
     });
   } catch (error) {
     console.error('Invoice workflow failed:', error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to process invoice workflow.',
+        error: sanitizeErrorForClient(
+          error,
+          'Failed to process invoice workflow.',
+        ),
       },
       { status: 500 },
     );
-  }
-}
-
-function parseFileIds(value: FormDataEntryValue | null) {
-  if (typeof value !== 'string') return [];
-
-  try {
-    const parsed = JSON.parse(value);
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed
-      .map((item) => (typeof item === 'string' ? item.trim() : ''))
-      .filter(Boolean);
-  } catch {
-    return [];
   }
 }

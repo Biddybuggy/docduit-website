@@ -89,7 +89,6 @@ export interface SaveRiskProfileMessagePayload {
 }
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-const baseSingleAIUrl = process.env.NEXT_PUBLIC_AI_CHAT_URL;
 
 export const getAllRooms = async (
   accessToken: string,
@@ -212,17 +211,20 @@ export const askDemoAIStream = async (
 
 export const askAISingle = async (
   payload: AskSingleAIPayload,
-  // accessToken: string,
 ): Promise<AskSingleAIResponse> => {
   try {
-    return await fetcher<AskSingleAIResponse>(
-      `${baseSingleAIUrl}/api/ask-duit`,
-      undefined,
-      {
-        method: 'POST',
-        body: payload,
-      },
-    );
+    const res = await fetch('/api/chat/single', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'AI request failed');
+    }
+
+    return res.json();
   } catch (error) {
     toast.error('Terjadi kesalahan saat mengirim pesan ke AI');
     throw error;

@@ -176,17 +176,46 @@ export default function FinancialTwinSimulator({
     setInput((prev) => ({ ...prev, riskBehavior: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const validation = validateInputs(input);
     setErrors(validation);
     if (validation._hasError) {
       return;
     }
-    const all = runAllScenarios(input);
-    const insight = generateInsights(input, all);
-    setResults(all);
-    setInsights(insight);
-    setIsSubmitted(true);
+
+    try {
+      const res = await fetch('/api/financial-twin/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (Array.isArray(data.details)) {
+          const serverErrors: ValidationErrors = { _hasError: true };
+          for (const detail of data.details) {
+            if (detail.field && detail.message) {
+              serverErrors[detail.field as keyof FinancialTwinInput] =
+                detail.message;
+            }
+          }
+          setErrors(serverErrors);
+        }
+        return;
+      }
+
+      setResults(data.results);
+      setInsights(data.insights);
+      setIsSubmitted(true);
+    } catch {
+      const all = runAllScenarios(input);
+      const insight = generateInsights(input, all);
+      setResults(all);
+      setInsights(insight);
+      setIsSubmitted(true);
+    }
   };
 
   const getScenarioLabel = (key: 'current' | 'improved' | 'risky') => {

@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
-import { GoogleAnalytics } from '@next/third-parties/google';
 import './styles/fonts.css';
 import './styles/globals.css';
 import SWRConfigProvider from './providers';
 import { Toaster } from 'sonner';
 import SessionProviders from './session-provider';
 import { ChatProvider } from '@/context/ChatContext';
+import { CookieConsent } from '@/components/shared/cookie-consent';
+import { ConditionalAnalytics } from '@/components/shared/conditional-analytics';
 
 export const metadata: Metadata = {
   title: 'Docduit',
@@ -24,7 +25,6 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const googleTagID = process.env.NEXT_PUBLIC_GOOGLE_MEASUREMENT_ID || '';
-  const isDevelopment = process.env.NEXT_PUBLIC_ENV === 'development';
 
   return (
     <html lang='en'>
@@ -34,13 +34,12 @@ export default async function RootLayout({
             <ChatProvider>
               {children}
               <Toaster richColors position='bottom-right' />
+              <CookieConsent />
             </ChatProvider>
           </SWRConfigProvider>
         </SessionProviders>
       </body>
-      {googleTagID ? (
-        <GoogleAnalytics gaId={googleTagID} debugMode={isDevelopment} />
-      ) : null}
+      {googleTagID ? <ConditionalAnalytics gaId={googleTagID} /> : null}
     </html>
   );
 }

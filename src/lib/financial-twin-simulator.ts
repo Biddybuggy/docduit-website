@@ -80,6 +80,10 @@ export type ValidationErrors = Partial<
   Record<keyof FinancialTwinInput, string>
 > & { _hasError: boolean };
 
+const MAX_CURRENCY = 1_000_000_000_000;
+const MAX_MONTHS = 600;
+const MAX_ANNUAL_RETURN = 100;
+
 export function formatRupiah(value: number): string {
   if (!Number.isFinite(value)) return 'Rp 0';
   return new Intl.NumberFormat('id-ID', {
@@ -108,7 +112,7 @@ export function validateInputs(input: FinancialTwinInput): ValidationErrors {
 
   for (const key of nonNegativeFields) {
     const raw = input[key];
-    if (raw == null || Number.isNaN(raw as number)) {
+    if (raw == null || Number.isNaN(raw as number) || !Number.isFinite(raw as number)) {
       errors[key] = 'This field is required.';
       errors._hasError = true;
       continue;
@@ -117,6 +121,36 @@ export function validateInputs(input: FinancialTwinInput): ValidationErrors {
       errors[key] = 'Value cannot be negative.';
       errors._hasError = true;
     }
+  }
+
+  const currencyFields: (keyof FinancialTwinInput)[] = [
+    'monthlyIncome',
+    'currentSavings',
+    'essentialSpending',
+    'lifestyleSpending',
+    'foodTransportSpending',
+    'otherSpending',
+    'debtBalance',
+    'monthlyDebtPayment',
+    'financialGoalAmount',
+  ];
+
+  for (const key of currencyFields) {
+    const value = input[key] as number;
+    if (Number.isFinite(value) && value > MAX_CURRENCY) {
+      errors[key] = `Value cannot exceed ${MAX_CURRENCY.toLocaleString('id-ID')}.`;
+      errors._hasError = true;
+    }
+  }
+
+  if (input.timeHorizonMonths > MAX_MONTHS) {
+    errors.timeHorizonMonths = `Time horizon cannot exceed ${MAX_MONTHS} months.`;
+    errors._hasError = true;
+  }
+
+  if (input.expectedAnnualReturn > MAX_ANNUAL_RETURN) {
+    errors.expectedAnnualReturn = `Annual return cannot exceed ${MAX_ANNUAL_RETURN}%.`;
+    errors._hasError = true;
   }
 
   if (input.timeHorizonMonths < 1) {
