@@ -1,20 +1,24 @@
-import { Locale } from '../_utils/dictionaries';
 import Link from 'next/link';
 
 interface PageProps {
   params: Promise<{ lang: string }>;
 }
 
+const CONTACT_EMAIL = 'docduit48@gmail.com';
+
 const content = {
   en: {
     title: 'Privacy Policy',
     effective: 'Effective Date: 1 July 2025',
+    switchLabel: 'Baca dalam Bahasa Indonesia',
+    switchHref: (lang: string) => `/${lang}/privacy-policy`.replace(`/${lang === 'en' ? 'en' : 'id'}`, '/id'),
+    back: 'Back to Home',
     intro:
       'Docduit ("we", "our", "us") is committed to protecting your personal data in accordance with Indonesian Law No. 27 of 2022 on Personal Data Protection (UU PDP) and applicable regulations. This Privacy Policy explains how we collect, use, store, and protect your data.',
     sections: [
       {
         heading: '1. Data We Collect',
-        body: 'We may collect: (a) Account data — name, email address, and profile photo obtained via Google OAuth when you sign in. (b) Financial data — salary, instalments, savings goals, and other financial figures you voluntarily enter during the AI consultation or financial simulator. (c) Usage data — pages visited, session duration, and interaction logs collected via Google Analytics (only with your consent). (d) Device data — IP address and browser type for security and rate-limiting purposes.',
+        body: `We may collect: (a) Account data — name, email address, and profile photo obtained via Google OAuth when you sign in. (b) Financial data — salary, instalments, savings goals, and other financial figures you voluntarily enter during the AI consultation or financial simulator. (c) Usage data — pages visited, session duration, and interaction logs collected via Google Analytics (only with your consent). (d) Device data — IP address and browser type for security and rate-limiting purposes.`,
       },
       {
         heading: '2. How We Use Your Data',
@@ -26,7 +30,7 @@ const content = {
       },
       {
         heading: '4. Third Parties We Share Data With',
-        body: 'We share data only as necessary: Google (OAuth authentication, Analytics — subject to your cookie consent); AI backend service (Cloudflare Workers or proprietary server) which receives your anonymised financial questions to generate responses; Vercel (hosting and infrastructure). We do not sell your personal data.',
+        body: 'We share data only as necessary: Google (OAuth authentication and Analytics — subject to your cookie consent); AI backend service (Cloudflare Workers or proprietary server) which receives your anonymised financial questions to generate responses; Vercel (hosting and infrastructure). We do not sell your personal data.',
       },
       {
         heading: '5. Cookies and Analytics',
@@ -34,7 +38,7 @@ const content = {
       },
       {
         heading: '6. Your Rights Under UU PDP',
-        body: 'You have the right to: access your personal data; correct inaccurate data; request deletion of your data; data portability; and object to processing. To exercise these rights, email us at privacy@docduit.com. We will respond within 14 business days.',
+        body: `You have the right to: access your personal data; correct inaccurate data; request deletion of your data; data portability; and object to processing. To exercise these rights, email us at ${CONTACT_EMAIL}. We will respond within 14 business days.`,
       },
       {
         heading: '7. Data Security',
@@ -46,19 +50,23 @@ const content = {
       },
       {
         heading: '9. Contact',
-        body: 'For privacy-related inquiries: privacy@docduit.com',
+        body: `For privacy-related enquiries: ${CONTACT_EMAIL}`,
       },
     ],
+    footer: 'This policy applies to docduit.com and all its subdomains.',
   },
   id: {
     title: 'Kebijakan Privasi',
     effective: 'Tanggal Berlaku: 1 Juli 2025',
+    switchLabel: 'Read in English',
+    switchHref: (lang: string) => `/${lang}/privacy-policy`.replace(`/${lang === 'id' ? 'id' : 'en'}`, '/en'),
+    back: 'Kembali ke Beranda',
     intro:
       'Docduit ("kami") berkomitmen melindungi data pribadi Anda sesuai dengan Undang-Undang No. 27 Tahun 2022 tentang Perlindungan Data Pribadi (UU PDP) dan peraturan yang berlaku. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, menyimpan, dan melindungi data Anda.',
     sections: [
       {
         heading: '1. Data yang Kami Kumpulkan',
-        body: 'Kami dapat mengumpulkan: (a) Data akun — nama, alamat email, dan foto profil yang diperoleh melalui Google OAuth saat Anda masuk. (b) Data keuangan — gaji, cicilan, tujuan tabungan, dan angka keuangan lain yang Anda masukkan secara sukarela selama konsultasi AI atau simulator keuangan. (c) Data penggunaan — halaman yang dikunjungi, durasi sesi, dan log interaksi yang dikumpulkan melalui Google Analytics (hanya dengan persetujuan Anda). (d) Data perangkat — alamat IP dan jenis browser untuk tujuan keamanan dan pembatasan laju.',
+        body: `Kami dapat mengumpulkan: (a) Data akun — nama, alamat email, dan foto profil yang diperoleh melalui Google OAuth saat Anda masuk. (b) Data keuangan — gaji, cicilan, tujuan tabungan, dan angka keuangan lain yang Anda masukkan secara sukarela selama konsultasi AI atau simulator keuangan. (c) Data penggunaan — halaman yang dikunjungi, durasi sesi, dan log interaksi yang dikumpulkan melalui Google Analytics (hanya dengan persetujuan Anda). (d) Data perangkat — alamat IP dan jenis browser untuk tujuan keamanan dan pembatasan laju.`,
       },
       {
         heading: '2. Cara Kami Menggunakan Data Anda',
@@ -70,7 +78,7 @@ const content = {
       },
       {
         heading: '4. Pihak Ketiga yang Menerima Data',
-        body: 'Kami hanya berbagi data seperlunya: Google (autentikasi OAuth, Analytics — tunduk pada persetujuan cookie Anda); layanan backend AI (Cloudflare Workers atau server kami) yang menerima pertanyaan keuangan Anda yang dianonimkan untuk menghasilkan respons; Vercel (hosting dan infrastruktur). Kami tidak menjual data pribadi Anda.',
+        body: 'Kami hanya berbagi data seperlunya: Google (autentikasi OAuth dan Analytics — tunduk pada persetujuan cookie Anda); layanan backend AI (Cloudflare Workers atau server kami) yang menerima pertanyaan keuangan Anda yang dianonimkan untuk menghasilkan respons; Vercel (hosting dan infrastruktur). Kami tidak menjual data pribadi Anda.',
       },
       {
         heading: '5. Cookie dan Analitik',
@@ -78,7 +86,7 @@ const content = {
       },
       {
         heading: '6. Hak Anda Berdasarkan UU PDP',
-        body: 'Anda berhak untuk: mengakses data pribadi Anda; mengoreksi data yang tidak akurat; meminta penghapusan data Anda; portabilitas data; dan keberatan atas pemrosesan. Untuk menggunakan hak-hak ini, kirim email ke privacy@docduit.com. Kami akan merespons dalam 14 hari kerja.',
+        body: `Anda berhak untuk: mengakses data pribadi Anda; mengoreksi data yang tidak akurat; meminta penghapusan data Anda; portabilitas data; dan keberatan atas pemrosesan. Untuk menggunakan hak-hak ini, kirim email ke ${CONTACT_EMAIL}. Kami akan merespons dalam 14 hari kerja.`,
       },
       {
         heading: '7. Keamanan Data',
@@ -90,25 +98,33 @@ const content = {
       },
       {
         heading: '9. Kontak',
-        body: 'Untuk pertanyaan terkait privasi: privacy@docduit.com',
+        body: `Untuk pertanyaan terkait privasi: ${CONTACT_EMAIL}`,
       },
     ],
+    footer: 'Kebijakan ini berlaku untuk docduit.com dan semua subdomainnya.',
   },
 };
 
 export default async function PrivacyPolicyPage({ params }: PageProps) {
   const { lang } = await params;
   const safeLang = lang === 'en' ? 'en' : 'id';
-  const t = content[safeLang as Locale] ?? content.id;
+  const otherLang = safeLang === 'en' ? 'id' : 'en';
+  const t = content[safeLang];
 
   return (
     <main className='mx-auto max-w-3xl px-4 py-12 sm:px-6'>
-      <div className='mb-6'>
+      <div className='mb-6 flex items-center justify-between'>
         <Link
           href={`/${safeLang}`}
           className='text-sm text-slate-500 hover:text-slate-700'
         >
-          ← {safeLang === 'en' ? 'Back to Home' : 'Kembali ke Beranda'}
+          ← {t.back}
+        </Link>
+        <Link
+          href={`/${otherLang}/privacy-policy`}
+          className='rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50'
+        >
+          {t.switchLabel}
         </Link>
       </div>
 
@@ -128,11 +144,7 @@ export default async function PrivacyPolicyPage({ params }: PageProps) {
       </div>
 
       <div className='mt-10 border-t pt-6'>
-        <p className='text-xs text-slate-400'>
-          {safeLang === 'en'
-            ? 'This policy applies to docduit.com and all its subdomains.'
-            : 'Kebijakan ini berlaku untuk docduit.com dan semua subdomainnya.'}
-        </p>
+        <p className='text-xs text-slate-400'>{t.footer}</p>
       </div>
     </main>
   );
