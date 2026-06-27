@@ -14,7 +14,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Locale } from '../_utils/dictionaries';
 import AuthenticationSection from './auth/authentication-section';
 import { ReactQueryProvider } from '@/lib/react-query';
@@ -28,8 +28,15 @@ export type NavigationItem = {
   gaEvent?: string;
 };
 
-export const LocalesButton = ({ label }: { label?: string }) => {
+export const LocalesButton = ({
+  label,
+  onBeforeNavigate,
+}: {
+  label?: string;
+  onBeforeNavigate?: () => void;
+}) => {
   const pathname = usePathname();
+  const router = useRouter();
 
   const getLocaleHref = (targetLocale: Locale) => {
     const currentPath = pathname || '/id';
@@ -43,6 +50,13 @@ export const LocalesButton = ({ label }: { label?: string }) => {
     return `/${targetLocale}${currentPath}`;
   };
 
+  const handleLocaleClick = (targetLocale: Locale) => {
+    // Close the Sheet first so Radix can clean up body pointer-events
+    // before navigation unmounts the component.
+    onBeforeNavigate?.();
+    setTimeout(() => router.push(getLocaleHref(targetLocale)), 0);
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
@@ -52,12 +66,25 @@ export const LocalesButton = ({ label }: { label?: string }) => {
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <DropdownMenuItem>
-          <Link href={getLocaleHref('id')}>🇮🇩 Bahasa</Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Link href={getLocaleHref('en')}>🇺🇸 English</Link>
-        </DropdownMenuItem>
+        {onBeforeNavigate ? (
+          <>
+            <DropdownMenuItem onClick={() => handleLocaleClick('id')}>
+              🇮🇩 Bahasa
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleLocaleClick('en')}>
+              🇺🇸 English
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuItem>
+              <Link href={getLocaleHref('id')}>🇮🇩 Bahasa</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Link href={getLocaleHref('en')}>🇺🇸 English</Link>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -97,7 +124,7 @@ const SheetSidenav = ({
           />
           <div className='flex flex-col gap-4'>
             <AuthenticationSection vocabularies={vocabularies} />
-            <LocalesButton label={language} />
+            <LocalesButton label={language} onBeforeNavigate={() => setIsOpen(false)} />
           </div>
         </div>
       </SheetContent>
