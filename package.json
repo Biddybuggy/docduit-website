@@ -6,7 +6,12 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:mobile": "playwright test --project=mobile-chrome --project=mobile-safari",
+    "test:prod": "BASE_URL=https://docduit.vercel.app playwright test",
+    "test:prod:mobile": "BASE_URL=https://docduit.vercel.app playwright test --project=mobile-chrome --project=mobile-safari"
   },
   "dependencies": {
     "@next/third-parties": "^15.2.0",
@@ -52,6 +57,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/qs": "^6.9.18",

@@ -9,6 +9,10 @@ export function ConditionalAnalytics({ gaId }: { gaId: string }) {
 
   useEffect(() => {
     setConsented(localStorage.getItem(COOKIE_CONSENT_KEY) === 'yes');
+
+    const handleAccepted = () => setConsented(true);
+    window.addEventListener('cookie-consent-accepted', handleAccepted);
+    return () => window.removeEventListener('cookie-consent-accepted', handleAccepted);
   }, []);
 
   if (!consented) return null;
