@@ -35,7 +35,7 @@
       "nohistory": "Belum ada percakapan sebelumnya."
     },
     "placeholderNominal": "Masukkan nominal, contoh: 10.000.000",
-    "placeholderQuestion": "Tuliskan pertanyaanmu",    
+    "placeholderQuestion": "Tuliskan pertanyaanmu",
     "whatDoYouWant": "Apa yang ingin kamu",
     "toConsult": "konsultasikan?",
     "templates": {
@@ -153,6 +153,39 @@
         "increaseIncome": "Cari cara menambah penghasilan (side job, upgrade skill, atau langkah karier) sambil tetap mengontrol pengeluaran dasar.",
         "maintainGoodHabits": "Kamu sudah berada di jalur yang baik — pertahankan kebiasaan sekarang, pantau rencana secara berkala, dan jaga progresmu."
       }
+    },
+    "actionPlan": {
+      "title": "Rencana Aksimu",
+      "helper": "Dihitung dari angkamu sendiri. Setiap langkah di bawah sudah diukur dampaknya, jadi kamu tahu persis apa yang berubah.",
+      "healthTitle": "Cek kesehatan singkat",
+      "health": {
+        "savingsRate": "Rasio menabung",
+        "debtServiceRatio": "Cicilan vs penghasilan",
+        "emergencyFund": "Dana darurat",
+        "months": "bulan",
+        "notAvailable": "n/a"
+      },
+      "targetTitle": "Angka yang paling penting",
+      "requiredPerMonth": "Perlu ditabung per bulan agar target tercapai tepat waktu",
+      "capacityPerMonth": "Sisa anggaranmu per bulan saat ini",
+      "gapMessage": "Kamu masih kurang {amount} per bulan. Langkah di bawah menunjukkan cara tercepat menutup selisihnya.",
+      "onTrackMessage": "Anggaranmu saat ini sudah cukup. Langkah di bawah membuatmu sampai lebih cepat lagi.",
+      "alreadyAtGoalMessage": "Tabunganmu sudah menutupi target ini. Pakai langkah di bawah untuk memperkuat cadangan atau pasang target yang lebih besar.",
+      "projectedLate": "Dengan kebiasaan sekarang, target baru tercapai di bulan {month} — telat {late} bulan dari rencanamu.",
+      "projectedNever": "Dengan kebiasaan sekarang, target tidak tercapai dalam 10 tahun ke depan. Pertimbangkan target lebih kecil, waktu lebih panjang, atau langkah menambah penghasilan di bawah.",
+      "leversTitle": "Langkah dengan dampak terbesar",
+      "leversHelper": "Setiap langkah disimulasikan ulang dengan angkamu. Dampak dihitung jika kamu konsisten sepanjang periode.",
+      "levers": {
+        "cutLifestyle": "Kurangi pengeluaran gaya hidup 20% (hemat {amount}/bulan)",
+        "cutFoodTransport": "Hemat makan & transport 10% (hemat {amount}/bulan)",
+        "increaseIncome": "Tambah penghasilan 10% (sekitar {amount}/bulan — side gig, naik gaji, atau freelance)"
+      },
+      "impactUnlocksGoal": "Membuat target jadi tercapai — di bulan {month}, dari sebelumnya tidak tercapai",
+      "impactEarlier": "Target tercapai di bulan {month}, bukan bulan {before} — lebih cepat {saved} bulan",
+      "impactNetOnly": "Waktu target tidak berubah, tapi posisi akhirmu naik {amount}",
+      "ctaTitle": "Mau langkah ini jadi rencana lengkap?",
+      "ctaBody": "Diskusikan langkah-langkah ini dengan konsultasi AI Docduit dan dapatkan resep keuangan yang dipersonalisasi.",
+      "ctaButton": "Diskusikan dengan konsultasi AI"
     }
   },
   "home": {

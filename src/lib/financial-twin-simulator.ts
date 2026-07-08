@@ -80,6 +80,77 @@ export type ValidationErrors = Partial<
   Record<keyof FinancialTwinInput, string>
 > & { _hasError: boolean };
 
+export type ActionLeverKey =
+  | 'cutLifestyle'
+  | 'cutFoodTransport'
+  | 'increaseIncome';
+
+export type ActionLever = {
+  key: ActionLeverKey;
+  monthlyAmount: number; // rupiah freed up (or added) per month
+  goalMonthBefore: number | null;
+  goalMonthAfter: number | null;
+  monthsSaved: number | null; // set when the goal is reached in both runs
+  unlocksGoal: boolean; // goal not reached on current path, reached with this lever
+  netPositionDelta: number; // final net position improvement vs current path
+};
+
+export type HealthStatus = 'good' | 'warning' | 'alert';
+
+export type ActionPlanHealth = {
+  savingsRate: { value: number; status: HealthStatus };
+  debtServiceRatio: { value: number; status: HealthStatus };
+  emergencyFundMonths: { value: number | null; status: HealthStatus };
+};
+
+// sessionStorage handoff of a prefilled message from the twin simulator to the
+// AI consultation chat. The value is kept (not removed on read) for a short
+// window so that remounts and StrictMode double-effects can re-apply it, then
+// expires on its own.
+export const TWIN_CONSULT_PREFILL_KEY = 'docduit-twin-consult-prefill';
+const TWIN_CONSULT_PREFILL_TTL_MS = 15_000;
+
+export function storeTwinConsultPrefill(text: string): void {
+  try {
+    sessionStorage.setItem(
+      TWIN_CONSULT_PREFILL_KEY,
+      JSON.stringify({ text, ts: Date.now() }),
+    );
+  } catch {
+    // Storage unavailable (private mode, etc.) — the chat opens without a
+    // prefilled message.
+  }
+}
+
+export function readTwinConsultPrefill(): string | null {
+  try {
+    const raw = sessionStorage.getItem(TWIN_CONSULT_PREFILL_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { text?: string; ts?: number };
+    if (
+      typeof parsed.text !== 'string' ||
+      typeof parsed.ts !== 'number' ||
+      Date.now() - parsed.ts > TWIN_CONSULT_PREFILL_TTL_MS
+    ) {
+      sessionStorage.removeItem(TWIN_CONSULT_PREFILL_KEY);
+      return null;
+    }
+    return parsed.text;
+  } catch {
+    return null;
+  }
+}
+
+export type ActionPlan = {
+  health: ActionPlanHealth;
+  monthlyCapacity: number; // income - spending - debt payment today
+  requiredMonthlySaving: number | null; // to hit the goal within the horizon
+  savingGap: number | null; // required - capacity, when positive
+  projectedGoalMonth: number | null; // month the goal is reached at current pace, possibly beyond the horizon
+  alreadyAtGoal: boolean;
+  levers: ActionLever[]; // ranked, strongest first
+};
+
 const MAX_CURRENCY = 1_000_000_000_000;
 const MAX_MONTHS = 600;
 const MAX_ANNUAL_RETURN = 100;
@@ -492,5 +563,203 @@ export function generateInsights(
     biggestBottleneck,
     bestNextAction,
     scenarioSummaries,
+  };
+}
+
+const CURRENT_SCENARIO: ScenarioDefinition = {
+  key: 'current',
+  name: 'Current Path',
+};
+
+function computeMonthlyCapacity(input: FinancialTwinInput): number {
+  const totalSpending =
+    input.essentialSpending +
+    input.lifestyleSpending +
+    input.foodTransportSpending +
+    input.otherSpending;
+  const debtPayment = input.debtBalance > 0 ? input.monthlyDebtPayment : 0;
+  return input.monthlyIncome - totalSpending - debtPayment;
+}
+
+// Solves the monthly contribution S so that savings reach the goal in exactly
+// timeHorizonMonths, matching the simulation's order of operations
+// (deposit first, then growth): FV = P*(1+r)^n + S*(1+r)*((1+r)^n - 1)/r
+function solveRequiredMonthlySaving(input: FinancialTwinInput): number {
+  const principal = input.currentSavings;
+  const goal = input.financialGoalAmount;
+  const n = input.timeHorizonMonths;
+  if (principal >= goal) return 0;
+  const r = getMonthlyReturnRate(input.expectedAnnualReturn);
+  if (r <= 0) return (goal - principal) / n;
+  const growth = Math.pow(1 + r, n);
+  const required = ((goal - principal * growth) * r) / ((1 + r) * (growth - 1));
+  return Math.max(0, required);
+}
+
+function computeHealth(input: FinancialTwinInput): ActionPlanHealth {
+  const capacity = computeMonthlyCapacity(input);
+  const savingsRate =
+    input.monthlyIncome > 0 ? capacity / input.monthlyIncome : 0;
+  const debtServiceRatio =
+    input.monthlyIncome > 0 && input.debtBalance > 0
+      ? input.monthlyDebtPayment / input.monthlyIncome
+      : 0;
+  const emergencyMonths = computeEmergencyFundMonths(
+    input.currentSavings,
+    input.essentialSpending,
+  );
+
+  const savingsStatus: HealthStatus =
+    savingsRate >= 0.2 ? 'good' : savingsRate >= 0.1 ? 'warning' : 'alert';
+  const debtStatus: HealthStatus =
+    debtServiceRatio <= 0.2
+      ? 'good'
+      : debtServiceRatio <= 0.35
+        ? 'warning'
+        : 'alert';
+  const emergencyStatus: HealthStatus =
+    emergencyMonths == null
+      ? 'warning'
+      : emergencyMonths >= 6
+        ? 'good'
+        : emergencyMonths >= 3
+          ? 'warning'
+          : 'alert';
+
+  return {
+    savingsRate: {
+      value: clampToTwoDecimals(savingsRate),
+      status: savingsStatus,
+    },
+    debtServiceRatio: {
+      value: clampToTwoDecimals(debtServiceRatio),
+      status: debtStatus,
+    },
+    emergencyFundMonths: {
+      value:
+        emergencyMonths != null ? clampToTwoDecimals(emergencyMonths) : null,
+      status: emergencyStatus,
+    },
+  };
+}
+
+function buildLever(
+  key: ActionLeverKey,
+  monthlyAmount: number,
+  base: ScenarioResult,
+  variantInput: FinancialTwinInput,
+): ActionLever {
+  const variant = runSimulation(variantInput, CURRENT_SCENARIO);
+  const monthsSaved =
+    base.goalReachedMonth != null && variant.goalReachedMonth != null
+      ? base.goalReachedMonth - variant.goalReachedMonth
+      : null;
+
+  return {
+    key,
+    monthlyAmount: Math.round(monthlyAmount),
+    goalMonthBefore: base.goalReachedMonth,
+    goalMonthAfter: variant.goalReachedMonth,
+    monthsSaved,
+    unlocksGoal: !base.goalReached && variant.goalReached,
+    netPositionDelta: clampToTwoDecimals(
+      variant.finalNetPosition - base.finalNetPosition,
+    ),
+  };
+}
+
+export function generateActionPlan(
+  input: FinancialTwinInput,
+  results: AllScenarioResults,
+): ActionPlan {
+  const base = results.current;
+  const alreadyAtGoal =
+    input.financialGoalAmount > 0 &&
+    input.currentSavings >= input.financialGoalAmount;
+
+  const monthlyCapacity = Math.round(computeMonthlyCapacity(input));
+  const requiredMonthlySaving = alreadyAtGoal
+    ? null
+    : Math.round(solveRequiredMonthlySaving(input));
+  const savingGap =
+    requiredMonthlySaving != null && requiredMonthlySaving > monthlyCapacity
+      ? requiredMonthlySaving - monthlyCapacity
+      : null;
+
+  // If the goal is not reached within the horizon, project forward on the
+  // current path to find when it would be.
+  let projectedGoalMonth: number | null = base.goalReachedMonth;
+  if (!base.goalReached) {
+    const extendedHorizon = Math.min(MAX_MONTHS, input.timeHorizonMonths + 120);
+    if (extendedHorizon > input.timeHorizonMonths) {
+      const extended = runSimulation(
+        { ...input, timeHorizonMonths: extendedHorizon },
+        CURRENT_SCENARIO,
+      );
+      projectedGoalMonth = extended.goalReachedMonth;
+    }
+  }
+
+  const levers: ActionLever[] = [];
+
+  if (input.lifestyleSpending > 0) {
+    levers.push(
+      buildLever(
+        'cutLifestyle',
+        input.lifestyleSpending * 0.2,
+        base,
+        { ...input, lifestyleSpending: input.lifestyleSpending * 0.8 },
+      ),
+    );
+  }
+
+  if (input.foodTransportSpending > 0) {
+    levers.push(
+      buildLever(
+        'cutFoodTransport',
+        input.foodTransportSpending * 0.1,
+        base,
+        {
+          ...input,
+          foodTransportSpending: input.foodTransportSpending * 0.9,
+        },
+      ),
+    );
+  }
+
+  if (input.monthlyIncome > 0) {
+    levers.push(
+      buildLever(
+        'increaseIncome',
+        input.monthlyIncome * 0.1,
+        base,
+        { ...input, monthlyIncome: input.monthlyIncome * 1.1 },
+      ),
+    );
+  }
+
+  const ranked = levers
+    .filter(
+      (lever) =>
+        lever.unlocksGoal ||
+        (lever.monthsSaved != null && lever.monthsSaved > 0) ||
+        lever.netPositionDelta > 0,
+    )
+    .sort((a, b) => {
+      if (a.unlocksGoal !== b.unlocksGoal) return a.unlocksGoal ? -1 : 1;
+      const savedA = a.monthsSaved ?? -1;
+      const savedB = b.monthsSaved ?? -1;
+      if (savedA !== savedB) return savedB - savedA;
+      return b.netPositionDelta - a.netPositionDelta;
+    });
+
+  return {
+    health: computeHealth(input),
+    monthlyCapacity,
+    requiredMonthlySaving,
+    savingGap,
+    projectedGoalMonth,
+    alreadyAtGoal,
+    levers: ranked,
   };
 }

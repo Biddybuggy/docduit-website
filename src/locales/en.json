@@ -154,6 +154,39 @@
         "increaseIncome": "Look for additional income while keeping expenses steady. Extra income has the biggest effect when it is not absorbed by new spending.",
         "maintainGoodHabits": "You are already in a strong position. Keep the habit, protect the money, and review the plan regularly."
       }
+    },
+    "actionPlan": {
+      "title": "Your Action Plan",
+      "helper": "Built from your own numbers. Each step below is quantified so you can see exactly what it changes.",
+      "healthTitle": "Quick health check",
+      "health": {
+        "savingsRate": "Savings rate",
+        "debtServiceRatio": "Debt payments vs income",
+        "emergencyFund": "Emergency fund",
+        "months": "months",
+        "notAvailable": "n/a"
+      },
+      "targetTitle": "The number that matters",
+      "requiredPerMonth": "Needed per month to hit your goal on time",
+      "capacityPerMonth": "What your current budget leaves per month",
+      "gapMessage": "You are {amount} per month short. The steps below show the fastest ways to close that gap.",
+      "onTrackMessage": "Your current budget already covers this. The steps below get you there even faster.",
+      "alreadyAtGoalMessage": "Your savings already cover this goal. Use the steps below to build your buffer or set a bigger goal.",
+      "projectedLate": "At your current pace, this goal lands at month {month} — {late} months past your timeline.",
+      "projectedNever": "At your current pace, this goal is not reached within the next 10 years. Consider a smaller goal, a longer timeline, or the income step below.",
+      "leversTitle": "Highest-impact next steps",
+      "leversHelper": "Each step was re-simulated with your numbers. Impact assumes you keep it up for the whole timeline.",
+      "levers": {
+        "cutLifestyle": "Cut lifestyle spending by 20% (frees {amount}/month)",
+        "cutFoodTransport": "Trim food & transport by 10% (frees {amount}/month)",
+        "increaseIncome": "Grow income by 10% (adds {amount}/month — side gig, raise, or freelance)"
+      },
+      "impactUnlocksGoal": "Makes your goal reachable — hit at month {month} instead of missing it",
+      "impactEarlier": "Goal at month {month} instead of {before} — {saved} months earlier",
+      "impactNetOnly": "Goal timing unchanged, but you end {amount} better off",
+      "ctaTitle": "Want this turned into a full plan?",
+      "ctaBody": "Discuss these steps with the Docduit AI consultation and get a personalized financial prescription.",
+      "ctaButton": "Discuss with AI consultation"
     }
   },
   "home": {

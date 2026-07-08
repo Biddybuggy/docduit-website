@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  generateActionPlan,
   generateInsights,
   runAllScenarios,
 } from '@/lib/financial-twin-simulator';
@@ -31,8 +32,9 @@ export async function POST(request: NextRequest) {
 
     const results = runAllScenarios(parsed.data);
     const insights = generateInsights(parsed.data, results);
+    const actionPlan = generateActionPlan(parsed.data, results);
 
-    return NextResponse.json({ results, insights });
+    return NextResponse.json({ results, insights, actionPlan });
   } catch (error) {
     console.error('Financial twin simulation failed:', error);
     return NextResponse.json(

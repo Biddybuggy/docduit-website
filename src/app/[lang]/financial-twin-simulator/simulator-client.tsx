@@ -1,16 +1,22 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   FinancialTwinInput,
   ValidationErrors,
   AllScenarioResults,
   GeneratedInsights,
+  ActionPlan,
+  ActionLever,
+  HealthStatus,
   RiskBehavior,
+  storeTwinConsultPrefill,
   formatRupiah,
   validateInputs,
   runAllScenarios,
   generateInsights,
+  generateActionPlan,
 } from '@/lib/financial-twin-simulator';
 import { Locale } from '../_utils/dictionaries';
 import { ReactQueryProvider } from '@/lib/react-query';
@@ -136,6 +142,9 @@ export default function FinancialTwinSimulator({
   const [errors, setErrors] = useState<ValidationErrors>({ _hasError: false });
   const [results, setResults] = useState<AllScenarioResults | null>(null);
   const [insights, setInsights] = useState<GeneratedInsights | null>(null);
+  const [actionPlan, setActionPlan] = useState<ActionPlan | null>(null);
+  const [submittedInput, setSubmittedInput] =
+    useState<FinancialTwinInput | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const chartData: ScenarioChartPoint[] = useMemo(() => {
@@ -208,12 +217,16 @@ export default function FinancialTwinSimulator({
 
       setResults(data.results);
       setInsights(data.insights);
+      setActionPlan(data.actionPlan ?? generateActionPlan(input, data.results));
+      setSubmittedInput(input);
       setIsSubmitted(true);
     } catch {
       const all = runAllScenarios(input);
       const insight = generateInsights(input, all);
       setResults(all);
       setInsights(insight);
+      setActionPlan(generateActionPlan(input, all));
+      setSubmittedInput(input);
       setIsSubmitted(true);
     }
   };
@@ -782,6 +795,16 @@ export default function FinancialTwinSimulator({
                   </CardContent>
                 </Card>
               </div>
+
+              {isSubmitted && actionPlan && results && submittedInput && (
+                <ActionPlanCard
+                  actionPlan={actionPlan}
+                  submittedInput={submittedInput}
+                  horizonMonths={results.current.snapshots.length}
+                  vocabularies={vocabularies}
+                  lang={lang}
+                />
+              )}
             </div>
           </section>
 
@@ -854,5 +877,440 @@ function Field({
       {help && <p className='text-[11px] leading-relaxed text-slate-500'>{help}</p>}
       {error && <p className='text-[11px] text-red-600'>{error}</p>}
     </div>
+  );
+}
+
+function fillTemplate(
+  template: string,
+  values: Record<string, string | number>,
+): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) =>
+    String(values[key] ?? ''),
+  );
+}
+
+const HEALTH_DOT_CLASS: Record<HealthStatus, string> = {
+  good: 'bg-emerald-500',
+  warning: 'bg-amber-500',
+  alert: 'bg-rose-500',
+};
+
+// Single-paragraph message (the chat input is a one-line field) summarizing the
+// simulation, handed to the consultation chat via sessionStorage.
+function buildConsultationPrefill(
+  input: FinancialTwinInput,
+  actionPlan: ActionPlan,
+  horizonMonths: number,
+  lang: Locale,
+): string {
+  const totalSpending =
+    input.essentialSpending +
+    input.lifestyleSpending +
+    input.foodTransportSpending +
+    input.otherSpending;
+
+  const rp = formatRupiah;
+
+  if (lang === 'id') {
+    const debtPart =
+      input.debtBalance > 0
+        ? `utang ${rp(input.debtBalance)} dengan cicilan ${rp(input.monthlyDebtPayment)} per bulan, `
+        : '';
+    let outcome: string;
+    if (actionPlan.alreadyAtGoal) {
+      outcome =
+        'Menurut simulasi, tabunganku sebenarnya sudah menutupi target ini.';
+    } else if (actionPlan.savingGap != null) {
+      outcome = `Menurut simulasi, aku masih kurang sekitar ${rp(actionPlan.savingGap)} per bulan untuk mencapainya tepat waktu.`;
+    } else if (
+      actionPlan.projectedGoalMonth != null &&
+      actionPlan.projectedGoalMonth <= horizonMonths
+    ) {
+      outcome = `Menurut simulasi, target ini tercapai di bulan ke-${actionPlan.projectedGoalMonth}.`;
+    } else {
+      outcome = `Menurut simulasi, target ini belum tercapai dalam ${horizonMonths} bulan.`;
+    }
+    return (
+      `Halo Docduit! Aku baru saja mencoba Financial Twin Simulator. ` +
+      `Kondisiku: penghasilan ${rp(input.monthlyIncome)} per bulan, total pengeluaran ${rp(totalSpending)} per bulan, ` +
+      debtPart +
+      `dan tabungan saat ini ${rp(input.currentSavings)}. ` +
+      `Targetku ${rp(input.financialGoalAmount)} dalam ${horizonMonths} bulan. ` +
+      outcome +
+      ' Bisa bantu aku menyusun langkah konkret supaya kondisi keuanganku makin sehat?'
+    );
+  }
+
+  const debtPart =
+    input.debtBalance > 0
+      ? `${rp(input.debtBalance)} in debt with ${rp(input.monthlyDebtPayment)} monthly payments, `
+      : '';
+  let outcome: string;
+  if (actionPlan.alreadyAtGoal) {
+    outcome =
+      'According to the simulation, my savings already cover this goal.';
+  } else if (actionPlan.savingGap != null) {
+    outcome = `According to the simulation, I am about ${rp(actionPlan.savingGap)} per month short of reaching it on time.`;
+  } else if (
+    actionPlan.projectedGoalMonth != null &&
+    actionPlan.projectedGoalMonth <= horizonMonths
+  ) {
+    outcome = `According to the simulation, I reach this goal in month ${actionPlan.projectedGoalMonth}.`;
+  } else {
+    outcome = `According to the simulation, this goal is not reached within ${horizonMonths} months.`;
+  }
+  return (
+    `Hi Docduit! I just tried the Financial Twin Simulator. ` +
+    `My situation: income of ${rp(input.monthlyIncome)} per month, total spending of ${rp(totalSpending)} per month, ` +
+    debtPart +
+    `and current savings of ${rp(input.currentSavings)}. ` +
+    `My goal is ${rp(input.financialGoalAmount)} within ${horizonMonths} months. ` +
+    outcome +
+    ' Can you help me put together concrete steps to make my finances healthier?'
+  );
+}
+
+function ActionPlanCard({
+  actionPlan,
+  submittedInput,
+  horizonMonths,
+  vocabularies,
+  lang,
+}: {
+  actionPlan: ActionPlan;
+  submittedInput: FinancialTwinInput;
+  horizonMonths: number;
+  vocabularies: any;
+  lang: Locale;
+}) {
+  const dict = vocabularies?.twinSimulator?.actionPlan ?? {};
+  const isId = lang === 'id';
+  const t = (key: string, fallbackId: string, fallbackEn: string): string => {
+    const parts = key.split('.');
+    let node: any = dict;
+    for (const part of parts) {
+      node = node?.[part];
+      if (node == null) break;
+    }
+    return typeof node === 'string' ? node : isId ? fallbackId : fallbackEn;
+  };
+
+  const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
+
+  const healthItems: {
+    label: string;
+    value: string;
+    status: HealthStatus;
+  }[] = [
+    {
+      label: t('health.savingsRate', 'Rasio menabung', 'Savings rate'),
+      value: formatPercent(actionPlan.health.savingsRate.value),
+      status: actionPlan.health.savingsRate.status,
+    },
+    {
+      label: t(
+        'health.debtServiceRatio',
+        'Cicilan vs penghasilan',
+        'Debt payments vs income',
+      ),
+      value: formatPercent(actionPlan.health.debtServiceRatio.value),
+      status: actionPlan.health.debtServiceRatio.status,
+    },
+    {
+      label: t('health.emergencyFund', 'Dana darurat', 'Emergency fund'),
+      value:
+        actionPlan.health.emergencyFundMonths.value != null
+          ? `${actionPlan.health.emergencyFundMonths.value.toFixed(1)} ${t(
+              'health.months',
+              'bulan',
+              'months',
+            )}`
+          : t('health.notAvailable', 'n/a', 'n/a'),
+      status: actionPlan.health.emergencyFundMonths.status,
+    },
+  ];
+
+  const gapMessage = (() => {
+    if (actionPlan.alreadyAtGoal) {
+      return t(
+        'alreadyAtGoalMessage',
+        'Tabunganmu sudah menutupi target ini. Pakai langkah di bawah untuk memperkuat cadangan atau pasang target yang lebih besar.',
+        'Your savings already cover this goal. Use the steps below to build your buffer or set a bigger goal.',
+      );
+    }
+    if (actionPlan.savingGap != null) {
+      return fillTemplate(
+        t(
+          'gapMessage',
+          'Kamu masih kurang {amount} per bulan. Langkah di bawah menunjukkan cara tercepat menutup selisihnya.',
+          'You are {amount} per month short. The steps below show the fastest ways to close that gap.',
+        ),
+        { amount: formatRupiah(actionPlan.savingGap) },
+      );
+    }
+    return t(
+      'onTrackMessage',
+      'Anggaranmu saat ini sudah cukup. Langkah di bawah membuatmu sampai lebih cepat lagi.',
+      'Your current budget already covers this. The steps below get you there even faster.',
+    );
+  })();
+
+  const goalMissedInHorizon =
+    !actionPlan.alreadyAtGoal &&
+    (actionPlan.projectedGoalMonth == null ||
+      actionPlan.projectedGoalMonth > horizonMonths);
+
+  const projectionMessage = goalMissedInHorizon
+    ? actionPlan.projectedGoalMonth != null
+      ? fillTemplate(
+          t(
+            'projectedLate',
+            'Dengan kebiasaan sekarang, target baru tercapai di bulan {month} — telat {late} bulan dari rencanamu.',
+            'At your current pace, this goal lands at month {month} — {late} months past your timeline.',
+          ),
+          {
+            month: actionPlan.projectedGoalMonth,
+            late: actionPlan.projectedGoalMonth - horizonMonths,
+          },
+        )
+      : t(
+          'projectedNever',
+          'Dengan kebiasaan sekarang, target tidak tercapai dalam 10 tahun ke depan. Pertimbangkan target lebih kecil, waktu lebih panjang, atau langkah menambah penghasilan di bawah.',
+          'At your current pace, this goal is not reached within the next 10 years. Consider a smaller goal, a longer timeline, or the income step below.',
+        )
+    : null;
+
+  const leverTitle = (lever: ActionLever) => {
+    const templates: Record<ActionLever['key'], [string, string]> = {
+      cutLifestyle: [
+        'Kurangi pengeluaran gaya hidup 20% (hemat {amount}/bulan)',
+        'Cut lifestyle spending by 20% (frees {amount}/month)',
+      ],
+      cutFoodTransport: [
+        'Hemat makan & transport 10% (hemat {amount}/bulan)',
+        'Trim food & transport by 10% (frees {amount}/month)',
+      ],
+      increaseIncome: [
+        'Tambah penghasilan 10% (sekitar {amount}/bulan — side gig, naik gaji, atau freelance)',
+        'Grow income by 10% (adds {amount}/month — side gig, raise, or freelance)',
+      ],
+    };
+    const [fbId, fbEn] = templates[lever.key];
+    return fillTemplate(t(`levers.${lever.key}`, fbId, fbEn), {
+      amount: formatRupiah(lever.monthlyAmount),
+    });
+  };
+
+  const leverImpact = (lever: ActionLever) => {
+    if (lever.unlocksGoal && lever.goalMonthAfter != null) {
+      return fillTemplate(
+        t(
+          'impactUnlocksGoal',
+          'Membuat target jadi tercapai — di bulan {month}, dari sebelumnya tidak tercapai',
+          'Makes your goal reachable — hit at month {month} instead of missing it',
+        ),
+        { month: lever.goalMonthAfter },
+      );
+    }
+    if (
+      lever.monthsSaved != null &&
+      lever.monthsSaved > 0 &&
+      lever.goalMonthAfter != null &&
+      lever.goalMonthBefore != null
+    ) {
+      return fillTemplate(
+        t(
+          'impactEarlier',
+          'Target tercapai di bulan {month}, bukan bulan {before} — lebih cepat {saved} bulan',
+          'Goal at month {month} instead of {before} — {saved} months earlier',
+        ),
+        {
+          month: lever.goalMonthAfter,
+          before: lever.goalMonthBefore,
+          saved: lever.monthsSaved,
+        },
+      );
+    }
+    return fillTemplate(
+      t(
+        'impactNetOnly',
+        'Waktu target tidak berubah, tapi posisi akhirmu naik {amount}',
+        'Goal timing unchanged, but you end {amount} better off',
+      ),
+      { amount: formatRupiah(lever.netPositionDelta) },
+    );
+  };
+
+  return (
+    <Card className='shadow-sm border-slate-200 rounded-2xl'>
+      <CardHeader className='pb-3'>
+        <CardTitle className='text-base font-semibold text-slate-900'>
+          {t('title', 'Rencana Aksimu', 'Your Action Plan')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className='space-y-5'>
+        <p className='text-xs leading-relaxed text-slate-500'>
+          {t(
+            'helper',
+            'Dihitung dari angkamu sendiri. Setiap langkah di bawah sudah diukur dampaknya, jadi kamu tahu persis apa yang berubah.',
+            'Built from your own numbers. Each step below is quantified so you can see exactly what it changes.',
+          )}
+        </p>
+
+        <div>
+          <p className='text-xs font-semibold text-slate-800 mb-2'>
+            {t('healthTitle', 'Cek kesehatan singkat', 'Quick health check')}
+          </p>
+          <div className='grid grid-cols-1 sm:grid-cols-3 gap-2'>
+            {healthItems.map((item) => (
+              <div
+                key={item.label}
+                className='rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-2'
+              >
+                <span
+                  className={cn(
+                    'h-2.5 w-2.5 shrink-0 rounded-full',
+                    HEALTH_DOT_CLASS[item.status],
+                  )}
+                />
+                <div className='min-w-0'>
+                  <p className='text-[11px] text-slate-500 truncate'>
+                    {item.label}
+                  </p>
+                  <p className='text-xs font-semibold text-slate-900'>
+                    {item.value}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className='rounded-xl border border-slate-200 bg-white p-3 space-y-2'>
+          <p className='text-xs font-semibold text-slate-800'>
+            {t(
+              'targetTitle',
+              'Angka yang paling penting',
+              'The number that matters',
+            )}
+          </p>
+          {actionPlan.requiredMonthlySaving != null && (
+            <div className='flex flex-col gap-1 text-[11px] text-slate-500'>
+              <p>
+                {t(
+                  'requiredPerMonth',
+                  'Perlu ditabung per bulan agar target tercapai tepat waktu',
+                  'Needed per month to hit your goal on time',
+                )}
+                :{' '}
+                <span className='font-semibold text-slate-900'>
+                  {formatRupiah(actionPlan.requiredMonthlySaving)}
+                </span>
+              </p>
+              <p>
+                {t(
+                  'capacityPerMonth',
+                  'Sisa anggaranmu per bulan saat ini',
+                  'What your current budget leaves per month',
+                )}
+                :{' '}
+                <span className='font-semibold text-slate-900'>
+                  {formatRupiah(actionPlan.monthlyCapacity)}
+                </span>
+              </p>
+            </div>
+          )}
+          <p className='text-xs leading-relaxed text-slate-600'>{gapMessage}</p>
+          {projectionMessage && (
+            <p className='text-xs leading-relaxed text-amber-700'>
+              {projectionMessage}
+            </p>
+          )}
+        </div>
+
+        {actionPlan.levers.length > 0 && (
+          <div>
+            <p className='text-xs font-semibold text-slate-800'>
+              {t(
+                'leversTitle',
+                'Langkah dengan dampak terbesar',
+                'Highest-impact next steps',
+              )}
+            </p>
+            <p className='mt-0.5 text-[11px] leading-relaxed text-slate-500'>
+              {t(
+                'leversHelper',
+                'Setiap langkah disimulasikan ulang dengan angkamu. Dampak dihitung jika kamu konsisten sepanjang periode.',
+                'Each step was re-simulated with your numbers. Impact assumes you keep it up for the whole timeline.',
+              )}
+            </p>
+            <ol className='mt-2 space-y-2'>
+              {actionPlan.levers.map((lever, index) => (
+                <li
+                  key={lever.key}
+                  className='rounded-xl border border-slate-200 bg-slate-50 p-3 flex gap-3'
+                >
+                  <span className='flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white'>
+                    {index + 1}
+                  </span>
+                  <div className='min-w-0'>
+                    <p className='text-xs font-semibold text-slate-900'>
+                      {leverTitle(lever)}
+                    </p>
+                    <p className='mt-0.5 text-[11px] leading-relaxed text-emerald-700'>
+                      {leverImpact(lever)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        <div className='rounded-xl border border-slate-900/10 bg-slate-900 p-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+          <div>
+            <p className='text-xs font-semibold text-white'>
+              {t(
+                'ctaTitle',
+                'Mau langkah ini jadi rencana lengkap?',
+                'Want this turned into a full plan?',
+              )}
+            </p>
+            <p className='mt-0.5 text-[11px] leading-relaxed text-slate-300'>
+              {t(
+                'ctaBody',
+                'Diskusikan langkah-langkah ini dengan konsultasi AI Docduit dan dapatkan resep keuangan yang dipersonalisasi.',
+                'Discuss these steps with the Docduit AI consultation and get a personalized financial prescription.',
+              )}
+            </p>
+          </div>
+          <Button
+            asChild
+            size='sm'
+            className='shrink-0 rounded-full bg-white text-slate-900 hover:bg-slate-100'
+          >
+            <Link
+              href={`/${lang}/consultation`}
+              onClick={() =>
+                storeTwinConsultPrefill(
+                  buildConsultationPrefill(
+                    submittedInput,
+                    actionPlan,
+                    horizonMonths,
+                    lang,
+                  ),
+                )
+              }
+            >
+              {t(
+                'ctaButton',
+                'Diskusikan dengan konsultasi AI',
+                'Discuss with AI consultation',
+              )}
+            </Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -49,6 +49,7 @@ import {
 } from '@/lib/security/sanitize-ai-input';
 import ChatSkeleton from './chat-skeleton';
 import { ChatMessage, useChatContext } from '@/context/ChatContext';
+import { readTwinConsultPrefill } from '@/lib/financial-twin-simulator';
 import { mutate } from 'swr';
 
 const isDemoMode = process.env.NEXT_PUBLIC_CHAT_DEMO_MODE === 'true';
@@ -165,6 +166,18 @@ export default function MessengerV2({
     setChatRoomMessages,
     setMessagesToAdded,
   ]);
+
+  // Prefill handed over from the Financial Twin Simulator. Runs after the
+  // fresh-chat reset above so the prefilled message is not wiped; the stored
+  // value expires on its own instead of being removed on read, so remounts
+  // (including StrictMode double-effects) can re-apply it.
+  useEffect(() => {
+    if (roomIdFromQuery) return;
+    const prefill = readTwinConsultPrefill();
+    if (prefill) {
+      setMessage(prefill);
+    }
+  }, [roomIdFromQuery, setMessage]);
 
   useEffect(() => {
     const lastBotMessage = chatRoomMessages
