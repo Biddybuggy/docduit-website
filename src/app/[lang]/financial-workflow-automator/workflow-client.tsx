@@ -666,7 +666,7 @@ export default function FinancialWorkflowAutomatorClient({
                 {isTrackerLoading ? (
                   <p className='text-sm text-[#607086]'>{copy.processing}</p>
                 ) : trackerEntries.length ? (
-                  <div className='grid gap-3'>
+                  <div className='grid max-h-[32rem] gap-3 overflow-y-auto pr-1'>
                     {trackerEntries.map((entry) => (
                       <TrackerEntryCard
                         key={entry.id}
