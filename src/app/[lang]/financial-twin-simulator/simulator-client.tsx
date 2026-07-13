@@ -18,6 +18,7 @@ import {
   generateInsights,
   generateActionPlan,
 } from '@/lib/financial-twin-simulator';
+import type { TwinNarrative } from '@/lib/financial-twin-narrative';
 import { Locale } from '../_utils/dictionaries';
 import { ReactQueryProvider } from '@/lib/react-query';
 import { Input } from '@/components/ui/input';
@@ -146,6 +147,10 @@ export default function FinancialTwinSimulator({
   const [submittedInput, setSubmittedInput] =
     useState<FinancialTwinInput | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [narrative, setNarrative] = useState<TwinNarrative | null>(null);
+  const [narrativeState, setNarrativeState] = useState<
+    'idle' | 'loading' | 'done' | 'error'
+  >('idle');
 
   const chartData: ScenarioChartPoint[] = useMemo(() => {
     if (!results) return [];
@@ -185,6 +190,27 @@ export default function FinancialTwinSimulator({
     setInput((prev) => ({ ...prev, riskBehavior: value }));
   };
 
+  const fetchNarrative = async (payload: FinancialTwinInput) => {
+    setNarrative(null);
+    setNarrativeState('loading');
+    try {
+      const res = await fetch('/api/financial-twin/narrative', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, lang }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.narrative) {
+        setNarrativeState('error');
+        return;
+      }
+      setNarrative(data.narrative as TwinNarrative);
+      setNarrativeState('done');
+    } catch {
+      setNarrativeState('error');
+    }
+  };
+
   const handleSubmit = async () => {
     const validation = validateInputs(input);
     setErrors(validation);
@@ -220,6 +246,7 @@ export default function FinancialTwinSimulator({
       setActionPlan(data.actionPlan ?? generateActionPlan(input, data.results));
       setSubmittedInput(input);
       setIsSubmitted(true);
+      void fetchNarrative(input);
     } catch {
       const all = runAllScenarios(input);
       const insight = generateInsights(input, all);
@@ -228,6 +255,10 @@ export default function FinancialTwinSimulator({
       setActionPlan(generateActionPlan(input, all));
       setSubmittedInput(input);
       setIsSubmitted(true);
+      // Simulation ran offline via the local fallback; the AI narrative needs
+      // the server, so leave it idle rather than showing an error.
+      setNarrative(null);
+      setNarrativeState('idle');
     }
   };
 
@@ -383,8 +414,8 @@ export default function FinancialTwinSimulator({
             </div>
           </section>
 
-          <section className='grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)] gap-6 lg:gap-8'>
-            <Card className='shadow-sm border-slate-200 rounded-2xl'>
+          <section className='grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)] gap-6 lg:gap-8 lg:items-start'>
+            <Card className='shadow-sm border-slate-200 rounded-2xl lg:sticky lg:top-6 lg:self-start'>
               <CardHeader>
                 <CardTitle className='text-base font-semibold text-slate-900'>
                   {copy.formTitle}
@@ -796,6 +827,15 @@ export default function FinancialTwinSimulator({
                 </Card>
               </div>
 
+              {isSubmitted && narrativeState !== 'idle' && (
+                <NarrativeCard
+                  narrative={narrative}
+                  state={narrativeState}
+                  lang={lang}
+                  vocabularies={vocabularies}
+                />
+              )}
+
               {isSubmitted && actionPlan && results && submittedInput && (
                 <ActionPlanCard
                   actionPlan={actionPlan}
@@ -967,6 +1007,102 @@ function buildConsultationPrefill(
     `My goal is ${rp(input.financialGoalAmount)} within ${horizonMonths} months. ` +
     outcome +
     ' Can you help me put together concrete steps to make my finances healthier?'
+  );
+}
+
+function NarrativeCard({
+  narrative,
+  state,
+  lang,
+  vocabularies,
+}: {
+  narrative: TwinNarrative | null;
+  state: 'loading' | 'done' | 'error';
+  lang: Locale;
+  vocabularies: any;
+}) {
+  const dict = vocabularies?.twinSimulator?.narrative ?? {};
+  const isId = lang === 'id';
+  const t = (key: string, fallbackId: string, fallbackEn: string): string =>
+    typeof dict?.[key] === 'string' ? dict[key] : isId ? fallbackId : fallbackEn;
+
+  // On error we simply render nothing; the rule-based insights and action plan
+  // already cover the user.
+  if (state === 'error') return null;
+
+  return (
+    <Card className='shadow-sm border-indigo-200 bg-indigo-50/40 rounded-2xl'>
+      <CardHeader className='pb-2'>
+        <CardTitle className='flex items-center gap-2 text-base font-semibold text-slate-900'>
+          <span className='inline-flex items-center rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white'>
+            {t('badge', 'AI', 'AI')}
+          </span>
+          {t('title', 'Bacaan AI dari simulasimu', 'AI reading of your simulation')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className='space-y-3'>
+        {state === 'loading' || !narrative ? (
+          <div className='space-y-2' aria-live='polite'>
+            <div className='h-3 w-2/3 animate-pulse rounded-full bg-slate-200' />
+            <div className='h-3 w-full animate-pulse rounded-full bg-slate-200' />
+            <div className='h-3 w-5/6 animate-pulse rounded-full bg-slate-200' />
+            <p className='text-[11px] text-slate-500'>
+              {t(
+                'loading',
+                'AI sedang menyusun penjelasan dari angkamu…',
+                'AI is writing an explanation from your numbers…',
+              )}
+            </p>
+          </div>
+        ) : (
+          <>
+            {narrative.headline && (
+              <p className='text-sm font-semibold text-slate-900'>
+                {narrative.headline}
+              </p>
+            )}
+            <p className='text-xs leading-relaxed text-slate-700'>
+              {narrative.summary}
+            </p>
+            {narrative.bottleneckExplanation && (
+              <p className='text-xs leading-relaxed text-slate-700'>
+                {narrative.bottleneckExplanation}
+              </p>
+            )}
+            {narrative.recommendedActions.length > 0 && (
+              <div>
+                <p className='text-xs font-semibold text-slate-800'>
+                  {t('actionsTitle', 'Langkah yang disarankan AI', 'AI-suggested steps')}
+                </p>
+                <ul className='mt-1 space-y-1'>
+                  {narrative.recommendedActions.map((action, index) => (
+                    <li
+                      key={index}
+                      className='flex gap-2 text-xs leading-relaxed text-slate-700'
+                    >
+                      <span className='mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500' />
+                      <span>{action}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {narrative.encouragement && (
+              <p className='text-xs font-medium leading-relaxed text-indigo-700'>
+                {narrative.encouragement}
+              </p>
+            )}
+            <p className='text-[10px] leading-relaxed text-slate-400'>
+              {t(
+                'disclaimer',
+                'Teks ini dibuat oleh AI berdasarkan hasil simulasi dan hanya untuk edukasi — bukan nasihat keuangan berlisensi.',
+                'This text is generated by AI from your simulation results and is for education only — not licensed financial advice.',
+              )}
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

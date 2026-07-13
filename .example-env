@@ -18,6 +18,9 @@ NEXTAUTH_SECRET=
 NEXTAUTH_URL=
 OPENAI_API_KEY=
 OPENAI_INVOICE_MODEL=gpt-4o-mini
+# Optional. Model for the Financial Twin Simulator AI narrative.
+# Falls back to OPENAI_INVOICE_MODEL, then gpt-4o-mini.
+OPENAI_TWIN_MODEL=gpt-4o-mini
 AI_CHAT_URL=
 CHAT_DEMO_CF_WORKER_URL=
 

@@ -498,8 +498,8 @@ export default function FinancialWorkflowAutomatorClient({
           </Card>
         </section>
 
-        <section className='grid gap-6 lg:grid-cols-[420px_1fr]'>
-          <Card className='rounded-lg border-0 shadow-sm'>
+        <section className='grid gap-6 lg:grid-cols-[420px_1fr] lg:items-start'>
+          <Card className='rounded-lg border-0 shadow-sm lg:sticky lg:top-6 lg:self-start'>
             <CardHeader>
               <CardTitle className='flex items-center gap-2 text-xl'>
                 <Upload className='h-5 w-5 text-docduit-red' />
