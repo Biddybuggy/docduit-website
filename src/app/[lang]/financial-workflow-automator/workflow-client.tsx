@@ -108,9 +108,6 @@ function getCopy(lang: Locale) {
       backToHome: 'Kembali ke beranda',
       subtitle:
         'Unggah faktur, periksa hasil ekstraksi, lalu buat pengingat kalender dan ekspor data.',
-      signedInTitle: 'Pengguna yang masuk',
-      signedInBody:
-        'Akun ini dipakai untuk menyimpan sesi masukmu. Hasil kalender dan spreadsheet akan dibuat sebagai file yang bisa kamu unduh.',
       intakeTitle: 'Unggah faktur',
       invoiceFile: 'File faktur (maksimal 10)',
       selectedFiles: 'file dipilih',
@@ -176,9 +173,6 @@ function getCopy(lang: Locale) {
     backToHome: 'Back to home',
     subtitle:
       'Upload an invoice, review extracted fields, then create calendar reminders and export data.',
-    signedInTitle: 'Signed-in user',
-    signedInBody:
-      'This account keeps your Docduit session active. Calendar and spreadsheet outputs are created as downloadable files.',
     intakeTitle: 'Invoice intake',
     invoiceFile: 'Invoice files (up to 10)',
     selectedFiles: 'files selected',
@@ -475,7 +469,7 @@ export default function FinancialWorkflowAutomatorClient({
           </Link>
         </Button>
 
-        <section className='grid gap-6 lg:grid-cols-[1fr_360px]'>
+        <section>
           <div className='flex flex-col justify-center gap-4'>
             <div>
               <h1 className='text-3xl font-bold text-[#16243d] md:text-5xl'>
@@ -486,16 +480,6 @@ export default function FinancialWorkflowAutomatorClient({
               </p>
             </div>
           </div>
-
-          <Card className='rounded-lg border-docduit-blue/10 shadow-sm'>
-            <CardHeader>
-              <CardTitle className='text-lg'>{copy.signedInTitle}</CardTitle>
-            </CardHeader>
-            <CardContent className='space-y-2 text-sm text-[#526173]'>
-              <p className='font-medium text-[#16243d]'>{userEmail}</p>
-              <p>{copy.signedInBody}</p>
-            </CardContent>
-          </Card>
         </section>
 
         <section className='grid gap-6 lg:grid-cols-[420px_1fr] lg:items-start'>

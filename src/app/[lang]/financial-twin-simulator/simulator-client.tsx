@@ -151,6 +151,7 @@ export default function FinancialTwinSimulator({
   const [narrativeState, setNarrativeState] = useState<
     'idle' | 'loading' | 'done' | 'error'
   >('idle');
+  const [mobileStep, setMobileStep] = useState<'inputs' | 'results'>('inputs');
 
   const chartData: ScenarioChartPoint[] = useMemo(() => {
     if (!results) return [];
@@ -211,10 +212,23 @@ export default function FinancialTwinSimulator({
     }
   };
 
+  const moveMobileStep = (step: 'inputs' | 'results') => {
+    setMobileStep(step);
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 1023px)').matches
+    ) {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+  };
+
   const handleSubmit = async () => {
     const validation = validateInputs(input);
     setErrors(validation);
     if (validation._hasError) {
+      moveMobileStep('inputs');
       return;
     }
 
@@ -246,6 +260,7 @@ export default function FinancialTwinSimulator({
       setActionPlan(data.actionPlan ?? generateActionPlan(input, data.results));
       setSubmittedInput(input);
       setIsSubmitted(true);
+      moveMobileStep('results');
       void fetchNarrative(input);
     } catch {
       const all = runAllScenarios(input);
@@ -255,6 +270,7 @@ export default function FinancialTwinSimulator({
       setActionPlan(generateActionPlan(input, all));
       setSubmittedInput(input);
       setIsSubmitted(true);
+      moveMobileStep('results');
       // Simulation ran offline via the local fallback; the AI narrative needs
       // the server, so leave it idle rather than showing an error.
       setNarrative(null);
@@ -373,7 +389,12 @@ export default function FinancialTwinSimulator({
             <p className='text-slate-600 max-w-3xl'>{copy.pageSubtitle}</p>
           </section>
 
-          <section className='rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5'>
+          <section
+            className={cn(
+              'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5',
+              mobileStep === 'results' && 'hidden lg:block',
+            )}
+          >
             <div className='grid grid-cols-1 gap-4 lg:grid-cols-[0.9fr_1.6fr] lg:items-start'>
               <div>
                 <h2 className='text-base font-semibold text-slate-900'>
@@ -415,7 +436,12 @@ export default function FinancialTwinSimulator({
           </section>
 
           <section className='grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)] gap-6 lg:gap-8 lg:items-start'>
-            <Card className='shadow-sm border-slate-200 rounded-2xl lg:sticky lg:top-6 lg:self-start'>
+            <Card
+              className={cn(
+                'shadow-sm border-slate-200 rounded-2xl lg:sticky lg:top-6 lg:self-start',
+                mobileStep === 'results' && 'hidden lg:block',
+              )}
+            >
               <CardHeader>
                 <CardTitle className='text-base font-semibold text-slate-900'>
                   {copy.formTitle}
@@ -631,7 +657,32 @@ export default function FinancialTwinSimulator({
               </CardContent>
             </Card>
 
-            <div className='flex flex-col gap-4'>
+            <div
+              className={cn(
+                'flex flex-col gap-4',
+                mobileStep === 'inputs' && 'hidden lg:flex',
+              )}
+            >
+              <div className='flex items-center justify-between gap-3 lg:hidden'>
+                <div>
+                  <p className='text-xs font-medium uppercase tracking-wide text-slate-500'>
+                    {lang === 'id' ? 'Hasil simulasi' : 'Simulation results'}
+                  </p>
+                  <h2 className='text-lg font-semibold text-slate-900'>
+                    {copy.summaryTitle}
+                  </h2>
+                </div>
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  onClick={() => moveMobileStep('inputs')}
+                  className='shrink-0 rounded-full'
+                >
+                  {lang === 'id' ? 'Ubah input' : 'Edit inputs'}
+                </Button>
+              </div>
+
               <Card className='shadow-sm border-slate-200 rounded-2xl'>
                 <CardHeader className='pb-3'>
                   <CardTitle className='text-base font-semibold text-slate-900'>
