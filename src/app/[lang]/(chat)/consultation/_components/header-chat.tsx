@@ -12,6 +12,7 @@ import { Locale } from '../../../_utils/dictionaries';
 import { ReactQueryProvider } from '@/lib/react-query';
 import AuthenticationSection from '@/app/[lang]/_components/auth/authentication-section';
 import SheetSideChat from './sheet-side-chat';
+import NewConsultationBtn from './new-consultation-btn';
 
 type NavigationItem = {
   name: string;
@@ -88,8 +89,9 @@ export default function HeaderChatComponent({
               Doc<span className='text-docduit-blue'>duit</span>
             </p>
           </Link>
-          {/* This is a placeholder to keep the logo centered after removing the new chat button */}
-          <div className='w-6' />
+          <div className='flex w-6 justify-end'>
+            <NewConsultationBtn color='black' />
+          </div>
         </nav>
 
         {/* Web view navigations */}

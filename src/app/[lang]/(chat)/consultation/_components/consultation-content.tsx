@@ -49,23 +49,8 @@ export default function ConsultationContent({
           </div>
         )}
         <div className='w-full flex flex-col gap-4'>
-          {showHistorySidebar ? (
-            <div
-              className={cn(
-                'flex gap-4 items-end mb-4 p-4',
-                showHistory ? 'hidden' : 'md:hidden flex', // Show toggle on small screens when sidebar is hidden
-              )}
-            >
-              <PanelLeft
-                size={24}
-                color='black'
-                className='cursor-pointer'
-                onClick={() => setShowHistory(true)}
-              />
-              <NewConsultationBtn color='black' />
-            </div>
-          ) : (
-            <div className='flex gap-4 items-end mb-4 p-4 justify-end'>
+          {!showHistorySidebar && (
+            <div className='hidden gap-4 items-end mb-4 p-4 justify-end md:flex'>
               <NewConsultationBtn color='black' />
             </div>
           )}
