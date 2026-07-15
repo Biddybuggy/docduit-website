@@ -141,6 +141,55 @@ export function readTwinConsultPrefill(): string | null {
   }
 }
 
+// sessionStorage handoff of a pending "save this plan" intent across the
+// sign-in redirect. The TTL is generous because the OAuth roundtrip can take a
+// while; the value is consumed (removed) once the plan is saved.
+export const TWIN_SAVE_INTENT_KEY = 'docduit-twin-save-intent';
+const TWIN_SAVE_INTENT_TTL_MS = 10 * 60_000;
+
+export function storeTwinSaveIntent(input: FinancialTwinInput): void {
+  try {
+    sessionStorage.setItem(
+      TWIN_SAVE_INTENT_KEY,
+      JSON.stringify({ input, ts: Date.now() }),
+    );
+  } catch {
+    // Storage unavailable — the user can rerun and save after signing in.
+  }
+}
+
+export function readTwinSaveIntent(): FinancialTwinInput | null {
+  try {
+    const raw = sessionStorage.getItem(TWIN_SAVE_INTENT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as {
+      input?: FinancialTwinInput;
+      ts?: number;
+    };
+    if (
+      !parsed.input ||
+      typeof parsed.input !== 'object' ||
+      typeof parsed.ts !== 'number' ||
+      Date.now() - parsed.ts > TWIN_SAVE_INTENT_TTL_MS ||
+      validateInputs(parsed.input)._hasError
+    ) {
+      sessionStorage.removeItem(TWIN_SAVE_INTENT_KEY);
+      return null;
+    }
+    return parsed.input;
+  } catch {
+    return null;
+  }
+}
+
+export function clearTwinSaveIntent(): void {
+  try {
+    sessionStorage.removeItem(TWIN_SAVE_INTENT_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export type ActionPlan = {
   health: ActionPlanHealth;
   monthlyCapacity: number; // income - spending - debt payment today

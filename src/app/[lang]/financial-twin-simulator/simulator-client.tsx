@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import {
   FinancialTwinInput,
   ValidationErrors,
@@ -12,12 +13,32 @@ import {
   HealthStatus,
   RiskBehavior,
   storeTwinConsultPrefill,
+  readTwinSaveIntent,
+  clearTwinSaveIntent,
   formatRupiah,
   validateInputs,
   runAllScenarios,
   generateInsights,
   generateActionPlan,
 } from '@/lib/financial-twin-simulator';
+import {
+  buildTwinFunnelParams,
+  getDeviceType,
+  trackFinancialTwinEvent,
+} from '@/lib/financial-twin-analytics';
+import {
+  buildFinancialTwinPlanSummary,
+  FinancialTwinPlan,
+  loadFinancialTwinPlan,
+  saveFinancialTwinPlan,
+} from '@/services/financial-twin-plan.service';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  formatPlanDate,
+  getSavedPlanCopy,
+  SavePlanCard,
+  TwinCheckInCard,
+} from './_components/twin-plan-card';
 import type { TwinNarrative } from '@/lib/financial-twin-narrative';
 import { Locale } from '../_utils/dictionaries';
 import { ReactQueryProvider } from '@/lib/react-query';
@@ -153,6 +174,14 @@ export default function FinancialTwinSimulator({
   >('idle');
   const [mobileStep, setMobileStep] = useState<'inputs' | 'results'>('inputs');
 
+  const { user, isLoading: isLoadingUser } = useAuth();
+  const [savedPlan, setSavedPlan] = useState<FinancialTwinPlan | null>(null);
+  const viewedTrackedRef = useRef(false);
+  const inputStartedRef = useRef(false);
+  const resultsViewedRef = useRef(false);
+  const saveIntentHandledRef = useRef(false);
+  const tSaved = getSavedPlanCopy(vocabularies, lang);
+
   const chartData: ScenarioChartPoint[] = useMemo(() => {
     if (!results) return [];
     const maxMonths = Math.max(
@@ -179,15 +208,27 @@ export default function FinancialTwinSimulator({
     lang,
   );
 
+  const trackInputStartedOnce = () => {
+    if (inputStartedRef.current) return;
+    inputStartedRef.current = true;
+    trackFinancialTwinEvent('financial_twin_input_started', {
+      lang,
+      device_type: getDeviceType(),
+      entry_point: 'simulator_form',
+    });
+  };
+
   const handleNumberChange =
     (field: keyof FinancialTwinInput) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      trackInputStartedOnce();
       const raw = e.target.value.replace(/[^\d]/g, '');
       const numeric = raw ? Number(raw) : 0;
       setInput((prev) => ({ ...prev, [field]: numeric }));
     };
 
   const handleRiskChange = (value: RiskBehavior) => {
+    trackInputStartedOnce();
     setInput((prev) => ({ ...prev, riskBehavior: value }));
   };
 
@@ -222,6 +263,108 @@ export default function FinancialTwinSimulator({
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     }
+  };
+
+  // Funnel: page view, fired once per mount.
+  useEffect(() => {
+    if (viewedTrackedRef.current) return;
+    viewedTrackedRef.current = true;
+    trackFinancialTwinEvent('financial_twin_viewed', {
+      lang,
+      device_type: getDeviceType(),
+      entry_point: 'simulator_page',
+    });
+  }, [lang]);
+
+  // Funnel: results shown for the first time in this visit.
+  useEffect(() => {
+    if (!isSubmitted || !submittedInput || resultsViewedRef.current) return;
+    resultsViewedRef.current = true;
+    trackFinancialTwinEvent('financial_twin_results_viewed', {
+      ...buildTwinFunnelParams(submittedInput, lang),
+      entry_point: 'simulator_results',
+    });
+  }, [isSubmitted, submittedInput, lang]);
+
+  // Load the saved plan (if any) once the session user is known. Firestore
+  // access itself waits for the synced Firebase user.
+  useEffect(() => {
+    if (!user?.email) {
+      setSavedPlan(null);
+      return;
+    }
+    let cancelled = false;
+    void loadFinancialTwinPlan().then((plan) => {
+      if (!cancelled) setSavedPlan(plan);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.email]);
+
+  // Finish a "save this plan" intent stored before the sign-in redirect:
+  // restore the inputs, re-run the simulation locally, and save the plan.
+  useEffect(() => {
+    if (saveIntentHandledRef.current || isLoadingUser || !user?.email) return;
+    saveIntentHandledRef.current = true;
+    const pending = readTwinSaveIntent();
+    if (!pending) return;
+    clearTwinSaveIntent();
+
+    const all = runAllScenarios(pending);
+    const insight = generateInsights(pending, all);
+    const plan = generateActionPlan(pending, all);
+    setInput(pending);
+    setErrors({ _hasError: false });
+    setResults(all);
+    setInsights(insight);
+    setActionPlan(plan);
+    setSubmittedInput(pending);
+    setIsSubmitted(true);
+    setNarrative(null);
+    setNarrativeState('idle');
+    moveMobileStep('results');
+
+    void (async () => {
+      try {
+        const saved = await saveFinancialTwinPlan({
+          input: pending,
+          summary: buildFinancialTwinPlanSummary(pending, all, insight, plan),
+          locale: lang,
+        });
+        setSavedPlan(saved);
+        trackFinancialTwinEvent('financial_twin_plan_saved', {
+          ...buildTwinFunnelParams(pending, lang),
+          entry_point: 'post_signin',
+        });
+        toast.success(
+          `${tSaved('savedTitle', 'Rencana tersimpan', 'Plan saved')}${
+            saved.nextCheckInAt
+              ? ` · ${tSaved('nextCheckInLabel', 'Check-in berikutnya', 'Next check-in')}: ${formatPlanDate(saved.nextCheckInAt, lang)}`
+              : ''
+          }`,
+        );
+      } catch (error) {
+        console.error(
+          'Failed to save Financial Twin plan after sign-in:',
+          error,
+        );
+        toast.error(
+          tSaved(
+            'saveFailed',
+            'Rencana gagal disimpan. Silakan masuk, jalankan ulang simulasi, lalu coba simpan lagi.',
+            'Could not save your plan. Please sign in, rerun the simulation, and try saving again.',
+          ),
+        );
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingUser, user?.email, lang]);
+
+  const handleRestoreSavedInput = (saved: FinancialTwinInput) => {
+    setInput(saved);
+    setErrors({ _hasError: false });
+    moveMobileStep('inputs');
   };
 
   const handleSubmit = async () => {
@@ -260,6 +403,10 @@ export default function FinancialTwinSimulator({
       setActionPlan(data.actionPlan ?? generateActionPlan(input, data.results));
       setSubmittedInput(input);
       setIsSubmitted(true);
+      trackFinancialTwinEvent('financial_twin_simulation_completed', {
+        ...buildTwinFunnelParams(input, lang),
+        entry_point: 'simulator_form',
+      });
       moveMobileStep('results');
       void fetchNarrative(input);
     } catch {
@@ -270,6 +417,10 @@ export default function FinancialTwinSimulator({
       setActionPlan(generateActionPlan(input, all));
       setSubmittedInput(input);
       setIsSubmitted(true);
+      trackFinancialTwinEvent('financial_twin_simulation_completed', {
+        ...buildTwinFunnelParams(input, lang),
+        entry_point: 'simulator_form',
+      });
       moveMobileStep('results');
       // Simulation ran offline via the local fallback; the AI narrative needs
       // the server, so leave it idle rather than showing an error.
@@ -388,6 +539,16 @@ export default function FinancialTwinSimulator({
             </h1>
             <p className='text-slate-600 max-w-3xl'>{copy.pageSubtitle}</p>
           </section>
+
+          {savedPlan && (
+            <TwinCheckInCard
+              lang={lang}
+              vocabularies={vocabularies}
+              plan={savedPlan}
+              onPlanChanged={setSavedPlan}
+              onRestoreInput={handleRestoreSavedInput}
+            />
+          )}
 
           <section
             className={cn(
@@ -896,6 +1057,23 @@ export default function FinancialTwinSimulator({
                   lang={lang}
                 />
               )}
+
+              {isSubmitted &&
+                actionPlan &&
+                results &&
+                insights &&
+                submittedInput && (
+                  <SavePlanCard
+                    lang={lang}
+                    vocabularies={vocabularies}
+                    submittedInput={submittedInput}
+                    results={results}
+                    insights={insights}
+                    actionPlan={actionPlan}
+                    isAuthenticated={Boolean(user?.email)}
+                    onPlanSaved={setSavedPlan}
+                  />
+                )}
             </div>
           </section>
 
@@ -932,12 +1110,9 @@ function Field({
   suffix?: string;
   help?: string;
 }) {
-  const formatted =
-    suffix === '%' || suffix
-      ? String(value)
-      : value
-        ? new Intl.NumberFormat('id-ID').format(value)
-        : '';
+  const formatted = suffix
+    ? String(value)
+    : new Intl.NumberFormat('id-ID').format(value);
 
   return (
     <div className='space-y-1.5'>
@@ -1478,7 +1653,11 @@ function ActionPlanCard({
           >
             <Link
               href={`/${lang}/consultation`}
-              onClick={() =>
+              onClick={() => {
+                trackFinancialTwinEvent('financial_twin_consultation_clicked', {
+                  ...buildTwinFunnelParams(submittedInput, lang),
+                  entry_point: 'twin_action_plan',
+                });
                 storeTwinConsultPrefill(
                   buildConsultationPrefill(
                     submittedInput,
@@ -1486,8 +1665,8 @@ function ActionPlanCard({
                     horizonMonths,
                     lang,
                   ),
-                )
-              }
+                );
+              }}
             >
               {t(
                 'ctaButton',

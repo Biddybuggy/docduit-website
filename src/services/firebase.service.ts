@@ -30,14 +30,14 @@ const createConversationTitle = (messages: ChatMessage[]) => {
     : firstUserMessage;
 };
 
-const getFirestoreDb = () => {
+export const getFirestoreDb = () => {
   if (!firebaseFirestore) {
     throw new Error('Firebase Firestore is not available in this environment.');
   }
   return firebaseFirestore;
 };
 
-const waitForFirebaseUser = async (): Promise<User> => {
+export const waitForFirebaseUser = async (): Promise<User> => {
   const authInstance = firebaseAuth;
 
   if (!authInstance) {
