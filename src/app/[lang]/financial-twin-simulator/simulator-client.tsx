@@ -36,9 +36,11 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   formatPlanDate,
   getSavedPlanCopy,
+  getSaveErrorMessage,
   SavePlanCard,
   TwinCheckInCard,
 } from './_components/twin-plan-card';
+import { CollapsibleCard } from './_components/collapsible-section';
 import type { TwinNarrative } from '@/lib/financial-twin-narrative';
 import { Locale } from '../_utils/dictionaries';
 import { ReactQueryProvider } from '@/lib/react-query';
@@ -173,6 +175,18 @@ export default function FinancialTwinSimulator({
     'idle' | 'loading' | 'done' | 'error'
   >('idle');
   const [mobileStep, setMobileStep] = useState<'inputs' | 'results'>('inputs');
+  // Desktop: after a run the input form collapses to a compact summary so the
+  // output widgets can use the freed width. Mobile ignores this and always shows
+  // the full form on the inputs step.
+  const [inputsExpanded, setInputsExpanded] = useState(true);
+  // Mobile: which result widgets are expanded. Only the headline (summary) opens
+  // on arrival; the rest start collapsed so the results page stays short.
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    summary: true,
+  });
+
+  const toggleSection = (id: string) =>
+    setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const { user, isLoading: isLoadingUser } = useAuth();
   const [savedPlan, setSavedPlan] = useState<FinancialTwinPlan | null>(null);
@@ -265,6 +279,20 @@ export default function FinancialTwinSimulator({
     }
   };
 
+  // Enter the results view: on desktop collapse the input form to a summary; on
+  // mobile show only the headline widget so the page opens on the answer.
+  const showResults = () => {
+    setInputsExpanded(false);
+    setOpenSections({ summary: true });
+    moveMobileStep('results');
+  };
+
+  // Return to editing the inputs (desktop expands the form back in place).
+  const showInputs = () => {
+    setInputsExpanded(true);
+    moveMobileStep('inputs');
+  };
+
   // Funnel: page view, fired once per mount.
   useEffect(() => {
     if (viewedTrackedRef.current) return;
@@ -323,7 +351,7 @@ export default function FinancialTwinSimulator({
     setIsSubmitted(true);
     setNarrative(null);
     setNarrativeState('idle');
-    moveMobileStep('results');
+    showResults();
 
     void (async () => {
       try {
@@ -349,13 +377,7 @@ export default function FinancialTwinSimulator({
           'Failed to save Financial Twin plan after sign-in:',
           error,
         );
-        toast.error(
-          tSaved(
-            'saveFailed',
-            'Rencana gagal disimpan. Silakan masuk, jalankan ulang simulasi, lalu coba simpan lagi.',
-            'Could not save your plan. Please sign in, rerun the simulation, and try saving again.',
-          ),
-        );
+        toast.error(getSaveErrorMessage(tSaved, error));
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -364,7 +386,7 @@ export default function FinancialTwinSimulator({
   const handleRestoreSavedInput = (saved: FinancialTwinInput) => {
     setInput(saved);
     setErrors({ _hasError: false });
-    moveMobileStep('inputs');
+    showInputs();
   };
 
   const handleSubmit = async () => {
@@ -407,7 +429,7 @@ export default function FinancialTwinSimulator({
         ...buildTwinFunnelParams(input, lang),
         entry_point: 'simulator_form',
       });
-      moveMobileStep('results');
+      showResults();
       void fetchNarrative(input);
     } catch {
       const all = runAllScenarios(input);
@@ -421,7 +443,7 @@ export default function FinancialTwinSimulator({
         ...buildTwinFunnelParams(input, lang),
         entry_point: 'simulator_form',
       });
-      moveMobileStep('results');
+      showResults();
       // Simulation ran offline via the local fallback; the AI narrative needs
       // the server, so leave it idle rather than showing an error.
       setNarrative(null);
@@ -469,6 +491,10 @@ export default function FinancialTwinSimulator({
   const bestActionTitle =
     vocabularies?.twinSimulator?.cards?.bestNextActionTitle ??
     (lang === 'id' ? 'Aksi Selanjutnya' : 'Best Next Action');
+
+  const insightsSectionTitle =
+    vocabularies?.twinSimulator?.cards?.insightsTitle ??
+    (lang === 'id' ? 'Insight Utama' : 'Key Insights');
 
   const noResultText =
     vocabularies?.twinSimulator?.noResultText ??
@@ -596,7 +622,14 @@ export default function FinancialTwinSimulator({
             </div>
           </section>
 
-          <section className='grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)] gap-6 lg:gap-8 lg:items-start'>
+          <section
+            className={cn(
+              'grid grid-cols-1 gap-6 lg:gap-8 lg:items-start',
+              inputsExpanded
+                ? 'lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)]'
+                : 'lg:grid-cols-[minmax(0,0.7fr)_minmax(0,2.3fr)]',
+            )}
+          >
             <Card
               className={cn(
                 'shadow-sm border-slate-200 rounded-2xl lg:sticky lg:top-6 lg:self-start',
@@ -609,13 +642,96 @@ export default function FinancialTwinSimulator({
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <p className='text-xs leading-relaxed text-slate-500'>
-                  {copy.formHelper ??
-                    (lang === 'id'
-                      ? 'Pakai angka bulanan yang mendekati kondisi aslimu. Tidak harus sempurna, yang penting cukup realistis.'
-                      : 'Use rough monthly numbers that feel close to real life. They do not need to be perfect, just realistic enough.')}
-                </p>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                {/* Compact summary of the submitted inputs — desktop only, shown
+                    while the form is collapsed after a run. */}
+                <div
+                  className={cn('hidden space-y-3', !inputsExpanded && 'lg:block')}
+                >
+                  <dl className='space-y-2 text-xs'>
+                    {[
+                      {
+                        label:
+                          vocabularies?.twinSimulator?.fields?.monthlyIncome ??
+                          (lang === 'id'
+                            ? 'Penghasilan bulanan'
+                            : 'Monthly income'),
+                        value: formatRupiah(input.monthlyIncome),
+                      },
+                      {
+                        label:
+                          vocabularies?.twinSimulator?.fields?.currentSavings ??
+                          (lang === 'id'
+                            ? 'Tabungan/investasi saat ini'
+                            : 'Current savings'),
+                        value: formatRupiah(input.currentSavings),
+                      },
+                      {
+                        label:
+                          vocabularies?.twinSimulator?.fields?.goalAmount ??
+                          (lang === 'id'
+                            ? 'Target dana tujuan'
+                            : 'Financial goal'),
+                        value: formatRupiah(input.financialGoalAmount),
+                      },
+                      {
+                        label:
+                          vocabularies?.twinSimulator?.fields?.timeHorizon ??
+                          (lang === 'id' ? 'Horizon waktu' : 'Time horizon'),
+                        value: `${input.timeHorizonMonths} ${monthShort}`,
+                      },
+                      {
+                        label:
+                          vocabularies?.twinSimulator?.fields?.riskBehavior ??
+                          (lang === 'id' ? 'Gaya risiko' : 'Risk behavior'),
+                        value:
+                          vocabularies?.twinSimulator?.riskLevels?.[
+                            input.riskBehavior
+                          ] ??
+                          (lang === 'id'
+                            ? input.riskBehavior === 'low'
+                              ? 'Santai'
+                              : input.riskBehavior === 'medium'
+                                ? 'Seimbang'
+                                : 'Agresif'
+                            : input.riskBehavior === 'low'
+                              ? 'Cautious'
+                              : input.riskBehavior === 'medium'
+                                ? 'Balanced'
+                                : 'Aggressive'),
+                      },
+                    ].map((row) => (
+                      <div
+                        key={row.label}
+                        className='flex items-center justify-between gap-3'
+                      >
+                        <dt className='text-slate-500'>{row.label}</dt>
+                        <dd className='shrink-0 font-semibold text-slate-900'>
+                          {row.value}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    onClick={showInputs}
+                    className='w-full rounded-full'
+                  >
+                    {lang === 'id' ? 'Ubah input' : 'Edit inputs'}
+                  </Button>
+                </div>
+
+                {/* Full form — always on mobile; desktop hides it while collapsed. */}
+                <div
+                  className={cn('space-y-4', !inputsExpanded && 'lg:hidden')}
+                >
+                  <p className='text-xs leading-relaxed text-slate-500'>
+                    {copy.formHelper ??
+                      (lang === 'id'
+                        ? 'Pakai angka bulanan yang mendekati kondisi aslimu. Tidak harus sempurna, yang penting cukup realistis.'
+                        : 'Use rough monthly numbers that feel close to real life. They do not need to be perfect, just realistic enough.')}
+                  </p>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <Field
                     label={
                       vocabularies?.twinSimulator?.fields?.monthlyIncome ??
@@ -807,24 +923,30 @@ export default function FinancialTwinSimulator({
                   </div>
                 </div>
 
-                <Button
-                  type='button'
-                  onClick={handleSubmit}
-                  className='w-full rounded-full mt-2'
-                  size='lg'
-                >
-                  {copy.runButton}
-                </Button>
+                  <Button
+                    type='button'
+                    onClick={handleSubmit}
+                    className='w-full rounded-full mt-2'
+                    size='lg'
+                  >
+                    {copy.runButton}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
             <div
               className={cn(
-                'flex flex-col gap-4',
-                mobileStep === 'inputs' && 'hidden lg:flex',
+                'flex flex-col gap-4 lg:items-start',
+                mobileStep === 'inputs' && 'hidden',
+                // Once the inputs collapse, spread the widgets across two columns
+                // to use the freed width; otherwise keep a single wide column.
+                inputsExpanded
+                  ? 'lg:flex'
+                  : 'lg:grid lg:grid-cols-2 lg:gap-4',
               )}
             >
-              <div className='flex items-center justify-between gap-3 lg:hidden'>
+              <div className='flex items-center justify-between gap-3 lg:hidden lg:col-span-2'>
                 <div>
                   <p className='text-xs font-medium uppercase tracking-wide text-slate-500'>
                     {lang === 'id' ? 'Hasil simulasi' : 'Simulation results'}
@@ -837,21 +959,21 @@ export default function FinancialTwinSimulator({
                   type='button'
                   variant='outline'
                   size='sm'
-                  onClick={() => moveMobileStep('inputs')}
+                  onClick={showInputs}
                   className='shrink-0 rounded-full'
                 >
                   {lang === 'id' ? 'Ubah input' : 'Edit inputs'}
                 </Button>
               </div>
 
-              <Card className='shadow-sm border-slate-200 rounded-2xl'>
-                <CardHeader className='pb-3'>
-                  <CardTitle className='text-base font-semibold text-slate-900'>
-                    {copy.summaryTitle}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className='space-y-3'>
-                  {copy.summaryHelper && (
+              <CollapsibleCard
+                title={copy.summaryTitle}
+                open={openSections.summary ?? false}
+                onToggle={() => toggleSection('summary')}
+                className='shadow-sm border-slate-200 rounded-2xl lg:col-span-2'
+                contentClassName='space-y-3'
+              >
+                {copy.summaryHelper && (
                     <p className='text-xs leading-relaxed text-slate-500'>
                       {copy.summaryHelper}
                     </p>
@@ -913,17 +1035,16 @@ export default function FinancialTwinSimulator({
                       )}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+              </CollapsibleCard>
 
-              <Card className='shadow-sm border-slate-200 rounded-2xl'>
-                <CardHeader className='pb-3'>
-                  <CardTitle className='text-base font-semibold text-slate-900'>
-                    {copy.chartTitle}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className='space-y-3'>
-                  {copy.chartHelper && (
+              <CollapsibleCard
+                title={copy.chartTitle}
+                open={openSections.chart ?? false}
+                onToggle={() => toggleSection('chart')}
+                className='shadow-sm border-slate-200 rounded-2xl lg:col-span-2'
+                contentClassName='space-y-3'
+              >
+                {copy.chartHelper && (
                     <p className='text-xs leading-relaxed text-slate-500'>
                       {copy.chartHelper}
                     </p>
@@ -1009,35 +1130,33 @@ export default function FinancialTwinSimulator({
                         : 'The chart will appear after you run the simulation.'}
                     </p>
                   )}
-                </CardContent>
-              </Card>
+              </CollapsibleCard>
 
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <Card className='shadow-sm border-slate-200 rounded-2xl'>
-                  <CardHeader className='pb-2'>
-                    <CardTitle className='text-sm font-semibold text-slate-900'>
+              <CollapsibleCard
+                title={insightsSectionTitle}
+                open={openSections.insights ?? false}
+                onToggle={() => toggleSection('insights')}
+                className='shadow-sm border-slate-200 rounded-2xl lg:col-span-2'
+              >
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='rounded-xl border border-slate-200 bg-slate-50 p-3'>
+                    <p className='text-sm font-semibold text-slate-900'>
                       {bottleneckTitle}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className='text-xs text-slate-600 min-h-[2.5rem]'>
+                    </p>
+                    <p className='mt-1 text-xs text-slate-600 min-h-[2.5rem]'>
                       {isSubmitted ? biggestBottleneck : '—'}
                     </p>
-                  </CardContent>
-                </Card>
-                <Card className='shadow-sm border-slate-200 rounded-2xl'>
-                  <CardHeader className='pb-2'>
-                    <CardTitle className='text-sm font-semibold text-slate-900'>
+                  </div>
+                  <div className='rounded-xl border border-slate-200 bg-slate-50 p-3'>
+                    <p className='text-sm font-semibold text-slate-900'>
                       {bestActionTitle}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className='text-xs text-slate-600 min-h-[2.5rem]'>
+                    </p>
+                    <p className='mt-1 text-xs text-slate-600 min-h-[2.5rem]'>
                       {isSubmitted ? bestNextAction : '—'}
                     </p>
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+                </div>
+              </CollapsibleCard>
 
               {isSubmitted && narrativeState !== 'idle' && (
                 <NarrativeCard
@@ -1045,6 +1164,8 @@ export default function FinancialTwinSimulator({
                   state={narrativeState}
                   lang={lang}
                   vocabularies={vocabularies}
+                  open={openSections.narrative ?? false}
+                  onToggle={() => toggleSection('narrative')}
                 />
               )}
 
@@ -1055,6 +1176,8 @@ export default function FinancialTwinSimulator({
                   horizonMonths={results.current.snapshots.length}
                   vocabularies={vocabularies}
                   lang={lang}
+                  open={openSections.actionPlan ?? false}
+                  onToggle={() => toggleSection('actionPlan')}
                 />
               )}
 
@@ -1063,16 +1186,18 @@ export default function FinancialTwinSimulator({
                 results &&
                 insights &&
                 submittedInput && (
-                  <SavePlanCard
-                    lang={lang}
-                    vocabularies={vocabularies}
-                    submittedInput={submittedInput}
-                    results={results}
-                    insights={insights}
-                    actionPlan={actionPlan}
-                    isAuthenticated={Boolean(user?.email)}
-                    onPlanSaved={setSavedPlan}
-                  />
+                  <div className='lg:col-span-2'>
+                    <SavePlanCard
+                      lang={lang}
+                      vocabularies={vocabularies}
+                      submittedInput={submittedInput}
+                      results={results}
+                      insights={insights}
+                      actionPlan={actionPlan}
+                      isAuthenticated={Boolean(user?.email)}
+                      onPlanSaved={setSavedPlan}
+                    />
+                  </div>
                 )}
             </div>
           </section>
@@ -1241,11 +1366,15 @@ function NarrativeCard({
   state,
   lang,
   vocabularies,
+  open,
+  onToggle,
 }: {
   narrative: TwinNarrative | null;
   state: 'loading' | 'done' | 'error';
   lang: Locale;
   vocabularies: any;
+  open: boolean;
+  onToggle: () => void;
 }) {
   const dict = vocabularies?.twinSimulator?.narrative ?? {};
   const isId = lang === 'id';
@@ -1257,16 +1386,22 @@ function NarrativeCard({
   if (state === 'error') return null;
 
   return (
-    <Card className='shadow-sm border-indigo-200 bg-indigo-50/40 rounded-2xl'>
-      <CardHeader className='pb-2'>
-        <CardTitle className='flex items-center gap-2 text-base font-semibold text-slate-900'>
-          <span className='inline-flex items-center rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white'>
-            {t('badge', 'AI', 'AI')}
-          </span>
-          {t('title', 'Bacaan AI dari simulasimu', 'AI reading of your simulation')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className='space-y-3'>
+    <CollapsibleCard
+      className='shadow-sm border-indigo-200 bg-indigo-50/40 rounded-2xl'
+      title={t(
+        'title',
+        'Bacaan AI dari simulasimu',
+        'AI reading of your simulation',
+      )}
+      accessory={
+        <span className='inline-flex items-center rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white'>
+          {t('badge', 'AI', 'AI')}
+        </span>
+      }
+      open={open}
+      onToggle={onToggle}
+      contentClassName='space-y-3'
+    >
         {state === 'loading' || !narrative ? (
           <div className='space-y-2' aria-live='polite'>
             <div className='h-3 w-2/3 animate-pulse rounded-full bg-slate-200' />
@@ -1327,8 +1462,7 @@ function NarrativeCard({
             </p>
           </>
         )}
-      </CardContent>
-    </Card>
+    </CollapsibleCard>
   );
 }
 
@@ -1338,12 +1472,16 @@ function ActionPlanCard({
   horizonMonths,
   vocabularies,
   lang,
+  open,
+  onToggle,
 }: {
   actionPlan: ActionPlan;
   submittedInput: FinancialTwinInput;
   horizonMonths: number;
   vocabularies: any;
   lang: Locale;
+  open: boolean;
+  onToggle: () => void;
 }) {
   const dict = vocabularies?.twinSimulator?.actionPlan ?? {};
   const isId = lang === 'id';
@@ -1504,13 +1642,13 @@ function ActionPlanCard({
   };
 
   return (
-    <Card className='shadow-sm border-slate-200 rounded-2xl'>
-      <CardHeader className='pb-3'>
-        <CardTitle className='text-base font-semibold text-slate-900'>
-          {t('title', 'Rencana Aksimu', 'Your Action Plan')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className='space-y-5'>
+    <CollapsibleCard
+      className='shadow-sm border-slate-200 rounded-2xl'
+      title={t('title', 'Rencana Aksimu', 'Your Action Plan')}
+      open={open}
+      onToggle={onToggle}
+      contentClassName='space-y-5'
+    >
         <p className='text-xs leading-relaxed text-slate-500'>
           {t(
             'helper',
@@ -1676,7 +1814,6 @@ function ActionPlanCard({
             </Link>
           </Button>
         </div>
-      </CardContent>
-    </Card>
+    </CollapsibleCard>
   );
 }

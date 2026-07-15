@@ -65,6 +65,8 @@
       "nextCheckInLabel": "Check-in berikutnya",
       "signInToSave": "Masuk dengan Google untuk menyimpan rencana ini. Kamu akan kembali ke halaman ini dan penyimpanan selesai otomatis.",
       "saveFailed": "Rencana gagal disimpan. Silakan masuk, jalankan ulang simulasi, lalu coba simpan lagi.",
+      "saveFailedPermission": "Penyimpanan ditolak oleh server (izin database). Hubungi tim Docduit — aturan keamanan untuk rencana Financial Twin belum dipasang.",
+      "saveFailedAuth": "Sesi masukmu belum tersambung ke penyimpanan. Keluar lalu masuk lagi, jalankan simulasi, dan coba simpan ulang.",
       "planCardTitle": "Rencana Financial Twin tersimpan",
       "planCardBody": "Tersimpan dari simulasi terakhirmu. Jawab check-in mingguan supaya rencanamu tetap relevan.",
       "planSavedOnLabel": "Terakhir diperbarui",
@@ -154,7 +156,8 @@
       "goalReached": "Tercapai",
       "goalNotReached": "Belum tercapai",
       "biggestBottleneckTitle": "Hal Utama yang Menahanmu",
-      "bestNextActionTitle": "Langkah Terbaik Berikutnya"
+      "bestNextActionTitle": "Langkah Terbaik Berikutnya",
+      "insightsTitle": "Insight Utama"
     },
     "resultLabels": {
       "finalNetPosition": "Uang setelah dikurangi utang:",

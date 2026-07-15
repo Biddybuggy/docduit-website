@@ -68,6 +68,25 @@ export const buildFinancialTwinPlanSummary = (
   riskBehavior: input.riskBehavior,
 });
 
+// Buckets a failed plan write into something the UI can give real advice for:
+// missing Firestore rules vs. a NextAuth session whose Firebase credential
+// sync failed (e.g. expired Google idToken) vs. everything else.
+export type TwinPlanErrorKind = 'permission-denied' | 'auth-not-ready' | 'unknown';
+
+export const classifyTwinPlanError = (error: unknown): TwinPlanErrorKind => {
+  if ((error as { code?: unknown })?.code === 'permission-denied') {
+    return 'permission-denied';
+  }
+  const message = error instanceof Error ? error.message : '';
+  if (
+    message.includes('Timed out waiting for Firebase Auth user') ||
+    message.includes('Firebase Auth is not available')
+  ) {
+    return 'auth-not-ready';
+  }
+  return 'unknown';
+};
+
 const getTwinPlanDocRef = async () => {
   const db = getFirestoreDb();
   const firebaseUser = await waitForFirebaseUser();

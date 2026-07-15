@@ -17,6 +17,7 @@ import {
 } from '@/lib/financial-twin-simulator';
 import {
   buildFinancialTwinPlanSummary,
+  classifyTwinPlanError,
   FinancialTwinPlan,
   isTwinCheckInDue,
   recordFinancialTwinCheckIn,
@@ -57,6 +58,34 @@ export function buildCheckInHelpPrefill(lang: Locale): string {
     'Hi Docduit! I have a saved Financial Twin plan, and on my weekly check-in ' +
     'I chose "I need help". I am finding it hard to stay on track toward my ' +
     'financial goal. Can you help me review my next steps to get back on track?'
+  );
+}
+
+// Picks failure copy that tells the user what actually went wrong: missing
+// Firestore rules and a stale Firebase credential need different remedies.
+export function getSaveErrorMessage(
+  t: (key: string, fallbackId: string, fallbackEn: string) => string,
+  error: unknown,
+): string {
+  const kind = classifyTwinPlanError(error);
+  if (kind === 'permission-denied') {
+    return t(
+      'saveFailedPermission',
+      'Penyimpanan ditolak oleh server (izin database). Hubungi tim Docduit — aturan keamanan untuk rencana Financial Twin belum dipasang.',
+      'The server rejected the save (database permissions). Contact the Docduit team — the security rules for Financial Twin plans are not deployed yet.',
+    );
+  }
+  if (kind === 'auth-not-ready') {
+    return t(
+      'saveFailedAuth',
+      'Sesi masukmu belum tersambung ke penyimpanan. Keluar lalu masuk lagi, jalankan simulasi, dan coba simpan ulang.',
+      'Your sign-in session is not connected to storage. Sign out and back in, rerun the simulation, and try saving again.',
+    );
+  }
+  return t(
+    'saveFailed',
+    'Rencana gagal disimpan. Silakan masuk, jalankan ulang simulasi, lalu coba simpan lagi.',
+    'Could not save your plan. Please sign in, rerun the simulation, and try saving again.',
   );
 }
 
@@ -132,13 +161,7 @@ export function SavePlanCard({
       );
     } catch (error) {
       console.error('Failed to save Financial Twin plan:', error);
-      toast.error(
-        t(
-          'saveFailed',
-          'Rencana gagal disimpan. Silakan masuk, jalankan ulang simulasi, lalu coba simpan lagi.',
-          'Could not save your plan. Please sign in, rerun the simulation, and try saving again.',
-        ),
-      );
+      toast.error(getSaveErrorMessage(t, error));
     } finally {
       setIsSaving(false);
     }

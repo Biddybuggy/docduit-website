@@ -66,6 +66,8 @@
       "nextCheckInLabel": "Next check-in",
       "signInToSave": "Sign in with Google to save this plan. We will bring you back here and finish saving automatically.",
       "saveFailed": "Could not save your plan. Please sign in, rerun the simulation, and try saving again.",
+      "saveFailedPermission": "The server rejected the save (database permissions). Contact the Docduit team — the security rules for Financial Twin plans are not deployed yet.",
+      "saveFailedAuth": "Your sign-in session is not connected to storage. Sign out and back in, rerun the simulation, and try saving again.",
       "planCardTitle": "Your saved Financial Twin plan",
       "planCardBody": "Saved from your last simulation. Answer the weekly check-in to keep it honest.",
       "planSavedOnLabel": "Last updated",
@@ -155,7 +157,8 @@
       "goalReached": "Reached",
       "goalNotReached": "Not reached",
       "biggestBottleneckTitle": "Main Thing Holding You Back",
-      "bestNextActionTitle": "Best Next Move"
+      "bestNextActionTitle": "Best Next Move",
+      "insightsTitle": "Key Insights"
     },
     "resultLabels": {
       "finalNetPosition": "Money after debt:",
