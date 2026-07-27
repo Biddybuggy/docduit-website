@@ -60,6 +60,7 @@ import {
   XAxis,
   YAxis,
   Legend,
+  ReferenceLine,
 } from 'recharts';
 import { cn } from '@/lib/utils';
 
@@ -468,10 +469,6 @@ export default function FinancialTwinSimulator({
     return labels[key];
   };
 
-  const emergencyLabel =
-    vocabularies?.twinSimulator?.cards?.emergencyFundLabel ??
-    (lang === 'id' ? 'Dana darurat (bulan)' : 'Emergency fund (months)');
-
   const goalReachedLabel =
     vocabularies?.twinSimulator?.cards?.goalReached ??
     (lang === 'id' ? 'Tercapai' : 'Reached');
@@ -541,18 +538,6 @@ export default function FinancialTwinSimulator({
       return `${resultLabels.reachedInMonth ?? (lang === 'id' ? 'Tercapai di bulan' : 'Reached in month')} ${goalReachedMonth}`;
     }
     return goalReachedLabel;
-  };
-
-  const formatEmergencyCover = (months: number | null) => {
-    if (months == null) {
-      return resultLabels.notSet ?? (lang === 'id' ? 'Belum dihitung' : 'Not available');
-    }
-    return `${months.toFixed(1)} ${
-      resultLabels.monthsOfEssentials ??
-      (lang === 'id'
-        ? 'bulan pengeluaran wajib'
-        : 'months of must-pay spending')
-    }`;
   };
 
   return (
@@ -935,18 +920,16 @@ export default function FinancialTwinSimulator({
               </CardContent>
             </Card>
 
+            {/* Results are a single vertical stack at every breakpoint. Once the
+                inputs collapse, the section grid widens this column (0.7/2.3) so
+                each card grows rather than splitting into a ragged 2-up. */}
             <div
               className={cn(
-                'flex flex-col gap-4 lg:items-start',
+                'flex flex-col gap-4',
                 mobileStep === 'inputs' && 'hidden',
-                // Once the inputs collapse, spread the widgets across two columns
-                // to use the freed width; otherwise keep a single wide column.
-                inputsExpanded
-                  ? 'lg:flex'
-                  : 'lg:grid lg:grid-cols-2 lg:gap-4',
               )}
             >
-              <div className='flex items-center justify-between gap-3 lg:hidden lg:col-span-2'>
+              <div className='flex items-center justify-between gap-3 lg:hidden'>
                 <div>
                   <p className='text-xs font-medium uppercase tracking-wide text-slate-500'>
                     {lang === 'id' ? 'Hasil simulasi' : 'Simulation results'}
@@ -966,11 +949,21 @@ export default function FinancialTwinSimulator({
                 </Button>
               </div>
 
+              {isSubmitted && actionPlan && insights && submittedInput && (
+                <VerdictCard
+                  actionPlan={actionPlan}
+                  improved={insights.scenarioSummaries.improved}
+                  horizonMonths={submittedInput.timeHorizonMonths}
+                  improvedLabel={getScenarioLabel('improved')}
+                  lang={lang}
+                />
+              )}
+
               <CollapsibleCard
                 title={copy.summaryTitle}
                 open={openSections.summary ?? false}
                 onToggle={() => toggleSection('summary')}
-                className='shadow-sm border-slate-200 rounded-2xl lg:col-span-2'
+                className='shadow-sm border-slate-200 rounded-2xl'
                 contentClassName='space-y-3'
               >
                 {copy.summaryHelper && (
@@ -981,58 +974,78 @@ export default function FinancialTwinSimulator({
                   {!results || !insights ? (
                     <p className='text-xs text-slate-500'>{noResultText}</p>
                   ) : (
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-3 text-xs'>
-                      {(['current', 'improved', 'risky'] as const).map(
-                        (key) => {
-                          const summary = insights.scenarioSummaries[key];
-                          return (
-                            <div
-                              key={key}
-                              className={cn(
-                                'rounded-2xl border p-3 flex flex-col gap-1',
-                                key === 'improved'
-                                  ? 'border-emerald-500/60 bg-emerald-50'
-                                  : key === 'risky'
-                                    ? 'border-rose-400/60 bg-rose-50'
-                                    : 'border-slate-200 bg-white',
-                              )}
-                            >
-                              <p className='text-[11px] font-semibold text-slate-800'>
-                                {getScenarioLabel(key)}
-                              </p>
-                              <p className='text-[11px] text-slate-500'>
-                                {resultLabels.finalNetPosition ??
-                                  (lang === 'id'
-                                    ? 'Uang setelah dikurangi utang:'
-                                    : 'Money after debt:')}{' '}
-                                <span className='font-semibold'>
-                                  {formatRupiah(summary.finalNetPosition)}
-                                </span>
-                              </p>
-                              <p className='text-[11px] text-slate-500'>
-                                {resultLabels.goalStatus ??
-                                  (lang === 'id'
-                                    ? 'Status target:'
-                                    : 'Goal status:')}{' '}
-                                <span className='font-semibold'>
-                                  {formatGoalStatus(
-                                    summary.goalReached,
-                                    summary.goalReachedMonth,
-                                  )}
-                                </span>
-                              </p>
-                              <p className='text-[11px] text-slate-500'>
-                                {emergencyLabel}:{' '}
-                                <span className='font-semibold'>
-                                  {formatEmergencyCover(
-                                    summary.emergencyFundMonths,
-                                  )}
-                                </span>
-                              </p>
-                            </div>
-                          );
-                        },
-                      )}
+                    <div className='overflow-x-auto'>
+                      <table className='w-full border-collapse text-xs'>
+                        <thead>
+                          <tr className='text-[11px] font-medium text-slate-500'>
+                            <th className='py-2 pr-2 text-left'>
+                              {lang === 'id' ? 'Jalur' : 'Path'}
+                            </th>
+                            <th className='px-2 py-2 text-right'>
+                              {lang === 'id' ? 'Uang akhir' : 'Final money'}
+                            </th>
+                            <th className='px-2 py-2 text-right'>
+                              {lang === 'id' ? 'Target' : 'Goal'}
+                            </th>
+                            <th className='py-2 pl-2 text-right'>
+                              {lang === 'id' ? 'Dana darurat' : 'Emergency'}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(['current', 'improved', 'risky'] as const).map(
+                            (key) => {
+                              const summary = insights.scenarioSummaries[key];
+                              const isImproved = key === 'improved';
+                              return (
+                                <tr
+                                  key={key}
+                                  className='border-t border-slate-100'
+                                >
+                                  <td className='py-2.5 pr-2'>
+                                    <span className='inline-flex items-center gap-2'>
+                                      <span
+                                        className={cn(
+                                          'h-2 w-2 shrink-0 rounded-full',
+                                          isImproved
+                                            ? 'bg-emerald-500'
+                                            : key === 'risky'
+                                              ? 'bg-rose-500'
+                                              : 'bg-slate-400',
+                                        )}
+                                      />
+                                      <span className='font-medium text-slate-800'>
+                                        {getScenarioLabel(key)}
+                                      </span>
+                                    </span>
+                                  </td>
+                                  <td
+                                    className={cn(
+                                      'px-2 py-2.5 text-right tabular-nums',
+                                      isImproved
+                                        ? 'font-semibold text-emerald-700'
+                                        : 'text-slate-700',
+                                    )}
+                                  >
+                                    {formatRupiah(summary.finalNetPosition)}
+                                  </td>
+                                  <td className='px-2 py-2.5 text-right tabular-nums text-slate-700'>
+                                    {formatGoalStatus(
+                                      summary.goalReached,
+                                      summary.goalReachedMonth,
+                                    )}
+                                  </td>
+                                  <td className='py-2.5 pl-2 text-right tabular-nums text-slate-700'>
+                                    {summary.emergencyFundMonths != null
+                                      ? `${summary.emergencyFundMonths.toFixed(1)} ${lang === 'id' ? 'bln' : 'mo'}`
+                                      : '—'}
+                                  </td>
+                                </tr>
+                              );
+                            },
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   )}
               </CollapsibleCard>
@@ -1041,7 +1054,7 @@ export default function FinancialTwinSimulator({
                 title={copy.chartTitle}
                 open={openSections.chart ?? false}
                 onToggle={() => toggleSection('chart')}
-                className='shadow-sm border-slate-200 rounded-2xl lg:col-span-2'
+                className='shadow-sm border-slate-200 rounded-2xl'
                 contentClassName='space-y-3'
               >
                 {copy.chartHelper && (
@@ -1067,10 +1080,25 @@ export default function FinancialTwinSimulator({
                       }}
                       className='w-full'
                     >
-                      <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray='3 3' />
-                        <XAxis dataKey='month' />
+                      <LineChart
+                        data={chartData}
+                        margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray='3 3'
+                          vertical={false}
+                          stroke='#eef2f6'
+                        />
+                        <XAxis
+                          dataKey='month'
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fontSize: 11, fill: '#94a3b8' }}
+                        />
                         <YAxis
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fontSize: 11, fill: '#94a3b8' }}
                           tickFormatter={(v) =>
                             lang === 'id'
                               ? `${v / 1_000_000}jt`
@@ -1096,14 +1124,40 @@ export default function FinancialTwinSimulator({
                             />
                           }
                         />
+                        {submittedInput && (
+                          <ReferenceLine
+                            y={submittedInput.financialGoalAmount}
+                            stroke='#94a3b8'
+                            strokeDasharray='4 4'
+                            strokeWidth={1}
+                            label={{
+                              value: lang === 'id' ? 'target' : 'goal',
+                              position: 'insideTopRight',
+                              fontSize: 10,
+                              fill: '#94a3b8',
+                            }}
+                          />
+                        )}
                         <Legend />
+                        {/* Supporting paths are muted; the "improved" path is
+                            drawn last and heavier so it reads as the answer. */}
                         <Line
                           type='monotone'
                           dataKey='current'
                           name={getScenarioLabel('current')}
                           stroke='var(--color-current)'
+                          strokeOpacity={0.85}
                           dot={false}
-                          strokeWidth={2}
+                          strokeWidth={1.5}
+                        />
+                        <Line
+                          type='monotone'
+                          dataKey='risky'
+                          name={getScenarioLabel('risky')}
+                          stroke='var(--color-risky)'
+                          strokeOpacity={0.65}
+                          dot={false}
+                          strokeWidth={1.5}
                         />
                         <Line
                           type='monotone'
@@ -1111,15 +1165,7 @@ export default function FinancialTwinSimulator({
                           name={getScenarioLabel('improved')}
                           stroke='var(--color-improved)'
                           dot={false}
-                          strokeWidth={2}
-                        />
-                        <Line
-                          type='monotone'
-                          dataKey='risky'
-                          name={getScenarioLabel('risky')}
-                          stroke='var(--color-risky)'
-                          dot={false}
-                          strokeWidth={2}
+                          strokeWidth={3}
                         />
                       </LineChart>
                     </ChartContainer>
@@ -1136,7 +1182,8 @@ export default function FinancialTwinSimulator({
                 title={insightsSectionTitle}
                 open={openSections.insights ?? false}
                 onToggle={() => toggleSection('insights')}
-                className='shadow-sm border-slate-200 rounded-2xl lg:col-span-2'
+                desktopCollapsible
+                className='shadow-sm border-slate-200 rounded-2xl'
               >
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div className='rounded-xl border border-slate-200 bg-slate-50 p-3'>
@@ -1186,18 +1233,16 @@ export default function FinancialTwinSimulator({
                 results &&
                 insights &&
                 submittedInput && (
-                  <div className='lg:col-span-2'>
-                    <SavePlanCard
-                      lang={lang}
-                      vocabularies={vocabularies}
-                      submittedInput={submittedInput}
-                      results={results}
-                      insights={insights}
-                      actionPlan={actionPlan}
-                      isAuthenticated={Boolean(user?.email)}
-                      onPlanSaved={setSavedPlan}
-                    />
-                  </div>
+                  <SavePlanCard
+                    lang={lang}
+                    vocabularies={vocabularies}
+                    submittedInput={submittedInput}
+                    results={results}
+                    insights={insights}
+                    actionPlan={actionPlan}
+                    isAuthenticated={Boolean(user?.email)}
+                    onPlanSaved={setSavedPlan}
+                  />
                 )}
             </div>
           </section>
@@ -1361,6 +1406,89 @@ function buildConsultationPrefill(
   );
 }
 
+// The single headline the results view opens on: turns the action plan into
+// one plain-language verdict (the monthly gap, projected month, or "on track")
+// so the answer is legible before any of the supporting cards.
+function VerdictCard({
+  actionPlan,
+  improved,
+  horizonMonths,
+  improvedLabel,
+  lang,
+}: {
+  actionPlan: ActionPlan;
+  improved: { goalReached: boolean; goalReachedMonth: number | null };
+  horizonMonths: number;
+  improvedLabel: string;
+  lang: Locale;
+}) {
+  const isId = lang === 'id';
+
+  let heroValue: string;
+  let heroCaption: string;
+  let showPerMonth = false;
+
+  if (actionPlan.alreadyAtGoal) {
+    heroValue = isId ? 'Target sudah tercapai' : 'Goal already covered';
+    heroCaption = isId
+      ? 'Tabunganmu sudah menutupi target ini. Pakai langkah di bawah untuk memperkuat cadangan.'
+      : 'Your savings already cover this goal. Use the steps below to build your buffer.';
+  } else if (actionPlan.savingGap != null) {
+    heroValue = formatRupiah(actionPlan.savingGap);
+    showPerMonth = true;
+    heroCaption = isId
+      ? `kurang per bulan agar target tercapai tepat waktu dalam ${horizonMonths} bulan`
+      : `short each month to reach your goal on time within ${horizonMonths} months`;
+  } else if (
+    actionPlan.projectedGoalMonth != null &&
+    actionPlan.projectedGoalMonth <= horizonMonths
+  ) {
+    heroValue = isId
+      ? `Bulan ${actionPlan.projectedGoalMonth}`
+      : `Month ${actionPlan.projectedGoalMonth}`;
+    heroCaption = isId
+      ? 'perkiraan target tercapai dengan kebiasaan sekarang'
+      : 'projected to reach your goal at your current pace';
+  } else {
+    heroValue = isId ? 'Belum tercapai' : 'Not yet reached';
+    heroCaption = isId
+      ? `target belum tercapai dalam ${horizonMonths} bulan dengan kebiasaan sekarang`
+      : `goal not reached within ${horizonMonths} months at your current pace`;
+  }
+
+  return (
+    <div className='rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5'>
+      <p className='text-[11px] font-semibold uppercase tracking-wide text-slate-500'>
+        {isId ? 'Hasil simulasi' : 'Simulation result'}
+      </p>
+      <div className='mt-2 flex flex-wrap items-end justify-between gap-3'>
+        <div>
+          <p className='text-2xl font-bold leading-tight text-slate-900 lg:text-3xl'>
+            {heroValue}
+            {showPerMonth && (
+              <span className='ml-1 text-sm font-medium text-slate-500'>
+                {isId ? '/bln' : '/mo'}
+              </span>
+            )}
+          </p>
+          <p className='mt-1 max-w-md text-xs leading-relaxed text-slate-600'>
+            {heroCaption}
+          </p>
+        </div>
+        {improved.goalReached && improved.goalReachedMonth != null && (
+          <div className='text-right'>
+            <p className='text-[11px] text-slate-500'>{improvedLabel}</p>
+            <p className='text-base font-semibold text-emerald-600'>
+              {isId ? 'Tercapai bln ' : 'Reached mo '}
+              {improved.goalReachedMonth}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NarrativeCard({
   narrative,
   state,
@@ -1387,19 +1515,20 @@ function NarrativeCard({
 
   return (
     <CollapsibleCard
-      className='shadow-sm border-indigo-200 bg-indigo-50/40 rounded-2xl'
+      className='shadow-sm border-slate-200 rounded-2xl'
       title={t(
         'title',
         'Bacaan AI dari simulasimu',
         'AI reading of your simulation',
       )}
       accessory={
-        <span className='inline-flex items-center rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white'>
+        <span className='inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white'>
           {t('badge', 'AI', 'AI')}
         </span>
       }
       open={open}
       onToggle={onToggle}
+      desktopCollapsible
       contentClassName='space-y-3'
     >
         {state === 'loading' || !narrative ? (
@@ -1441,7 +1570,7 @@ function NarrativeCard({
                       key={index}
                       className='flex gap-2 text-xs leading-relaxed text-slate-700'
                     >
-                      <span className='mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500' />
+                      <span className='mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400' />
                       <span>{action}</span>
                     </li>
                   ))}
@@ -1449,7 +1578,7 @@ function NarrativeCard({
               </div>
             )}
             {narrative.encouragement && (
-              <p className='text-xs font-medium leading-relaxed text-indigo-700'>
+              <p className='text-xs font-medium leading-relaxed text-slate-700'>
                 {narrative.encouragement}
               </p>
             )}

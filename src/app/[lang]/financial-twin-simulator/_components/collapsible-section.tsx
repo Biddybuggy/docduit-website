@@ -6,9 +6,11 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 /**
- * A Card whose header doubles as a collapse toggle on mobile. On desktop
- * (>=lg) the body is always visible and the chevron is hidden, so the card
- * renders exactly like a normal Card; only mobile respects the `open` state.
+ * A Card whose header doubles as a collapse toggle. By default the body is
+ * always visible on desktop (>=lg) and only mobile respects the `open` state,
+ * so the card renders like a normal Card on desktop. Pass `desktopCollapsible`
+ * for secondary sections that should also collapse on desktop — the chevron
+ * then shows at every breakpoint and `open` is honored everywhere.
  */
 export function CollapsibleCard({
   title,
@@ -19,6 +21,7 @@ export function CollapsibleCard({
   contentClassName,
   titleClassName,
   accessory,
+  desktopCollapsible = false,
   children,
 }: {
   title: ReactNode;
@@ -29,6 +32,7 @@ export function CollapsibleCard({
   contentClassName?: string;
   titleClassName?: string;
   accessory?: ReactNode;
+  desktopCollapsible?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -38,7 +42,10 @@ export function CollapsibleCard({
           type='button'
           onClick={onToggle}
           aria-expanded={open}
-          className='flex w-full items-center justify-between gap-2 text-left lg:cursor-default'
+          className={cn(
+            'flex w-full items-center justify-between gap-2 text-left',
+            !desktopCollapsible && 'lg:cursor-default',
+          )}
         >
           <span
             className={cn(
@@ -51,13 +58,19 @@ export function CollapsibleCard({
           </span>
           <ChevronDown
             className={cn(
-              'h-4 w-4 shrink-0 text-slate-400 transition-transform lg:hidden',
+              'h-4 w-4 shrink-0 text-slate-400 transition-transform',
+              !desktopCollapsible && 'lg:hidden',
               open && 'rotate-180',
             )}
           />
         </button>
       </CardHeader>
-      <CardContent className={cn(!open && 'hidden lg:block', contentClassName)}>
+      <CardContent
+        className={cn(
+          !open && (desktopCollapsible ? 'hidden' : 'hidden lg:block'),
+          contentClassName,
+        )}
+      >
         {children}
       </CardContent>
     </Card>

@@ -24,5 +24,17 @@ OPENAI_TWIN_MODEL=gpt-4o-mini
 AI_CHAT_URL=
 CHAT_DEMO_CF_WORKER_URL=
 
+# Email (invoice reminders). Gmail SMTP for now — swappable to Resend/SES later.
+# SMTP_USER: your full Gmail address.
+# SMTP_APP_PASSWORD: a 16-char Google App Password (NOT your Gmail login password).
+#   Requires 2-Step Verification enabled, then create one at
+#   https://myaccount.google.com/apppasswords
+SMTP_USER=
+SMTP_APP_PASSWORD=
+EMAIL_FROM_NAME=Docduit
+# Optional overrides (defaults shown). Use 587 if 465 is blocked.
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+
 # Deprecated: do not use NEXT_PUBLIC_AI_CHAT_URL or NEXT_PUBLIC_GOOGLE_CLIENT_SECRET.
 # AI requests are proxied through /api/chat/* routes using AI_CHAT_URL server-side.
