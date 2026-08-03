@@ -191,6 +191,7 @@ export default function FinancialTwinSimulator({
 
   const { user, isLoading: isLoadingUser } = useAuth();
   const [savedPlan, setSavedPlan] = useState<FinancialTwinPlan | null>(null);
+  const resultsTopRef = useRef<HTMLDivElement>(null);
   const viewedTrackedRef = useRef(false);
   const inputStartedRef = useRef(false);
   const resultsViewedRef = useRef(false);
@@ -281,11 +282,26 @@ export default function FinancialTwinSimulator({
   };
 
   // Enter the results view: on desktop collapse the input form to a summary; on
-  // mobile show only the headline widget so the page opens on the answer.
+  // mobile show only the headline widget so the page opens on the answer. Either
+  // way, scroll the results into view so the user doesn't have to scroll back up
+  // past the (now off-screen) submit button to read from the top.
   const showResults = () => {
     setInputsExpanded(false);
     setOpenSections({ summary: true });
     moveMobileStep('results');
+    // Mobile already scrolls to the page top above; desktop keeps the input
+    // summary in view, so scroll the results column into view separately.
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(min-width: 1024px)').matches
+    ) {
+      window.requestAnimationFrame(() => {
+        resultsTopRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      });
+    }
   };
 
   // Return to editing the inputs (desktop expands the form back in place).
@@ -924,8 +940,9 @@ export default function FinancialTwinSimulator({
                 inputs collapse, the section grid widens this column (0.7/2.3) so
                 each card grows rather than splitting into a ragged 2-up. */}
             <div
+              ref={resultsTopRef}
               className={cn(
-                'flex flex-col gap-4',
+                'flex flex-col gap-4 scroll-mt-6',
                 mobileStep === 'inputs' && 'hidden',
               )}
             >
