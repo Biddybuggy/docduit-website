@@ -59,47 +59,47 @@
     "savedPlan": {
       "saveCta": "Save this plan",
       "saveCtaTitle": "Keep this plan and check in weekly",
-      "saveCtaBody": "Save one active plan to your account and we will ask you in-app every week whether you are still on track.",
+      "saveCtaBody": "Save one active plan to your account, and we'll check in each week to see whether you're still on track.",
       "saving": "Saving plan…",
       "savedTitle": "Plan saved",
-      "savedBody": "Come back any time — we will ask you weekly whether you are still on track.",
+      "savedBody": "Come back any time — we'll check in each week to see how it's going.",
       "nextCheckInLabel": "Next check-in",
-      "signInToSave": "Sign in with Google to save this plan. We will bring you back here and finish saving automatically.",
-      "saveFailed": "Could not save your plan. Please sign in, rerun the simulation, and try saving again.",
-      "saveFailedPermission": "The server rejected the save (database permissions). Contact the Docduit team — the security rules for Financial Twin plans are not deployed yet.",
-      "saveFailedAuth": "Your sign-in session is not connected to storage. Sign out and back in, rerun the simulation, and try saving again.",
+      "signInToSave": "Sign in with Google to save this plan. We'll bring you back here and finish saving for you.",
+      "saveFailed": "We couldn't save your plan. Sign in, run the simulation again, then try once more.",
+      "saveFailedPermission": "The server turned down the save because of database permissions. Get in touch with the Docduit team — the security rules for Financial Twin plans aren't live yet.",
+      "saveFailedAuth": "Your session isn't connected to storage. Sign out and back in, run the simulation again, then try saving.",
       "planCardTitle": "Your saved Financial Twin plan",
-      "planCardBody": "Saved from your last simulation. Answer the weekly check-in to keep it honest.",
+      "planCardBody": "Saved from your last run. Answering the weekly check-in keeps it honest.",
       "planSavedOnLabel": "Last updated",
-      "notDueYet": "You are on schedule.",
+      "notDueYet": "You're on schedule.",
       "checkinDueTitle": "Are you still on track?",
-      "checkinDueBody": "It has been at least a week since your plan was updated. A quick answer keeps your plan useful.",
+      "checkinDueBody": "It's been a week since you last updated this plan. A quick answer keeps it useful.",
       "checkinStart": "Check in now",
       "checkinOnTrack": "On track",
       "checkinOnTrackHint": "Keep going — see you next week.",
       "checkinChanged": "Something changed",
-      "checkinChangedHint": "Reload your saved numbers, adjust them, and rerun the simulation.",
+      "checkinChangedHint": "Load your saved numbers, adjust them, and run the simulation again.",
       "checkinNeedHelp": "I need help",
       "checkinNeedHelpHint": "Talk it through with the AI consultation.",
       "checkinDoneTitle": "Nice — see you next week!",
-      "checkinDoneBody": "Your check-in is recorded.",
-      "checkinFailed": "Could not record your check-in. Please try again.",
+      "checkinDoneBody": "Your check-in is saved.",
+      "checkinFailed": "We couldn't save your check-in. Please try again.",
       "restoredForEdit": "Your saved numbers are back in the form. Adjust them and run the simulation again to refresh your plan."
     },
     "pageTitle": "Financial Twin Simulator",
-    "pageSubtitle": "Enter a few monthly numbers and compare three possible versions of your financial future: what happens if nothing changes, what improves if you adjust your habits, and what could go wrong if spending or surprise costs rise.",
+    "pageSubtitle": "Enter a few monthly numbers and see three versions of your future — one where nothing changes, one where you tighten up, and one where costs creep up or something unexpected hits.",
     "introTitle": "What the three paths mean",
-    "introBody": "This is a planning sandbox, not a forecast. It helps you see which daily choices have the biggest effect on savings, debt, and your goal.",
-    "formTitle": "Your Monthly Money Snapshot",
-    "formHelper": "Use approximate monthly numbers. The simulator is most useful when the inputs feel realistic, even if they are not perfect.",
+    "introBody": "This isn't a forecast, it's a place to try things out. Use it to see which everyday choices move the needle most on your savings, your debt, and your goal.",
+    "formTitle": "Your Monthly Numbers",
+    "formHelper": "Rough numbers are fine. What matters is that they're close to real life, not that they're exact.",
     "runButton": "Run Simulation",
     "summaryTitle": "What the Simulator Found",
-    "summaryHelper": "Each card shows where you could land by the end of your timeline. Money after debt means savings and investments minus unpaid debt.",
+    "summaryHelper": "Each row shows where you'd land by the end of your timeline. Money after debt is your savings and investments minus whatever you still owe.",
     "chartTitle": "Money After Debt, Month by Month",
-    "chartHelper": "The line chart tracks savings minus debt over time. A higher line means more room to fund goals or handle emergencies.",
+    "chartHelper": "Savings minus debt, tracked over time. The higher the line, the more room you have to fund goals or absorb a surprise.",
     "disclaimerTitle": "Educational Disclaimer",
-    "disclaimerBody": "This tool is for learning and planning only. It does not recommend financial products, promise investment returns, or replace advice from a qualified professional.",
-    "noResultText": "Run the simulation to see how your current habits, better habits, and a riskier path compare.",
+    "disclaimerBody": "This tool is for learning and planning only. It doesn't recommend financial products, promise returns, or replace advice from a qualified professional.",
+    "noResultText": "Run the simulation to compare your current habits with a better version and a riskier one.",
     "scenarioLabels": {
       "current": "Current habits",
       "improved": "Better habits",
@@ -108,15 +108,15 @@
     "scenarioExplanations": {
       "current": {
         "title": "Current habits",
-        "body": "Keeps your income, spending, debt payment, and savings exactly as entered."
+        "body": "Uses your income, spending, debt payments, and savings exactly as you entered them."
       },
       "improved": {
         "title": "Better habits",
-        "body": "Cuts lifestyle spending by 20% and food/transport by 10%. If you still have debt, 60% of the extra cash goes to debt and 40% goes to savings."
+        "body": "Trims lifestyle spending by 20% and food and transport by 10%. If you're still carrying debt, 60% of the freed-up cash goes there and 40% goes to savings."
       },
       "risky": {
         "title": "Riskier path",
-        "body": "Raises flexible spending and adds one surprise cost during the timeline, so you can see how fragile the plan might be."
+        "body": "Pushes flexible spending up and throws in one surprise cost along the way, so you can see how well the plan holds up."
       }
     },
     "fields": {
@@ -127,7 +127,7 @@
       "foodTransportSpending": "Food and transport",
       "otherSpending": "Other flexible spending",
       "debtBalance": "Debt or paylater balance",
-      "monthlyDebtPayment": "Debt payment per month",
+      "monthlyDebtPayment": "Monthly debt payment",
       "goalAmount": "Target amount",
       "timeHorizon": "Timeline",
       "expectedReturn": "Expected yearly return",
@@ -135,17 +135,17 @@
     },
     "fieldHelp": {
       "monthlyIncome": "Use the amount that actually reaches your account each month.",
-      "currentSavings": "Include cash, savings, and investments you could use toward this goal.",
-      "essentialSpending": "Rent, bills, school fees, insurance, and other costs you cannot easily skip.",
+      "currentSavings": "Cash, savings, and investments you could actually put toward this goal.",
+      "essentialSpending": "Rent, bills, school fees, insurance — the things you can't easily skip.",
       "lifestyleSpending": "Eating out, entertainment, hobbies, shopping, subscriptions, and treats.",
       "foodTransportSpending": "Regular meals, groceries, commuting, ride-hailing, fuel, and parking.",
-      "otherSpending": "Anything monthly that does not fit the categories above.",
-      "debtBalance": "The unpaid amount across loans, credit cards, installments, or paylater.",
-      "monthlyDebtPayment": "The amount you normally pay toward debt every month.",
-      "goalAmount": "The amount you want to have saved by the end of the timeline.",
-      "timeHorizon": "How many months you want the simulator to look ahead.",
-      "expectedReturn": "A simple yearly growth assumption for savings or investments. Use 0 if you do not want to assume growth.",
-      "riskBehavior": "This controls how much extra spending and how large the surprise cost is in the riskier path."
+      "otherSpending": "Any other monthly cost that doesn't fit the categories above.",
+      "debtBalance": "What you still owe across loans, credit cards, installments, and paylater.",
+      "monthlyDebtPayment": "What you usually put toward debt each month.",
+      "goalAmount": "How much you want to have saved by the end of your timeline.",
+      "timeHorizon": "How many months ahead you want to look.",
+      "expectedReturn": "A rough yearly growth rate for your savings or investments. Enter 0 to leave growth out of it.",
+      "riskBehavior": "Sets how much extra spending and how big a surprise cost the riskier path assumes."
     },
     "riskLevels": {
       "low": "Low",
@@ -153,10 +153,10 @@
       "high": "High"
     },
     "cards": {
-      "emergencyFundLabel": "Emergency cover",
+      "emergencyFundLabel": "Emergency fund",
       "goalReached": "Reached",
       "goalNotReached": "Not reached",
-      "biggestBottleneckTitle": "Main Thing Holding You Back",
+      "biggestBottleneckTitle": "What's Holding You Back",
       "bestNextActionTitle": "Best Next Move",
       "insightsTitle": "Key Insights"
     },
@@ -170,25 +170,25 @@
     },
     "insights": {
       "biggestBottleneck": {
-        "overspending": "The biggest drag is flexible spending. Too much of your monthly income is leaving before it can become savings or debt reduction.",
-        "highDebt": "Debt is the biggest drag. A large part of your cash flow is tied up in repayments instead of moving toward your goal.",
-        "shortHorizon": "The goal may be too large for the timeline. The plan improves, but it may need more months to work.",
-        "lowIncome": "Your income is stretched compared with the goal and monthly expenses. Spending control helps, but income may also need attention.",
-        "alreadyAtGoal": "You already have enough saved for this target. The next step is protecting it and deciding what to do with any extra cash flow.",
-        "noSavingsCapacity": "There is almost no monthly room left after spending and debt payments. The plan needs breathing space before it can grow."
+        "overspending": "Flexible spending is your biggest drag. Too much of each paycheck goes out the door before it can turn into savings or debt paid off.",
+        "highDebt": "Debt is your biggest drag. A large share of your cash flow goes to repayments instead of your goal.",
+        "shortHorizon": "Your goal may be too big for the time you've given it. The plan works, it just needs more months.",
+        "lowIncome": "Your income is stretched thin against this goal and your monthly costs. Cutting back helps, but earning more may be the bigger lever.",
+        "alreadyAtGoal": "You've already saved enough for this goal. The next step is protecting it and deciding where the extra cash should go.",
+        "noSavingsCapacity": "There's almost nothing left each month once spending and debt payments are covered. You'll need some breathing room before the plan can go anywhere."
       },
       "bestNextAction": {
-        "cutLifestyleSpending": "Start with one or two flexible spending cuts and send that money directly to savings or debt. Small recurring changes matter most here.",
-        "buildEmergencyFund": "Build an emergency buffer first, so one surprise expense does not push the plan backward.",
-        "focusOnDebt": "Prioritize the most expensive debt and keep repayments consistent. Reducing debt improves every future month.",
-        "extendHorizon": "Give the goal more time or split it into smaller milestones. That makes the monthly pressure more realistic.",
-        "increaseIncome": "Look for additional income while keeping expenses steady. Extra income has the biggest effect when it is not absorbed by new spending.",
-        "maintainGoodHabits": "You are already in a strong position. Keep the habit, protect the money, and review the plan regularly."
+        "cutLifestyleSpending": "Pick one or two flexible costs to cut, and send that money straight to savings or debt. Small changes you repeat every month matter most here.",
+        "buildEmergencyFund": "Build an emergency buffer first, so one surprise bill doesn't knock the plan off course.",
+        "focusOnDebt": "Go after the most expensive debt first and keep the payments steady. Every bit you clear makes the months that follow easier.",
+        "extendHorizon": "Give the goal more time, or break it into smaller milestones. Either way the monthly number gets more realistic.",
+        "increaseIncome": "Look for extra income while holding your spending steady. A raise only helps if it doesn't get spent.",
+        "maintainGoodHabits": "You're in good shape. Keep the habit going, protect what you've built, and check back on the plan now and then."
       }
     },
     "actionPlan": {
       "title": "Your Action Plan",
-      "helper": "Built from your own numbers. Each step below is quantified so you can see exactly what it changes.",
+      "helper": "All of this comes from your own numbers. We ran each step through the simulator so you can see exactly what it changes.",
       "healthTitle": "Quick health check",
       "health": {
         "savingsRate": "Savings rate",
@@ -200,24 +200,24 @@
       "targetTitle": "The number that matters",
       "requiredPerMonth": "Needed per month to hit your goal on time",
       "capacityPerMonth": "What your current budget leaves per month",
-      "gapMessage": "You are {amount} per month short. The steps below show the fastest ways to close that gap.",
-      "onTrackMessage": "Your current budget already covers this. The steps below get you there even faster.",
-      "alreadyAtGoalMessage": "Your savings already cover this goal. Use the steps below to build your buffer or set a bigger goal.",
-      "projectedLate": "At your current pace, this goal lands at month {month} — {late} months past your timeline.",
-      "projectedNever": "At your current pace, this goal is not reached within the next 10 years. Consider a smaller goal, a longer timeline, or the income step below.",
+      "gapMessage": "You're {amount} short each month. The steps below are the fastest ways to close that gap.",
+      "onTrackMessage": "Your budget already covers this. The steps below just get you there sooner.",
+      "alreadyAtGoalMessage": "Your savings already cover this goal. Use the steps below to build a bigger buffer, or aim higher.",
+      "projectedLate": "At your current pace, this goal lands at month {month} — {late} {monthsWord} past your timeline.",
+      "projectedNever": "At your current pace, you won't reach this goal within ten years. Try a smaller goal, a longer timeline, or the income step below.",
       "leversTitle": "Highest-impact next steps",
-      "leversHelper": "Each step was re-simulated with your numbers. Impact assumes you keep it up for the whole timeline.",
+      "leversHelper": "We re-ran the simulation for each step using your numbers. The impact assumes you stick with it the whole way.",
       "levers": {
         "cutLifestyle": "Cut lifestyle spending by 20% (frees {amount}/month)",
         "cutFoodTransport": "Trim food & transport by 10% (frees {amount}/month)",
         "increaseIncome": "Grow income by 10% (adds {amount}/month — side gig, raise, or freelance)"
       },
-      "impactUnlocksGoal": "Makes your goal reachable — hit at month {month} instead of missing it",
-      "impactEarlier": "Goal at month {month} instead of {before} — {saved} months earlier",
-      "impactNetOnly": "Goal timing unchanged, but you end {amount} better off",
+      "impactUnlocksGoal": "Puts the goal within reach — you hit it at month {month} instead of missing it",
+      "impactEarlier": "Goal at month {month} instead of {before} — {saved} {monthsWord} earlier",
+      "impactNetOnly": "Doesn't change when you hit the goal, but you end up {amount} better off",
       "ctaTitle": "Want this turned into a full plan?",
-      "ctaBody": "Discuss these steps with the Docduit AI consultation and get a personalized financial prescription.",
-      "ctaButton": "Discuss with AI consultation"
+      "ctaBody": "Bring these steps to Docduit's AI consultation and get answers based on your actual situation.",
+      "ctaButton": "Start an AI consultation"
     }
   },
   "home": {

@@ -1,0 +1,55 @@
+<svg width="245" height="230" viewBox="0 0 245 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="122.5" cy="119" r="110" fill="#003750"/>
+  <path opacity="0.12" d="M122.5 9C183.256 9 232.5 58.244 232.5 119C232.5 179.756 183.256 229 122.5 229V9Z" fill="#ffffff"/>
+
+  <!-- screen -->
+  <rect x="38" y="52" width="169" height="116" rx="12" fill="#ffffff"/>
+  <rect x="38" y="52" width="169" height="20" rx="12" fill="#bad9e5"/>
+  <rect x="38" y="62" width="169" height="10" fill="#bad9e5"/>
+  <circle cx="50" cy="62" r="3.5" fill="#de5d53"/>
+  <circle cx="61" cy="62" r="3.5" fill="#fec525"/>
+  <circle cx="72" cy="62" r="3.5" fill="#1385be"/>
+
+  <!-- grid -->
+  <g stroke="#EBEBEB" stroke-width="1">
+    <line x1="52" y1="90" x2="193" y2="90"/>
+    <line x1="52" y1="110" x2="193" y2="110"/>
+    <line x1="52" y1="130" x2="193" y2="130"/>
+    <line x1="52" y1="150" x2="193" y2="150"/>
+  </g>
+
+  <!-- target line -->
+  <line x1="52" y1="96" x2="193" y2="96" stroke="#fec525" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"/>
+
+  <!-- three paths -->
+  <polyline points="54,152 78,143 102,130 126,116 150,101 174,86 191,80" fill="none" stroke="#95a237" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="54,152 78,146 102,139 126,131 150,123 174,114 191,108" fill="none" stroke="#1385be" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="54,152 78,149 102,151 126,145 150,152 174,146 191,143" fill="none" stroke="#de5d53" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <circle cx="191" cy="80" r="4.5" fill="#95a237" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="191" cy="108" r="4" fill="#1385be" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="191" cy="143" r="4" fill="#de5d53" stroke="#ffffff" stroke-width="2"/>
+
+  <!-- stand -->
+  <rect x="110" y="168" width="25" height="14" fill="#bad9e5"/>
+  <rect x="92" y="182" width="61" height="8" rx="4" fill="#bad9e5"/>
+
+  <!-- coin stack -->
+  <g>
+    <ellipse cx="46" cy="196" rx="24" ry="8" fill="#e0a812"/>
+    <rect x="22" y="184" width="48" height="12" fill="#fec525"/>
+    <ellipse cx="46" cy="184" rx="24" ry="8" fill="#ffd95c"/>
+    <rect x="22" y="172" width="48" height="12" fill="#fec525"/>
+    <ellipse cx="46" cy="172" rx="24" ry="8" fill="#ffd95c"/>
+    <ellipse cx="46" cy="172" rx="13" ry="4.5" fill="#fec525"/>
+  </g>
+
+  <!-- percent badge -->
+  <circle cx="196" cy="188" r="19" fill="#de5d53"/>
+  <path d="M189 195L203 181" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="190.5" cy="183.5" r="3.4" stroke="#ffffff" stroke-width="2.2"/>
+  <circle cx="201.5" cy="192.5" r="3.4" stroke="#ffffff" stroke-width="2.2"/>
+
+  <!-- rising arrow -->
+  <path d="M196 42L214 24M214 24H201M214 24V37" stroke="#fec525" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

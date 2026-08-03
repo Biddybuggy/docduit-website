@@ -169,12 +169,12 @@ export function SavePlanCard({
 
   return (
     <Card
-      className='shadow-sm border-sky-200 bg-sky-50/50 rounded-2xl'
+      className='w-full shadow-none border-black bg-docduit-lightblue/30 rounded-2xl'
       data-testid='twin-save-plan-card'
     >
       <CardHeader className='pb-2'>
-        <CardTitle className='flex items-center gap-2 text-base font-semibold text-slate-900'>
-          <CalendarCheck className='h-4 w-4 shrink-0 text-sky-700' />
+        <CardTitle className='flex items-center gap-2 text-base font-bold'>
+          <CalendarCheck className='h-4 w-4 shrink-0 text-docduit-blue' />
           {t(
             'saveCtaTitle',
             'Simpan rencana ini dan check-in mingguan',
@@ -183,7 +183,7 @@ export function SavePlanCard({
         </CardTitle>
       </CardHeader>
       <CardContent className='space-y-3'>
-        <p className='text-xs leading-relaxed text-slate-600'>
+        <p className='text-xs font-light leading-relaxed'>
           {t(
             'saveCtaBody',
             'Simpan satu rencana aktif ke akunmu, dan setiap minggu kami akan bertanya di aplikasi apakah kamu masih di jalur.',
@@ -192,7 +192,7 @@ export function SavePlanCard({
         </p>
         {justSaved?.nextCheckInAt && (
           <p
-            className='text-xs font-medium text-emerald-700'
+            className='text-xs font-semibold text-docduit-green'
             data-testid='twin-plan-saved-confirmation'
           >
             {t('savedTitle', 'Rencana tersimpan', 'Plan saved')} ·{' '}
@@ -203,7 +203,7 @@ export function SavePlanCard({
         <Button
           type='button'
           size='sm'
-          className='rounded-full'
+          variant='blue'
           onClick={handleSave}
           disabled={isSaving}
           data-testid='twin-save-plan-cta'
@@ -322,23 +322,23 @@ export function TwinCheckInCard({
   if (!due && stage !== 'done') {
     return (
       <Card
-        className='shadow-sm border-slate-200 rounded-2xl'
+        className='w-full shadow-none border-black rounded-2xl'
         data-testid='twin-plan-card'
       >
         <CardContent className='flex flex-col gap-1 py-4'>
-          <p className='text-sm font-semibold text-slate-900'>
+          <p className='text-sm font-semibold'>
             {t(
               'planCardTitle',
               'Rencana Financial Twin tersimpan',
               'Your saved Financial Twin plan',
             )}
           </p>
-          <p className='text-xs text-slate-500'>
+          <p className='text-xs font-light text-black/60'>
             {t('notDueYet', 'Kamu masih sesuai jadwal.', 'You are on schedule.')}{' '}
             {plan.nextCheckInAt && (
               <>
                 {t('nextCheckInLabel', 'Check-in berikutnya', 'Next check-in')}:{' '}
-                <span className='font-medium text-slate-700'>
+                <span className='font-semibold text-black'>
                   {formatPlanDate(plan.nextCheckInAt, lang)}
                 </span>
               </>
@@ -352,18 +352,18 @@ export function TwinCheckInCard({
   if (stage === 'done') {
     return (
       <Card
-        className='shadow-sm border-emerald-200 bg-emerald-50/60 rounded-2xl'
+        className='w-full shadow-none border-docduit-green bg-docduit-green/10 rounded-2xl'
         data-testid='twin-checkin-done'
       >
         <CardContent className='flex flex-col gap-1 py-4'>
-          <p className='text-sm font-semibold text-emerald-900'>
+          <p className='text-sm font-semibold'>
             {t(
               'checkinDoneTitle',
               'Mantap — sampai jumpa minggu depan!',
               'Nice — see you next week!',
             )}
           </p>
-          <p className='text-xs text-emerald-800'>
+          <p className='text-xs font-light'>
             {t(
               'checkinDoneBody',
               'Check-in kamu sudah tercatat.',
@@ -385,11 +385,11 @@ export function TwinCheckInCard({
 
   return (
     <Card
-      className='shadow-sm border-sky-300 bg-sky-50/70 rounded-2xl'
+      className='w-full shadow-none border-black bg-white rounded-2xl'
       data-testid='twin-checkin-card'
     >
       <CardHeader className='pb-2'>
-        <CardTitle className='text-base font-semibold text-slate-900'>
+        <CardTitle className='text-base font-bold'>
           {t(
             'checkinDueTitle',
             'Apakah kamu masih di jalur?',
@@ -398,7 +398,7 @@ export function TwinCheckInCard({
         </CardTitle>
       </CardHeader>
       <CardContent className='space-y-3'>
-        <p className='text-xs leading-relaxed text-slate-600'>
+        <p className='text-xs font-light leading-relaxed'>
           {t(
             'checkinDueBody',
             'Sudah lebih dari seminggu sejak rencanamu diperbarui. Jawaban singkat membuat rencanamu tetap berguna.',
@@ -409,7 +409,7 @@ export function TwinCheckInCard({
           <Button
             type='button'
             size='sm'
-            className='rounded-full'
+            variant='blue'
             onClick={handleStart}
             data-testid='twin-checkin-start'
           >
@@ -462,15 +462,15 @@ export function TwinCheckInCard({
                 onClick={() => handleChoice(choice.status)}
                 disabled={busyStatus != null}
                 data-testid={choice.testId}
-                className='flex flex-col gap-1 rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60'
+                className='flex flex-col gap-1 rounded-2xl border border-black/10 bg-docduit-lightblue/30 p-3 text-left transition hover:bg-docduit-lightblue/60 disabled:cursor-not-allowed disabled:opacity-60'
               >
-                <span className='flex items-center gap-1.5 text-xs font-semibold text-slate-900'>
+                <span className='flex items-center gap-1.5 text-xs font-semibold'>
                   {busyStatus === choice.status && (
                     <Loader2 className='h-3 w-3 animate-spin' />
                   )}
                   {choice.label}
                 </span>
-                <span className='text-[11px] leading-relaxed text-slate-500'>
+                <span className='text-[11px] font-light leading-relaxed text-black/60'>
                   {choice.hint}
                 </span>
               </button>

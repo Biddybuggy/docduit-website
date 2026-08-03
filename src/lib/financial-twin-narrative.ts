@@ -29,7 +29,7 @@ function narrativeGuardrail(lang: 'en' | 'id'): string {
   const language =
     lang === 'id'
       ? 'Respond in Bahasa Indonesia.'
-      : 'Respond in English.';
+      : 'Respond in English. Write the way a person actually talks — contractions are fine, and avoid stiff or formal phrasing.';
   return `You are Docduit, an educational personal finance assistant for Indonesian users.
 You are given the results of a deterministic financial simulation. Your job is ONLY to explain
 those results in warm, plain, encouraging language — never to recalculate, invent, or contradict

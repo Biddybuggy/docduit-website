@@ -44,10 +44,10 @@ import { CollapsibleCard } from './_components/collapsible-section';
 import type { TwinNarrative } from '@/lib/financial-twin-narrative';
 import { Locale } from '../_utils/dictionaries';
 import { ReactQueryProvider } from '@/lib/react-query';
+import InputCalculationNumber from '@/components/shared/input-calculation-number';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Slider } from '@/components/ui/slider';
 import {
   ChartContainer,
   ChartTooltip,
@@ -76,6 +76,13 @@ type ScenarioChartPoint = {
   risky: number;
 };
 
+// Brand palette shared with the calculator pages (tailwind.config docduit.*).
+const SCENARIO_COLORS = {
+  current: '#1385be', // docduit-blue
+  improved: '#95a237', // docduit-green
+  risky: '#de5d53', // docduit-red
+} as const;
+
 const defaultInput: FinancialTwinInput = {
   monthlyIncome: 8000000,
   currentSavings: 3000000,
@@ -91,6 +98,29 @@ const defaultInput: FinancialTwinInput = {
   riskBehavior: 'medium',
 };
 
+// Slider bounds per field. Typing into the big blue number still accepts any
+// value the validator allows — the slider is only the quick-adjust affordance,
+// exactly like the calculator pages.
+const SLIDER_RANGE: Record<
+  Exclude<keyof FinancialTwinInput, 'riskBehavior'>,
+  { min: number; max: number; step: number }
+> = {
+  monthlyIncome: { min: 0, max: 50_000_000, step: 500_000 },
+  currentSavings: { min: 0, max: 200_000_000, step: 1_000_000 },
+  essentialSpending: { min: 0, max: 30_000_000, step: 250_000 },
+  lifestyleSpending: { min: 0, max: 20_000_000, step: 100_000 },
+  foodTransportSpending: { min: 0, max: 20_000_000, step: 100_000 },
+  otherSpending: { min: 0, max: 20_000_000, step: 100_000 },
+  debtBalance: { min: 0, max: 200_000_000, step: 500_000 },
+  monthlyDebtPayment: { min: 0, max: 20_000_000, step: 100_000 },
+  financialGoalAmount: { min: 0, max: 500_000_000, step: 1_000_000 },
+  timeHorizonMonths: { min: 1, max: 120, step: 1 },
+  expectedAnnualReturn: { min: 0, max: 20, step: 1 },
+};
+
+const formatRupiahShort = (value: number) =>
+  `Rp${value.toLocaleString('id-ID')}`;
+
 function getCopy(vocabularies: any, lang: Locale) {
   // Fallback-friendly access
   const twin = vocabularies?.twinSimulator;
@@ -103,22 +133,22 @@ function getCopy(vocabularies: any, lang: Locale) {
         lang === 'id'
           ? 'Simulasikan tiga jalur keuangan berbeda dan lihat dampaknya ke tujuanmu.'
           : 'Simulate three different money paths and see how they affect your goals.',
-      formTitle: lang === 'id' ? 'Profil Keuangan Kamu' : 'Your Money Snapshot',
+      formTitle: lang === 'id' ? 'Profil Keuangan Kamu' : 'Your Monthly Numbers',
       runButton: lang === 'id' ? 'Jalankan Simulasi' : 'Run Simulation',
       summaryTitle:
         lang === 'id'
           ? 'Perbandingan Tiga Jalur'
-          : 'Comparison of Three Paths',
+          : 'What the Simulator Found',
       chartTitle:
         lang === 'id'
           ? 'Proyeksi Posisi Bersih per Bulan'
-          : 'Projected Net Position per Month',
+          : 'Money After Debt, Month by Month',
       disclaimerTitle:
         lang === 'id' ? 'Disclaimer Edukasi' : 'Educational Disclaimer',
       disclaimerBody:
         lang === 'id'
           ? 'Simulator ini bersifat edukatif dan tidak memberikan rekomendasi produk keuangan apa pun. Angka yang muncul adalah ilustrasi dan bukan jaminan hasil di masa depan.'
-          : 'This simulator is for education only and does not recommend any financial products. All numbers are illustrative and not a guarantee of future results.',
+          : "This tool is for learning and planning only. It doesn't recommend financial products, promise returns, or replace advice from a qualified professional.",
     };
   }
 
@@ -162,6 +192,7 @@ export default function FinancialTwinSimulator({
   vocabularies,
 }: Props) {
   const copy = getCopy(vocabularies, lang);
+  const isId = lang === 'id';
 
   const [input, setInput] = useState<FinancialTwinInput>(defaultInput);
   const [errors, setErrors] = useState<ValidationErrors>({ _hasError: false });
@@ -176,27 +207,28 @@ export default function FinancialTwinSimulator({
     'idle' | 'loading' | 'done' | 'error'
   >('idle');
   const [mobileStep, setMobileStep] = useState<'inputs' | 'results'>('inputs');
-  // Desktop: after a run the input form collapses to a compact summary so the
-  // output widgets can use the freed width. Mobile ignores this and always shows
-  // the full form on the inputs step.
-  const [inputsExpanded, setInputsExpanded] = useState(true);
-  // Mobile: which result widgets are expanded. Only the headline (summary) opens
-  // on arrival; the rest start collapsed so the results page stays short.
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    summary: true,
-  });
+  // Which secondary result widgets are expanded. Only the headline numbers and
+  // the comparison are always visible; the rest start collapsed so the results
+  // panel stays readable.
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   const toggleSection = (id: string) =>
     setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const { user, isLoading: isLoadingUser } = useAuth();
   const [savedPlan, setSavedPlan] = useState<FinancialTwinPlan | null>(null);
-  const resultsTopRef = useRef<HTMLDivElement>(null);
+  const resultsPanelRef = useRef<HTMLDivElement>(null);
   const viewedTrackedRef = useRef(false);
   const inputStartedRef = useRef(false);
   const resultsViewedRef = useRef(false);
   const saveIntentHandledRef = useRef(false);
   const tSaved = getSavedPlanCopy(vocabularies, lang);
+
+  // Mirrors the calculator pages: the hero panel is swapped out for the result
+  // panel once there is something to show. Desktop keeps the form on screen,
+  // mobile switches between the two steps.
+  const activeState: 'input' | 'results' =
+    isSubmitted && mobileStep === 'results' ? 'results' : 'input';
 
   const chartData: ScenarioChartPoint[] = useMemo(() => {
     if (!results) return [];
@@ -234,12 +266,11 @@ export default function FinancialTwinSimulator({
     });
   };
 
-  const handleNumberChange =
-    (field: keyof FinancialTwinInput) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+  const setField =
+    (field: Exclude<keyof FinancialTwinInput, 'riskBehavior'>) =>
+    (value: number) => {
       trackInputStartedOnce();
-      const raw = e.target.value.replace(/[^\d]/g, '');
-      const numeric = raw ? Number(raw) : 0;
+      const numeric = Number.isFinite(value) ? value : 0;
       setInput((prev) => ({ ...prev, [field]: numeric }));
     };
 
@@ -281,32 +312,24 @@ export default function FinancialTwinSimulator({
     }
   };
 
-  // Enter the results view: on desktop collapse the input form to a summary; on
-  // mobile show only the headline widget so the page opens on the answer. Either
-  // way, scroll the results into view so the user doesn't have to scroll back up
-  // past the (now off-screen) submit button to read from the top.
+  // Enter the results view. On mobile that swaps the visible step; on desktop
+  // the result panel replaces the hero panel next to the form, so all we need
+  // is to make sure the panel is scrolled to its own top.
   const showResults = () => {
-    setInputsExpanded(false);
-    setOpenSections({ summary: true });
+    // The headline, comparison and chart now render inline, so the action plan
+    // is the one collapsed section worth opening on arrival — it carries the
+    // consultation CTA.
+    setOpenSections({ actionPlan: true });
     moveMobileStep('results');
-    // Mobile already scrolls to the page top above; desktop keeps the input
-    // summary in view, so scroll the results column into view separately.
-    if (
-      typeof window !== 'undefined' &&
-      window.matchMedia('(min-width: 1024px)').matches
-    ) {
+    if (typeof window !== 'undefined') {
       window.requestAnimationFrame(() => {
-        resultsTopRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
+        resultsPanelRef.current?.scrollTo({ top: 0 });
       });
     }
   };
 
-  // Return to editing the inputs (desktop expands the form back in place).
+  // Return to editing the inputs (mobile steps back to the form).
   const showInputs = () => {
-    setInputsExpanded(true);
     moveMobileStep('inputs');
   };
 
@@ -471,7 +494,7 @@ export default function FinancialTwinSimulator({
   const getScenarioLabel = (key: 'current' | 'improved' | 'risky') => {
     const labels =
       vocabularies?.twinSimulator?.scenarioLabels ??
-      (lang === 'id'
+      (isId
         ? {
             current: 'Kebiasaan Saat Ini',
             improved: 'Kebiasaan Lebih Baik',
@@ -487,59 +510,59 @@ export default function FinancialTwinSimulator({
 
   const goalReachedLabel =
     vocabularies?.twinSimulator?.cards?.goalReached ??
-    (lang === 'id' ? 'Tercapai' : 'Reached');
+    (isId ? 'Tercapai' : 'Reached');
 
   const goalNotReachedLabel =
     vocabularies?.twinSimulator?.cards?.goalNotReached ??
-    (lang === 'id' ? 'Belum tercapai' : 'Not reached');
+    (isId ? 'Belum tercapai' : 'Not reached');
 
   const monthShort =
-    vocabularies?.calculators?.month ??
-    (lang === 'id' ? 'bulan' : 'month');
+    vocabularies?.calculators?.month ?? (isId ? 'bulan' : 'month');
+  const monthsShort =
+    vocabularies?.calculators?.months ?? (isId ? 'bulan' : 'months');
 
   const bottleneckTitle =
     vocabularies?.twinSimulator?.cards?.biggestBottleneckTitle ??
-    (lang === 'id' ? 'Bottleneck Terbesar' : 'Biggest Bottleneck');
+    (isId ? 'Bottleneck Terbesar' : 'Biggest Bottleneck');
 
   const bestActionTitle =
     vocabularies?.twinSimulator?.cards?.bestNextActionTitle ??
-    (lang === 'id' ? 'Aksi Selanjutnya' : 'Best Next Action');
+    (isId ? 'Aksi Selanjutnya' : 'Best Next Action');
 
   const insightsSectionTitle =
     vocabularies?.twinSimulator?.cards?.insightsTitle ??
-    (lang === 'id' ? 'Insight Utama' : 'Key Insights');
+    (isId ? 'Insight Utama' : 'Key Insights');
 
   const noResultText =
     vocabularies?.twinSimulator?.noResultText ??
-    (lang === 'id'
+    (isId
       ? 'Isi formulir di sebelah kiri lalu jalankan simulasi untuk melihat perbandingan jalur keuanganmu.'
       : 'Fill in the form on the left and run the simulation to compare your money paths.');
 
-  const scenarioExplanations = vocabularies?.twinSimulator?.scenarioExplanations ?? {
+  const scenarioExplanations = vocabularies?.twinSimulator
+    ?.scenarioExplanations ?? {
     current: {
       title: getScenarioLabel('current'),
-      body:
-        lang === 'id'
-          ? 'Menggunakan pemasukan, pengeluaran, cicilan, dan tabungan persis seperti yang kamu isi.'
-          : 'Uses the income, spending, debt payment, and savings numbers exactly as you enter them.',
+      body: isId
+        ? 'Menggunakan pemasukan, pengeluaran, cicilan, dan tabungan persis seperti yang kamu isi.'
+        : 'Uses the income, spending, debt payment, and savings numbers exactly as you enter them.',
     },
     improved: {
       title: getScenarioLabel('improved'),
-      body:
-        lang === 'id'
-          ? 'Mengurangi pengeluaran gaya hidup 20% dan makan/transport 10%, lalu memakai uang ekstra untuk utang dan tabungan.'
-          : 'Cuts lifestyle spending by 20% and food/transport by 10%, then uses the extra cash for debt and savings.',
+      body: isId
+        ? 'Mengurangi pengeluaran gaya hidup 20% dan makan/transport 10%, lalu memakai uang ekstra untuk utang dan tabungan.'
+        : 'Cuts lifestyle spending by 20% and food/transport by 10%, then uses the extra cash for debt and savings.',
     },
     risky: {
       title: getScenarioLabel('risky'),
-      body:
-        lang === 'id'
-          ? 'Menaikkan pengeluaran fleksibel dan menambahkan satu biaya darurat agar kamu bisa melihat sisi buruknya.'
-          : 'Raises flexible spending and adds one surprise expense so you can see the downside case.',
+      body: isId
+        ? 'Menaikkan pengeluaran fleksibel dan menambahkan satu biaya darurat agar kamu bisa melihat sisi buruknya.'
+        : 'Raises flexible spending and adds one surprise expense so you can see the downside case.',
     },
   };
 
   const fieldHelp = vocabularies?.twinSimulator?.fieldHelp ?? {};
+  const fields = vocabularies?.twinSimulator?.fields ?? {};
   const resultLabels = vocabularies?.twinSimulator?.resultLabels ?? {};
 
   const formatGoalStatus = (
@@ -551,784 +574,708 @@ export default function FinancialTwinSimulator({
       return resultLabels.alreadyReached ?? goalReachedLabel;
     }
     if (goalReachedMonth != null) {
-      return `${resultLabels.reachedInMonth ?? (lang === 'id' ? 'Tercapai di bulan' : 'Reached in month')} ${goalReachedMonth}`;
+      return `${resultLabels.reachedInMonth ?? (isId ? 'Tercapai di bulan' : 'Reached in month')} ${goalReachedMonth}`;
     }
     return goalReachedLabel;
   };
 
+  const groupTitle = (idText: string, enText: string) => (isId ? idText : enText);
+
+  const currencyField = (
+    key: Exclude<
+      keyof FinancialTwinInput,
+      'riskBehavior' | 'timeHorizonMonths' | 'expectedAnnualReturn'
+    >,
+    label: string,
+    helpKey: string,
+  ) => {
+    const range = SLIDER_RANGE[key];
+    return (
+      <SliderField
+        key={key}
+        label={label}
+        value={input[key]}
+        onChange={setField(key)}
+        min={range.min}
+        max={range.max}
+        step={range.step}
+        minLabel={formatRupiahShort(range.min)}
+        maxLabel={formatRupiahShort(range.max)}
+        help={fieldHelp[helpKey]}
+        error={errors[key]}
+      />
+    );
+  };
+
   return (
     <ReactQueryProvider>
-      <div className='min-h-screen bg-slate-50 pb-16 px-4 pt-4 sm:px-6 lg:px-16 lg:pt-2'>
-        <div className='max-w-6xl mx-auto flex flex-col gap-8'>
-          <section className='flex flex-col gap-2'>
-            <h1 className='text-2xl lg:text-3xl font-bold text-slate-900 leading-tight'>
-              {copy.pageTitle}
-            </h1>
-            <p className='text-slate-600 max-w-3xl'>{copy.pageSubtitle}</p>
-          </section>
-
-          {savedPlan && (
-            <TwinCheckInCard
-              lang={lang}
-              vocabularies={vocabularies}
-              plan={savedPlan}
-              onPlanChanged={setSavedPlan}
-              onRestoreInput={handleRestoreSavedInput}
-            />
+      <div className='grid grid-cols-1 lg:grid-cols-2 mt-20 lg:mt-0 lg:h-screen'>
+        {/* ── Hero panel ─────────────────────────────────────────────── */}
+        <div
+          className={cn(
+            'w-full bg-white flex justify-center px-8 py-10 pb-16 lg:px-16 lg:py-24 lg:overflow-y-auto',
+            activeState !== 'input' && 'hidden',
           )}
+        >
+          {/* `my-auto` rather than `items-center`: the panel scrolls, and flex
+              centering would clip the top of taller content out of reach. */}
+          <div className='my-auto flex flex-col gap-6 items-center w-full max-w-md'>
+            <div className='flex flex-col gap-2 text-center'>
+              <img
+                src='/illustrations/twin-simulator-calc.svg'
+                alt='Financial Twin Simulator'
+                className='mx-auto w-44'
+              />
+              <h1 className='text-3xl xl:text-4xl font-bold'>
+                {copy.pageTitle}
+              </h1>
+              <p className='text-sm'>{copy.pageSubtitle}</p>
+            </div>
 
-          <section
-            className={cn(
-              'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5',
-              mobileStep === 'results' && 'hidden lg:block',
+            {/* "Arti tiga jalur ini" — what the three simulated paths mean. */}
+            <div className='w-full flex flex-col gap-2'>
+              <p className='text-sm font-semibold text-center'>
+                {copy.introTitle ??
+                  groupTitle('Arti tiga jalur ini', 'What the three paths mean')}
+              </p>
+              {(['current', 'improved', 'risky'] as const).map((key) => (
+                <div key={key} className='flex gap-2.5 items-start'>
+                  <span
+                    className='mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full'
+                    style={{ background: SCENARIO_COLORS[key] }}
+                  />
+                  <p className='text-xs font-light text-black/70 leading-relaxed'>
+                    <span className='font-semibold text-black'>
+                      {scenarioExplanations[key]?.title ??
+                        getScenarioLabel(key)}
+                      {' — '}
+                    </span>
+                    {scenarioExplanations[key]?.body}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Input panel ────────────────────────────────────────────── */}
+        <div
+          className={cn(
+            // The extra bottom padding keeps the submit button clear of any
+            // bottom-fixed overlay (cookie banner, floating chat) once this
+            // panel is scrolled to its end.
+            'w-full flex flex-col gap-10 lg:gap-8 bg-white lg:bg-docduit-lightblue px-8 py-8 pb-40 lg:py-24 lg:pb-44 lg:px-20 items-center justify-between lg:overflow-y-auto',
+            activeState !== 'input' && 'hidden lg:flex',
+          )}
+        >
+          <div className='w-full flex flex-col gap-8 items-center justify-center'>
+            {savedPlan && (
+              <TwinCheckInCard
+                lang={lang}
+                vocabularies={vocabularies}
+                plan={savedPlan}
+                onPlanChanged={setSavedPlan}
+                onRestoreInput={handleRestoreSavedInput}
+              />
             )}
-          >
-            <div className='grid grid-cols-1 gap-4 lg:grid-cols-[0.9fr_1.6fr] lg:items-start'>
-              <div>
-                <h2 className='text-base font-semibold text-slate-900'>
-                  {copy.introTitle ??
-                    (lang === 'id'
-                      ? 'Cara membaca simulasi ini'
-                      : 'How to read this simulator')}
-                </h2>
-                <p className='mt-1 text-sm text-slate-600'>
-                  {copy.introBody ??
-                    (lang === 'id'
-                      ? 'Ini bukan prediksi pasti. Ini adalah cara cepat membandingkan kebiasaan hari ini dengan versi yang lebih baik dan versi yang lebih berisiko.'
-                      : 'This is not a prediction. It is a quick way to compare today’s habits with a better version and a riskier version.')}
+
+            <div className='w-full flex flex-col gap-1 text-center'>
+              <p className='text-xl font-bold'>{copy.formTitle}</p>
+              <p className='text-xs font-light text-black/60'>
+                {copy.formHelper}
+              </p>
+            </div>
+
+            <FieldGroup
+              title={groupTitle('Pemasukan & Tabungan', 'Income & savings')}
+            >
+              {currencyField(
+                'monthlyIncome',
+                fields.monthlyIncome ??
+                  groupTitle('Penghasilan bersih bulanan', 'Monthly net income'),
+                'monthlyIncome',
+              )}
+              {currencyField(
+                'currentSavings',
+                fields.currentSavings ??
+                  groupTitle(
+                    'Uang yang sudah ditabung/diinvestasikan',
+                    'Current savings & investments',
+                  ),
+                'currentSavings',
+              )}
+            </FieldGroup>
+
+            <FieldGroup
+              title={groupTitle('Pengeluaran Bulanan', 'Monthly spending')}
+            >
+              {currencyField(
+                'essentialSpending',
+                fields.essentialSpending ??
+                  groupTitle('Pengeluaran wajib', 'Essential spending'),
+                'essentialSpending',
+              )}
+              {currencyField(
+                'lifestyleSpending',
+                fields.lifestyleSpending ??
+                  groupTitle('Pengeluaran gaya hidup', 'Lifestyle spending'),
+                'lifestyleSpending',
+              )}
+              {currencyField(
+                'foodTransportSpending',
+                fields.foodTransportSpending ??
+                  groupTitle('Makan & transport', 'Food & transport'),
+                'foodTransportSpending',
+              )}
+              {currencyField(
+                'otherSpending',
+                fields.otherSpending ??
+                  groupTitle(
+                    'Pengeluaran fleksibel lain',
+                    'Other flexible spending',
+                  ),
+                'otherSpending',
+              )}
+            </FieldGroup>
+
+            <FieldGroup title={groupTitle('Utang', 'Debt')}>
+              {currencyField(
+                'debtBalance',
+                fields.debtBalance ??
+                  groupTitle('Sisa utang / paylater', 'Debt / paylater balance'),
+                'debtBalance',
+              )}
+              {currencyField(
+                'monthlyDebtPayment',
+                fields.monthlyDebtPayment ??
+                  groupTitle(
+                    'Pembayaran utang per bulan',
+                    'Monthly debt payment',
+                  ),
+                'monthlyDebtPayment',
+              )}
+            </FieldGroup>
+
+            <FieldGroup
+              title={groupTitle('Target & Asumsi', 'Goal & assumptions')}
+            >
+              {currencyField(
+                'financialGoalAmount',
+                fields.goalAmount ?? groupTitle('Target dana', 'Goal amount'),
+                'goalAmount',
+              )}
+
+              <SliderField
+                label={fields.timeHorizon ?? groupTitle('Timeline', 'Timeline')}
+                value={input.timeHorizonMonths}
+                onChange={setField('timeHorizonMonths')}
+                min={SLIDER_RANGE.timeHorizonMonths.min}
+                max={SLIDER_RANGE.timeHorizonMonths.max}
+                step={SLIDER_RANGE.timeHorizonMonths.step}
+                minLabel={`1 ${monthShort}`}
+                maxLabel={`120 ${monthsShort}`}
+                help={fieldHelp.timeHorizon}
+                error={errors.timeHorizonMonths}
+                mode='month'
+                monthLabel={monthShort}
+                monthLabelPlural={monthsShort}
+              />
+
+              <SliderField
+                label={
+                  fields.expectedReturn ??
+                  groupTitle(
+                    'Asumsi imbal hasil tahunan',
+                    'Expected annual return',
+                  )
+                }
+                value={input.expectedAnnualReturn}
+                onChange={setField('expectedAnnualReturn')}
+                min={SLIDER_RANGE.expectedAnnualReturn.min}
+                max={SLIDER_RANGE.expectedAnnualReturn.max}
+                step={SLIDER_RANGE.expectedAnnualReturn.step}
+                minLabel='0%'
+                maxLabel='20%'
+                help={fieldHelp.expectedReturn}
+                error={errors.expectedAnnualReturn}
+                mode='percent'
+              />
+
+              <div className='w-full flex flex-col gap-2'>
+                <p className='text-lg font-normal'>
+                  {fields.riskBehavior ??
+                    groupTitle(
+                      'Tingkat risiko untuk jalur berisiko',
+                      'Risk level for the risky path',
+                    )}
                 </p>
-              </div>
-              <div className='grid grid-cols-1 gap-3 sm:grid-cols-3'>
-                {(['current', 'improved', 'risky'] as const).map((key) => (
-                  <div
-                    key={key}
-                    className={cn(
-                      'rounded-xl border p-3',
-                      key === 'improved'
-                        ? 'border-emerald-200 bg-emerald-50'
-                        : key === 'risky'
-                          ? 'border-rose-200 bg-rose-50'
-                          : 'border-slate-200 bg-slate-50',
-                    )}
-                  >
-                    <p className='text-sm font-semibold text-slate-900'>
-                      {scenarioExplanations[key]?.title ?? getScenarioLabel(key)}
-                    </p>
-                    <p className='mt-1 text-xs leading-relaxed text-slate-600'>
-                      {scenarioExplanations[key]?.body}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section
-            className={cn(
-              'grid grid-cols-1 gap-6 lg:gap-8 lg:items-start',
-              inputsExpanded
-                ? 'lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)]'
-                : 'lg:grid-cols-[minmax(0,0.7fr)_minmax(0,2.3fr)]',
-            )}
-          >
-            <Card
-              className={cn(
-                'shadow-sm border-slate-200 rounded-2xl lg:sticky lg:top-6 lg:self-start',
-                mobileStep === 'results' && 'hidden lg:block',
-              )}
-            >
-              <CardHeader>
-                <CardTitle className='text-base font-semibold text-slate-900'>
-                  {copy.formTitle}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                {/* Compact summary of the submitted inputs — desktop only, shown
-                    while the form is collapsed after a run. */}
-                <div
-                  className={cn('hidden space-y-3', !inputsExpanded && 'lg:block')}
-                >
-                  <dl className='space-y-2 text-xs'>
-                    {[
-                      {
-                        label:
-                          vocabularies?.twinSimulator?.fields?.monthlyIncome ??
-                          (lang === 'id'
-                            ? 'Penghasilan bulanan'
-                            : 'Monthly income'),
-                        value: formatRupiah(input.monthlyIncome),
-                      },
-                      {
-                        label:
-                          vocabularies?.twinSimulator?.fields?.currentSavings ??
-                          (lang === 'id'
-                            ? 'Tabungan/investasi saat ini'
-                            : 'Current savings'),
-                        value: formatRupiah(input.currentSavings),
-                      },
-                      {
-                        label:
-                          vocabularies?.twinSimulator?.fields?.goalAmount ??
-                          (lang === 'id'
-                            ? 'Target dana tujuan'
-                            : 'Financial goal'),
-                        value: formatRupiah(input.financialGoalAmount),
-                      },
-                      {
-                        label:
-                          vocabularies?.twinSimulator?.fields?.timeHorizon ??
-                          (lang === 'id' ? 'Horizon waktu' : 'Time horizon'),
-                        value: `${input.timeHorizonMonths} ${monthShort}`,
-                      },
-                      {
-                        label:
-                          vocabularies?.twinSimulator?.fields?.riskBehavior ??
-                          (lang === 'id' ? 'Gaya risiko' : 'Risk behavior'),
-                        value:
-                          vocabularies?.twinSimulator?.riskLevels?.[
-                            input.riskBehavior
-                          ] ??
-                          (lang === 'id'
-                            ? input.riskBehavior === 'low'
-                              ? 'Santai'
-                              : input.riskBehavior === 'medium'
-                                ? 'Seimbang'
-                                : 'Agresif'
-                            : input.riskBehavior === 'low'
-                              ? 'Cautious'
-                              : input.riskBehavior === 'medium'
-                                ? 'Balanced'
-                                : 'Aggressive'),
-                      },
-                    ].map((row) => (
-                      <div
-                        key={row.label}
-                        className='flex items-center justify-between gap-3'
-                      >
-                        <dt className='text-slate-500'>{row.label}</dt>
-                        <dd className='shrink-0 font-semibold text-slate-900'>
-                          {row.value}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                  <Button
-                    type='button'
-                    variant='outline'
-                    onClick={showInputs}
-                    className='w-full rounded-full'
-                  >
-                    {lang === 'id' ? 'Ubah input' : 'Edit inputs'}
-                  </Button>
-                </div>
-
-                {/* Full form — always on mobile; desktop hides it while collapsed. */}
-                <div
-                  className={cn('space-y-4', !inputsExpanded && 'lg:hidden')}
-                >
-                  <p className='text-xs leading-relaxed text-slate-500'>
-                    {copy.formHelper ??
-                      (lang === 'id'
-                        ? 'Pakai angka bulanan yang mendekati kondisi aslimu. Tidak harus sempurna, yang penting cukup realistis.'
-                        : 'Use rough monthly numbers that feel close to real life. They do not need to be perfect, just realistic enough.')}
-                  </p>
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <Field
-                    label={
-                      vocabularies?.twinSimulator?.fields?.monthlyIncome ??
-                      (lang === 'id'
-                        ? 'Penghasilan bulanan'
-                        : 'Monthly income')
-                    }
-                    value={input.monthlyIncome}
-                    error={errors.monthlyIncome}
-                    onChange={handleNumberChange('monthlyIncome')}
-                    help={fieldHelp.monthlyIncome}
-                  />
-                  <Field
-                    label={
-                      vocabularies?.twinSimulator?.fields?.currentSavings ??
-                      (lang === 'id'
-                        ? 'Tabungan/investasi saat ini'
-                        : 'Current savings & investments')
-                    }
-                    value={input.currentSavings}
-                    error={errors.currentSavings}
-                    onChange={handleNumberChange('currentSavings')}
-                    help={fieldHelp.currentSavings}
-                  />
-
-                  <Field
-                    label={
-                      vocabularies?.twinSimulator?.fields?.essentialSpending ??
-                      (lang === 'id'
-                        ? 'Kebutuhan pokok (sewa, utilitas, dll.)'
-                        : 'Essential spending (rent, bills, etc.)')
-                    }
-                    value={input.essentialSpending}
-                    error={errors.essentialSpending}
-                    onChange={handleNumberChange('essentialSpending')}
-                    help={fieldHelp.essentialSpending}
-                  />
-                  <Field
-                    label={
-                      vocabularies?.twinSimulator?.fields?.lifestyleSpending ??
-                      (lang === 'id'
-                        ? 'Gaya hidup (nongkrong, hobi, belanja)'
-                        : 'Lifestyle (going out, hobbies, shopping)')
-                    }
-                    value={input.lifestyleSpending}
-                    error={errors.lifestyleSpending}
-                    onChange={handleNumberChange('lifestyleSpending')}
-                    help={fieldHelp.lifestyleSpending}
-                  />
-
-                  <Field
-                    label={
-                      vocabularies?.twinSimulator?.fields
-                        ?.foodTransportSpending ??
-                      (lang === 'id'
-                        ? 'Makan & transport'
-                        : 'Food & transport')
-                    }
-                    value={input.foodTransportSpending}
-                    error={errors.foodTransportSpending}
-                    onChange={handleNumberChange('foodTransportSpending')}
-                    help={fieldHelp.foodTransportSpending}
-                  />
-                  <Field
-                    label={
-                      vocabularies?.twinSimulator?.fields?.otherSpending ??
-                      (lang === 'id'
-                        ? 'Pengeluaran lainnya'
-                        : 'Other spending')
-                    }
-                    value={input.otherSpending}
-                    error={errors.otherSpending}
-                    onChange={handleNumberChange('otherSpending')}
-                    help={fieldHelp.otherSpending}
-                  />
-
-                  <Field
-                    label={
-                      vocabularies?.twinSimulator?.fields?.debtBalance ??
-                      (lang === 'id'
-                        ? 'Total utang/pinjaman berjalan'
-                        : 'Total debt / paylater balance')
-                    }
-                    value={input.debtBalance}
-                    error={errors.debtBalance}
-                    onChange={handleNumberChange('debtBalance')}
-                    help={fieldHelp.debtBalance}
-                  />
-                  <Field
-                    label={
-                      vocabularies?.twinSimulator?.fields?.monthlyDebtPayment ??
-                      (lang === 'id'
-                        ? 'Cicilan utang bulanan'
-                        : 'Monthly debt payment')
-                    }
-                    value={input.monthlyDebtPayment}
-                    error={errors.monthlyDebtPayment}
-                    onChange={handleNumberChange('monthlyDebtPayment')}
-                    help={fieldHelp.monthlyDebtPayment}
-                  />
-
-                  <Field
-                    label={
-                      vocabularies?.twinSimulator?.fields?.goalAmount ??
-                      (lang === 'id'
-                        ? 'Target dana tujuan keuangan'
-                        : 'Financial goal amount')
-                    }
-                    value={input.financialGoalAmount}
-                    error={errors.financialGoalAmount}
-                    onChange={handleNumberChange('financialGoalAmount')}
-                    help={fieldHelp.goalAmount}
-                  />
-                  <Field
-                    label={
-                      vocabularies?.twinSimulator?.fields?.timeHorizon ??
-                      (lang === 'id'
-                        ? 'Horizon waktu (bulan)'
-                        : 'Time horizon (months)')
-                    }
-                    value={input.timeHorizonMonths}
-                    error={errors.timeHorizonMonths}
-                    onChange={handleNumberChange('timeHorizonMonths')}
-                    suffix={monthShort}
-                    help={fieldHelp.timeHorizon}
-                  />
-
-                  <Field
-                    label={
-                      vocabularies?.twinSimulator?.fields?.expectedReturn ??
-                      (lang === 'id'
-                        ? 'Asumsi return tahunan (%)'
-                        : 'Expected annual return (%)')
-                    }
-                    value={input.expectedAnnualReturn}
-                    error={errors.expectedAnnualReturn}
-                    onChange={handleNumberChange('expectedAnnualReturn')}
-                    suffix='%'
-                    help={fieldHelp.expectedReturn}
-                  />
-
-                  <div className='space-y-1.5'>
-                    <Label className='text-xs font-medium text-slate-700'>
-                      {vocabularies?.twinSimulator?.fields?.riskBehavior ??
-                        (lang === 'id'
-                          ? 'Gaya risiko untuk jalur berisiko'
-                          : 'Risk behavior for risky path')}
-                    </Label>
-                    <div className='grid grid-cols-3 gap-2'>
-                      {(['low', 'medium', 'high'] as RiskBehavior[]).map(
-                        (level) => (
-                          <button
-                            key={level}
-                            type='button'
-                            onClick={() => handleRiskChange(level)}
-                            className={cn(
-                              'min-w-0 rounded-full border px-2 py-1 text-xs font-medium transition',
-                              input.riskBehavior === level
-                                ? 'bg-slate-900 text-white border-slate-900'
-                                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50',
-                            )}
-                          >
-                            {vocabularies?.twinSimulator?.riskLevels?.[level] ??
-                              (lang === 'id'
-                                ? level === 'low'
-                                  ? 'Santai'
-                                  : level === 'medium'
-                                    ? 'Seimbang'
-                                    : 'Agresif'
-                                : level === 'low'
-                                  ? 'Cautious'
-                                  : level === 'medium'
-                                    ? 'Balanced'
-                                    : 'Aggressive')}
-                          </button>
-                        ),
+                <div className='grid grid-cols-3 gap-2'>
+                  {(['low', 'medium', 'high'] as RiskBehavior[]).map((level) => (
+                    <button
+                      key={level}
+                      type='button'
+                      onClick={() => handleRiskChange(level)}
+                      className={cn(
+                        'rounded-full border border-black px-3 py-2 text-sm font-semibold transition-colors',
+                        input.riskBehavior === level
+                          ? 'bg-docduit-blue text-white'
+                          : 'bg-white text-docduit-blue hover:bg-docduit-lightgray',
                       )}
-                    </div>
-                    {fieldHelp.riskBehavior && (
-                      <p className='text-[11px] leading-relaxed text-slate-500'>
-                        {fieldHelp.riskBehavior}
-                      </p>
-                    )}
-                    {errors.riskBehavior && (
-                      <p className='text-[11px] text-red-600'>
-                        {errors.riskBehavior}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                  <Button
-                    type='button'
-                    onClick={handleSubmit}
-                    className='w-full rounded-full mt-2'
-                    size='lg'
-                  >
-                    {copy.runButton}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Results are a single vertical stack at every breakpoint. Once the
-                inputs collapse, the section grid widens this column (0.7/2.3) so
-                each card grows rather than splitting into a ragged 2-up. */}
-            <div
-              ref={resultsTopRef}
-              className={cn(
-                'flex flex-col gap-4 scroll-mt-6',
-                mobileStep === 'inputs' && 'hidden',
-              )}
-            >
-              <div className='flex items-center justify-between gap-3 lg:hidden'>
-                <div>
-                  <p className='text-xs font-medium uppercase tracking-wide text-slate-500'>
-                    {lang === 'id' ? 'Hasil simulasi' : 'Simulation results'}
-                  </p>
-                  <h2 className='text-lg font-semibold text-slate-900'>
-                    {copy.summaryTitle}
-                  </h2>
-                </div>
-                <Button
-                  type='button'
-                  variant='outline'
-                  size='sm'
-                  onClick={showInputs}
-                  className='shrink-0 rounded-full'
-                >
-                  {lang === 'id' ? 'Ubah input' : 'Edit inputs'}
-                </Button>
-              </div>
-
-              {isSubmitted && actionPlan && insights && submittedInput && (
-                <VerdictCard
-                  actionPlan={actionPlan}
-                  improved={insights.scenarioSummaries.improved}
-                  horizonMonths={submittedInput.timeHorizonMonths}
-                  improvedLabel={getScenarioLabel('improved')}
-                  lang={lang}
-                />
-              )}
-
-              <CollapsibleCard
-                title={copy.summaryTitle}
-                open={openSections.summary ?? false}
-                onToggle={() => toggleSection('summary')}
-                className='shadow-sm border-slate-200 rounded-2xl'
-                contentClassName='space-y-3'
-              >
-                {copy.summaryHelper && (
-                    <p className='text-xs leading-relaxed text-slate-500'>
-                      {copy.summaryHelper}
-                    </p>
-                  )}
-                  {!results || !insights ? (
-                    <p className='text-xs text-slate-500'>{noResultText}</p>
-                  ) : (
-                    <div className='overflow-x-auto'>
-                      <table className='w-full border-collapse text-xs'>
-                        <thead>
-                          <tr className='text-[11px] font-medium text-slate-500'>
-                            <th className='py-2 pr-2 text-left'>
-                              {lang === 'id' ? 'Jalur' : 'Path'}
-                            </th>
-                            <th className='px-2 py-2 text-right'>
-                              {lang === 'id' ? 'Uang akhir' : 'Final money'}
-                            </th>
-                            <th className='px-2 py-2 text-right'>
-                              {lang === 'id' ? 'Target' : 'Goal'}
-                            </th>
-                            <th className='py-2 pl-2 text-right'>
-                              {lang === 'id' ? 'Dana darurat' : 'Emergency'}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(['current', 'improved', 'risky'] as const).map(
-                            (key) => {
-                              const summary = insights.scenarioSummaries[key];
-                              const isImproved = key === 'improved';
-                              return (
-                                <tr
-                                  key={key}
-                                  className='border-t border-slate-100'
-                                >
-                                  <td className='py-2.5 pr-2'>
-                                    <span className='inline-flex items-center gap-2'>
-                                      <span
-                                        className={cn(
-                                          'h-2 w-2 shrink-0 rounded-full',
-                                          isImproved
-                                            ? 'bg-emerald-500'
-                                            : key === 'risky'
-                                              ? 'bg-rose-500'
-                                              : 'bg-slate-400',
-                                        )}
-                                      />
-                                      <span className='font-medium text-slate-800'>
-                                        {getScenarioLabel(key)}
-                                      </span>
-                                    </span>
-                                  </td>
-                                  <td
-                                    className={cn(
-                                      'px-2 py-2.5 text-right tabular-nums',
-                                      isImproved
-                                        ? 'font-semibold text-emerald-700'
-                                        : 'text-slate-700',
-                                    )}
-                                  >
-                                    {formatRupiah(summary.finalNetPosition)}
-                                  </td>
-                                  <td className='px-2 py-2.5 text-right tabular-nums text-slate-700'>
-                                    {formatGoalStatus(
-                                      summary.goalReached,
-                                      summary.goalReachedMonth,
-                                    )}
-                                  </td>
-                                  <td className='py-2.5 pl-2 text-right tabular-nums text-slate-700'>
-                                    {summary.emergencyFundMonths != null
-                                      ? `${summary.emergencyFundMonths.toFixed(1)} ${lang === 'id' ? 'bln' : 'mo'}`
-                                      : '—'}
-                                  </td>
-                                </tr>
-                              );
-                            },
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-              </CollapsibleCard>
-
-              <CollapsibleCard
-                title={copy.chartTitle}
-                open={openSections.chart ?? false}
-                onToggle={() => toggleSection('chart')}
-                className='shadow-sm border-slate-200 rounded-2xl'
-                contentClassName='space-y-3'
-              >
-                {copy.chartHelper && (
-                    <p className='text-xs leading-relaxed text-slate-500'>
-                      {copy.chartHelper}
-                    </p>
-                  )}
-                  {results && chartData.length > 0 ? (
-                    <ChartContainer
-                      config={{
-                        current: {
-                          label: getScenarioLabel('current'),
-                          color: '#0f172a',
-                        },
-                        improved: {
-                          label: getScenarioLabel('improved'),
-                          color: '#16a34a',
-                        },
-                        risky: {
-                          label: getScenarioLabel('risky'),
-                          color: '#e11d48',
-                        },
-                      }}
-                      className='w-full'
                     >
-                      <LineChart
-                        data={chartData}
-                        margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray='3 3'
-                          vertical={false}
-                          stroke='#eef2f6'
-                        />
-                        <XAxis
-                          dataKey='month'
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fontSize: 11, fill: '#94a3b8' }}
-                        />
-                        <YAxis
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fontSize: 11, fill: '#94a3b8' }}
-                          tickFormatter={(v) =>
-                            lang === 'id'
-                              ? `${v / 1_000_000}jt`
-                              : `${v / 1_000_000}m`
-                          }
-                        />
-                        <ChartTooltip
-                          content={
-                            <ChartTooltipContent
-                              labelFormatter={(value) =>
-                                `${lang === 'id' ? 'Bulan' : 'Month'} ${value}`
-                              }
-                              formatter={(value, name) => {
-                                return (
-                                  <div className='flex w-full justify-between gap-2'>
-                                    <span>{name}</span>
-                                    <span className='font-mono'>
-                                      {formatRupiah(value as number)}
-                                    </span>
-                                  </div>
-                                );
-                              }}
-                            />
-                          }
-                        />
-                        {submittedInput && (
-                          <ReferenceLine
-                            y={submittedInput.financialGoalAmount}
-                            stroke='#94a3b8'
-                            strokeDasharray='4 4'
-                            strokeWidth={1}
-                            label={{
-                              value: lang === 'id' ? 'target' : 'goal',
-                              position: 'insideTopRight',
-                              fontSize: 10,
-                              fill: '#94a3b8',
-                            }}
-                          />
-                        )}
-                        <Legend />
-                        {/* Supporting paths are muted; the "improved" path is
-                            drawn last and heavier so it reads as the answer. */}
-                        <Line
-                          type='monotone'
-                          dataKey='current'
-                          name={getScenarioLabel('current')}
-                          stroke='var(--color-current)'
-                          strokeOpacity={0.85}
-                          dot={false}
-                          strokeWidth={1.5}
-                        />
-                        <Line
-                          type='monotone'
-                          dataKey='risky'
-                          name={getScenarioLabel('risky')}
-                          stroke='var(--color-risky)'
-                          strokeOpacity={0.65}
-                          dot={false}
-                          strokeWidth={1.5}
-                        />
-                        <Line
-                          type='monotone'
-                          dataKey='improved'
-                          name={getScenarioLabel('improved')}
-                          stroke='var(--color-improved)'
-                          dot={false}
-                          strokeWidth={3}
-                        />
-                      </LineChart>
-                    </ChartContainer>
-                  ) : (
-                    <p className='text-xs text-slate-500'>
-                      {lang === 'id'
-                        ? 'Grafik akan muncul setelah kamu menjalankan simulasi.'
-                        : 'The chart will appear after you run the simulation.'}
-                    </p>
-                  )}
-              </CollapsibleCard>
-
-              <CollapsibleCard
-                title={insightsSectionTitle}
-                open={openSections.insights ?? false}
-                onToggle={() => toggleSection('insights')}
-                desktopCollapsible
-                className='shadow-sm border-slate-200 rounded-2xl'
-              >
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div className='rounded-xl border border-slate-200 bg-slate-50 p-3'>
-                    <p className='text-sm font-semibold text-slate-900'>
-                      {bottleneckTitle}
-                    </p>
-                    <p className='mt-1 text-xs text-slate-600 min-h-[2.5rem]'>
-                      {isSubmitted ? biggestBottleneck : '—'}
-                    </p>
-                  </div>
-                  <div className='rounded-xl border border-slate-200 bg-slate-50 p-3'>
-                    <p className='text-sm font-semibold text-slate-900'>
-                      {bestActionTitle}
-                    </p>
-                    <p className='mt-1 text-xs text-slate-600 min-h-[2.5rem]'>
-                      {isSubmitted ? bestNextAction : '—'}
-                    </p>
-                  </div>
+                      {vocabularies?.twinSimulator?.riskLevels?.[level] ??
+                        (isId
+                          ? level === 'low'
+                            ? 'Rendah'
+                            : level === 'medium'
+                              ? 'Sedang'
+                              : 'Tinggi'
+                          : level === 'low'
+                            ? 'Low'
+                            : level === 'medium'
+                              ? 'Medium'
+                              : 'High')}
+                    </button>
+                  ))}
                 </div>
-              </CollapsibleCard>
-
-              {isSubmitted && narrativeState !== 'idle' && (
-                <NarrativeCard
-                  narrative={narrative}
-                  state={narrativeState}
-                  lang={lang}
-                  vocabularies={vocabularies}
-                  open={openSections.narrative ?? false}
-                  onToggle={() => toggleSection('narrative')}
-                />
-              )}
-
-              {isSubmitted && actionPlan && results && submittedInput && (
-                <ActionPlanCard
-                  actionPlan={actionPlan}
-                  submittedInput={submittedInput}
-                  horizonMonths={results.current.snapshots.length}
-                  vocabularies={vocabularies}
-                  lang={lang}
-                  open={openSections.actionPlan ?? false}
-                  onToggle={() => toggleSection('actionPlan')}
-                />
-              )}
-
-              {isSubmitted &&
-                actionPlan &&
-                results &&
-                insights &&
-                submittedInput && (
-                  <SavePlanCard
-                    lang={lang}
-                    vocabularies={vocabularies}
-                    submittedInput={submittedInput}
-                    results={results}
-                    insights={insights}
-                    actionPlan={actionPlan}
-                    isAuthenticated={Boolean(user?.email)}
-                    onPlanSaved={setSavedPlan}
-                  />
+                {fieldHelp.riskBehavior && (
+                  <p className='text-xs font-light text-black/60 text-center'>
+                    {fieldHelp.riskBehavior}
+                  </p>
                 )}
-            </div>
-          </section>
+                {errors.riskBehavior && (
+                  <p className='text-xs font-medium text-docduit-red text-center'>
+                    {errors.riskBehavior}
+                  </p>
+                )}
+              </div>
+            </FieldGroup>
+          </div>
 
-          <section className='mt-4'>
-            <Card className='border-amber-300 bg-amber-50/80 rounded-2xl'>
-              <CardHeader className='pb-1'>
-                <CardTitle className='text-sm font-semibold text-amber-900'>
-                  {copy.disclaimerTitle}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className='text-xs text-amber-900'>{copy.disclaimerBody}</p>
-              </CardContent>
-            </Card>
-          </section>
+          <div className='flex flex-col gap-8 items-center w-full'>
+            <Button onClick={handleSubmit} size='lg' variant='red'>
+              {copy.runButton}
+            </Button>
+            <DisclaimerNote
+              title={copy.disclaimerTitle}
+              body={copy.disclaimerBody}
+            />
+          </div>
+        </div>
+
+        {/* ── Results panel ──────────────────────────────────────────── */}
+        <div
+          ref={resultsPanelRef}
+          className={cn(
+            'w-full flex-col gap-8 bg-white px-8 py-8 pb-40 lg:py-24 lg:pb-44 lg:px-20 items-center lg:overflow-y-auto',
+            activeState === 'results' ? 'flex' : 'hidden',
+          )}
+        >
+          <div className='w-full max-w-xl flex flex-col gap-8 items-center'>
+            {actionPlan && insights && submittedInput && (
+              <ResultHeadline
+                actionPlan={actionPlan}
+                improved={insights.scenarioSummaries.improved}
+                horizonMonths={submittedInput.timeHorizonMonths}
+                improvedLabel={getScenarioLabel('improved')}
+                monthShort={monthShort}
+                monthsShort={monthsShort}
+                vocabularies={vocabularies}
+                lang={lang}
+              />
+            )}
+
+            {/* Three-path comparison */}
+            <div className='w-full flex flex-col gap-2'>
+              <p className='text-sm text-center'>{copy.summaryTitle}</p>
+              {copy.summaryHelper && (
+                <p className='text-xs font-light text-black/60 text-center'>
+                  {copy.summaryHelper}
+                </p>
+              )}
+              {!results || !insights ? (
+                <p className='text-xs font-light text-black/60 text-center'>
+                  {noResultText}
+                </p>
+              ) : (
+                <div className='mt-1 overflow-x-auto rounded-2xl border border-black'>
+                  <table className='w-full border-collapse text-xs'>
+                    <thead>
+                      <tr className='bg-docduit-lightblue'>
+                        <th className='py-2.5 pl-4 pr-2 text-left font-semibold'>
+                          {isId ? 'Jalur' : 'Path'}
+                        </th>
+                        <th className='px-2 py-2.5 text-right font-semibold'>
+                          {isId ? 'Uang akhir' : 'Final money'}
+                        </th>
+                        <th className='px-2 py-2.5 text-right font-semibold'>
+                          {isId ? 'Target' : 'Goal'}
+                        </th>
+                        <th className='py-2.5 pl-2 pr-4 text-right font-semibold'>
+                          {isId ? 'Dana darurat' : 'Emergency'}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(['current', 'improved', 'risky'] as const).map((key) => {
+                        const summary = insights.scenarioSummaries[key];
+                        const isImproved = key === 'improved';
+                        return (
+                          <tr key={key} className='border-t border-black/10'>
+                            <td className='py-3 pl-4 pr-2'>
+                              <span className='inline-flex items-center gap-2'>
+                                <span
+                                  className='h-2.5 w-2.5 shrink-0 rounded-full'
+                                  style={{ background: SCENARIO_COLORS[key] }}
+                                />
+                                <span className='font-medium'>
+                                  {getScenarioLabel(key)}
+                                </span>
+                              </span>
+                            </td>
+                            <td
+                              className={cn(
+                                'px-2 py-3 text-right tabular-nums',
+                                isImproved && 'font-bold',
+                              )}
+                              style={
+                                isImproved
+                                  ? { color: SCENARIO_COLORS.improved }
+                                  : undefined
+                              }
+                            >
+                              {formatRupiah(summary.finalNetPosition)}
+                            </td>
+                            <td className='px-2 py-3 text-right tabular-nums'>
+                              {formatGoalStatus(
+                                summary.goalReached,
+                                summary.goalReachedMonth,
+                              )}
+                            </td>
+                            <td className='py-3 pl-2 pr-4 text-right tabular-nums'>
+                              {summary.emergencyFundMonths != null
+                                ? `${summary.emergencyFundMonths.toFixed(1)} ${isId ? 'bln' : 'mo'}`
+                                : '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Month-by-month projection */}
+            <div className='w-full flex flex-col gap-2'>
+              <p className='text-sm text-center'>{copy.chartTitle}</p>
+              {copy.chartHelper && (
+                <p className='text-xs font-light text-black/60 text-center'>
+                  {copy.chartHelper}
+                </p>
+              )}
+              {results && chartData.length > 0 ? (
+                <ChartContainer
+                  config={{
+                    current: {
+                      label: getScenarioLabel('current'),
+                      color: SCENARIO_COLORS.current,
+                    },
+                    improved: {
+                      label: getScenarioLabel('improved'),
+                      color: SCENARIO_COLORS.improved,
+                    },
+                    risky: {
+                      label: getScenarioLabel('risky'),
+                      color: SCENARIO_COLORS.risky,
+                    },
+                  }}
+                  className='w-full'
+                >
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey='month'
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={10}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(v) =>
+                        isId ? `${v / 1_000_000}jt` : `${v / 1_000_000}m`
+                      }
+                    />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          labelFormatter={(value) =>
+                            `${isId ? 'Bulan' : 'Month'} ${value}`
+                          }
+                          formatter={(value, name) => {
+                            return (
+                              <div className='flex w-full justify-between gap-2'>
+                                <span>{name}</span>
+                                <span className='font-mono'>
+                                  {formatRupiah(value as number)}
+                                </span>
+                              </div>
+                            );
+                          }}
+                        />
+                      }
+                    />
+                    {submittedInput && (
+                      <ReferenceLine
+                        y={submittedInput.financialGoalAmount}
+                        stroke='#fec525'
+                        strokeDasharray='4 4'
+                        strokeWidth={2}
+                        label={{
+                          value: isId ? 'target' : 'goal',
+                          position: 'insideTopRight',
+                          fontSize: 10,
+                        }}
+                      />
+                    )}
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    {/* Supporting paths are muted; the "improved" path is
+                        drawn last and heavier so it reads as the answer. */}
+                    <Line
+                      type='monotone'
+                      dataKey='current'
+                      name={getScenarioLabel('current')}
+                      stroke='var(--color-current)'
+                      strokeOpacity={0.85}
+                      dot={false}
+                      strokeWidth={2}
+                    />
+                    <Line
+                      type='monotone'
+                      dataKey='risky'
+                      name={getScenarioLabel('risky')}
+                      stroke='var(--color-risky)'
+                      strokeOpacity={0.75}
+                      dot={false}
+                      strokeWidth={2}
+                    />
+                    <Line
+                      type='monotone'
+                      dataKey='improved'
+                      name={getScenarioLabel('improved')}
+                      stroke='var(--color-improved)'
+                      dot={false}
+                      strokeWidth={3.5}
+                    />
+                  </LineChart>
+                </ChartContainer>
+              ) : (
+                <p className='text-xs font-light text-black/60 text-center'>
+                  {isId
+                    ? 'Grafik akan muncul setelah kamu menjalankan simulasi.'
+                    : 'The chart will appear after you run the simulation.'}
+                </p>
+              )}
+            </div>
+
+            <CollapsibleCard
+              title={insightsSectionTitle}
+              open={openSections.insights ?? false}
+              onToggle={() => toggleSection('insights')}
+              desktopCollapsible
+              className='w-full rounded-2xl border-black shadow-none'
+              titleClassName='text-base font-bold text-black'
+            >
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+                <div className='rounded-2xl bg-docduit-lightblue p-3'>
+                  <p className='text-sm font-semibold'>{bottleneckTitle}</p>
+                  <p className='mt-1 text-xs font-light leading-relaxed min-h-[2.5rem]'>
+                    {isSubmitted ? biggestBottleneck : '—'}
+                  </p>
+                </div>
+                <div className='rounded-2xl bg-docduit-lightyellow p-3'>
+                  <p className='text-sm font-semibold'>{bestActionTitle}</p>
+                  <p className='mt-1 text-xs font-light leading-relaxed min-h-[2.5rem]'>
+                    {isSubmitted ? bestNextAction : '—'}
+                  </p>
+                </div>
+              </div>
+            </CollapsibleCard>
+
+            {isSubmitted && narrativeState !== 'idle' && (
+              <NarrativeCard
+                narrative={narrative}
+                state={narrativeState}
+                lang={lang}
+                vocabularies={vocabularies}
+                open={openSections.narrative ?? false}
+                onToggle={() => toggleSection('narrative')}
+              />
+            )}
+
+            {isSubmitted && actionPlan && results && submittedInput && (
+              <ActionPlanCard
+                actionPlan={actionPlan}
+                submittedInput={submittedInput}
+                horizonMonths={results.current.snapshots.length}
+                vocabularies={vocabularies}
+                lang={lang}
+                open={openSections.actionPlan ?? false}
+                onToggle={() => toggleSection('actionPlan')}
+              />
+            )}
+
+            {isSubmitted &&
+              actionPlan &&
+              results &&
+              insights &&
+              submittedInput && (
+                <SavePlanCard
+                  lang={lang}
+                  vocabularies={vocabularies}
+                  submittedInput={submittedInput}
+                  results={results}
+                  insights={insights}
+                  actionPlan={actionPlan}
+                  isAuthenticated={Boolean(user?.email)}
+                  onPlanSaved={setSavedPlan}
+                />
+              )}
+
+            <Button onClick={showInputs} className='lg:hidden' variant='link'>
+              {isId ? 'Ubah input' : 'Edit inputs'}
+            </Button>
+
+            <DisclaimerNote
+              title={copy.disclaimerTitle}
+              body={copy.disclaimerBody}
+            />
+          </div>
         </div>
       </div>
     </ReactQueryProvider>
   );
 }
 
-function Field({
+function FieldGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className='w-full flex flex-col gap-6'>
+      <p className='text-xs font-semibold uppercase tracking-wide text-docduit-blue'>
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * One question in the calculator house style: label, yellow slider, the range
+ * end labels, and the big blue number that stays typeable for exact amounts.
+ */
+function SliderField({
   label,
   value,
   onChange,
-  error,
-  suffix,
+  min,
+  max,
+  step,
+  minLabel,
+  maxLabel,
   help,
+  error,
+  mode = 'currency',
+  monthLabel,
+  monthLabelPlural,
 }: {
   label: string;
   value: number;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  error?: string;
-  suffix?: string;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+  step: number;
+  minLabel: string;
+  maxLabel: string;
   help?: string;
+  error?: string;
+  mode?: 'currency' | 'month' | 'percent';
+  monthLabel?: string;
+  monthLabelPlural?: string;
 }) {
-  const formatted = suffix
-    ? String(value)
-    : new Intl.NumberFormat('id-ID').format(value);
-
   return (
-    <div className='space-y-1.5'>
-      <Label className='text-xs font-medium text-slate-700'>{label}</Label>
-      <div className='relative'>
-        <span className='absolute inset-y-0 left-0 flex items-center pl-3 text-[11px] text-slate-400'>
-          {suffix === '%' || suffix === 'month' || suffix === 'bulan'
-            ? ''
-            : 'Rp'}
-        </span>
-        <Input
-          value={formatted}
-          onChange={onChange}
-          onFocus={(e) => e.target.select()}
-          className={cn(
-            'h-9 text-xs rounded-full bg-white border-slate-200 pl-8',
-            suffix && (suffix === '%' || suffix === 'month' || suffix === 'bulan')
-              ? 'pl-3'
-              : 'pl-8',
-          )}
-        />
-        {suffix && (
-          <span className='absolute inset-y-0 right-0 flex items-center pr-3 text-[11px] text-slate-400'>
-            {suffix}
-          </span>
-        )}
+    <div className='w-full flex flex-col gap-2'>
+      <p className='text-lg font-normal'>{label}</p>
+      <Slider
+        onValueChange={(next) => onChange(next[0])}
+        className='bg-docduit-yellow rounded-lg'
+        value={[Math.min(Math.max(value, min), max)]}
+        min={min}
+        max={max}
+        step={step}
+      />
+      <div className='flex justify-between'>
+        <p className='text-sm font-light'>{minLabel}</p>
+        <p className='text-sm font-light'>{maxLabel}</p>
       </div>
-      {help && <p className='text-[11px] leading-relaxed text-slate-500'>{help}</p>}
-      {error && <p className='text-[11px] text-red-600'>{error}</p>}
+      {mode === 'percent' ? (
+        <PercentInput value={value} setValue={onChange} />
+      ) : (
+        <InputCalculationNumber
+          value={value}
+          setValue={onChange}
+          isMonth={mode === 'month'}
+          monthLable={monthLabel}
+          monthLabelPlural={monthLabelPlural}
+        />
+      )}
+      {help && (
+        <p className='text-xs font-light text-black/60 text-center'>{help}</p>
+      )}
+      {error && (
+        <p className='text-xs font-medium text-docduit-red text-center'>
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Percentage twin of `InputCalculationNumber` — same typography, `%` suffix
+ * instead of the `Rp` prefix.
+ */
+function PercentInput({
+  value,
+  setValue,
+}: {
+  value: number;
+  setValue: (value: number) => void;
+}) {
+  return (
+    <Input
+      onChange={(e) => setValue(Number(e.target.value.replace(/\D/g, '')))}
+      onClick={(e) => e.currentTarget.select()}
+      value={`${value}%`}
+      className='ring-0 border-0 !bg-transparent text-center !font-semibold !text-4xl text-docduit-blue underline-offset-4 underline decoration-1'
+    />
+  );
+}
+
+function DisclaimerNote({ title, body }: { title: string; body: string }) {
+  return (
+    <div className='w-full rounded-2xl border border-black bg-docduit-lightyellow p-4'>
+      <p className='text-xs font-semibold'>{title}</p>
+      <p className='mt-1 text-xs font-light leading-relaxed'>{body}</p>
     </div>
   );
 }
@@ -1343,9 +1290,9 @@ function fillTemplate(
 }
 
 const HEALTH_DOT_CLASS: Record<HealthStatus, string> = {
-  good: 'bg-emerald-500',
-  warning: 'bg-amber-500',
-  alert: 'bg-rose-500',
+  good: 'bg-docduit-green',
+  warning: 'bg-docduit-yellow',
+  alert: 'bg-docduit-red',
 };
 
 // Single-paragraph message (the chat input is a one-line field) summarizing the
@@ -1423,84 +1370,158 @@ function buildConsultationPrefill(
   );
 }
 
-// The single headline the results view opens on: turns the action plan into
-// one plain-language verdict (the monthly gap, projected month, or "on track")
-// so the answer is legible before any of the supporting cards.
-function VerdictCard({
+/**
+ * The answer, in the calculator result house style: one bold sentence with the
+ * key number picked out in blue, then the pill row — what you need to save per
+ * month, what your budget leaves, and the gap.
+ */
+function ResultHeadline({
   actionPlan,
   improved,
   horizonMonths,
   improvedLabel,
+  monthShort,
+  monthsShort,
+  vocabularies,
   lang,
 }: {
   actionPlan: ActionPlan;
   improved: { goalReached: boolean; goalReachedMonth: number | null };
   horizonMonths: number;
   improvedLabel: string;
+  monthShort: string;
+  monthsShort: string;
+  vocabularies: any;
   lang: Locale;
 }) {
   const isId = lang === 'id';
+  const dict = vocabularies?.twinSimulator?.actionPlan ?? {};
+  const monthWord = horizonMonths > 1 ? monthsShort : monthShort;
 
-  let heroValue: string;
-  let heroCaption: string;
-  let showPerMonth = false;
-
+  let headline: React.ReactNode;
   if (actionPlan.alreadyAtGoal) {
-    heroValue = isId ? 'Target sudah tercapai' : 'Goal already covered';
-    heroCaption = isId
-      ? 'Tabunganmu sudah menutupi target ini. Pakai langkah di bawah untuk memperkuat cadangan.'
-      : 'Your savings already cover this goal. Use the steps below to build your buffer.';
-  } else if (actionPlan.savingGap != null) {
-    heroValue = formatRupiah(actionPlan.savingGap);
-    showPerMonth = true;
-    heroCaption = isId
-      ? `kurang per bulan agar target tercapai tepat waktu dalam ${horizonMonths} bulan`
-      : `short each month to reach your goal on time within ${horizonMonths} months`;
+    headline = isId ? (
+      <>
+        Targetmu <span className='text-docduit-blue'>sudah tercapai</span>
+      </>
+    ) : (
+      <>
+        Your goal is <span className='text-docduit-blue'>already covered</span>
+      </>
+    );
   } else if (
     actionPlan.projectedGoalMonth != null &&
     actionPlan.projectedGoalMonth <= horizonMonths
   ) {
-    heroValue = isId
-      ? `Bulan ${actionPlan.projectedGoalMonth}`
-      : `Month ${actionPlan.projectedGoalMonth}`;
-    heroCaption = isId
-      ? 'perkiraan target tercapai dengan kebiasaan sekarang'
-      : 'projected to reach your goal at your current pace';
+    headline = isId ? (
+      <>
+        Kamu akan mencapai targetmu di{' '}
+        <span className='text-docduit-blue'>
+          bulan ke-{actionPlan.projectedGoalMonth}
+        </span>
+      </>
+    ) : (
+      <>
+        You reach your goal in{' '}
+        <span className='text-docduit-blue'>
+          month {actionPlan.projectedGoalMonth}
+        </span>
+      </>
+    );
   } else {
-    heroValue = isId ? 'Belum tercapai' : 'Not yet reached';
-    heroCaption = isId
-      ? `target belum tercapai dalam ${horizonMonths} bulan dengan kebiasaan sekarang`
-      : `goal not reached within ${horizonMonths} months at your current pace`;
+    headline = isId ? (
+      <>
+        Targetmu <span className='text-docduit-red'>belum tercapai</span> dalam{' '}
+        <span className='text-docduit-blue'>
+          {horizonMonths} {monthWord}
+        </span>
+      </>
+    ) : (
+      <>
+        You <span className='text-docduit-red'>don&apos;t reach</span> your goal
+        in{' '}
+        <span className='text-docduit-blue'>
+          {horizonMonths} {monthWord}
+        </span>
+      </>
+    );
   }
 
+  const requiredLabel =
+    dict.requiredPerMonth ??
+    (isId
+      ? 'Perlu ditabung per bulan agar target tercapai tepat waktu'
+      : 'Needed per month to hit your goal on time');
+  const capacityLabel =
+    dict.capacityPerMonth ??
+    (isId ? 'Sisa anggaranmu per bulan' : 'What your budget leaves per month');
+
+  // With a shortfall we show what is missing; otherwise the same slot shows the
+  // room left over, so the pill never reads "you are Rp 0 short".
+  const hasGap = actionPlan.savingGap != null;
+  const surplus =
+    actionPlan.requiredMonthlySaving != null
+      ? Math.max(actionPlan.monthlyCapacity - actionPlan.requiredMonthlySaving, 0)
+      : Math.max(actionPlan.monthlyCapacity, 0);
+  const gapLabel = hasGap
+    ? isId
+      ? 'Kekurangan per bulan'
+      : 'Short each month'
+    : isId
+      ? 'Sisa setelah target'
+      : 'Room left over';
+
   return (
-    <div className='rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:p-5'>
-      <p className='text-[11px] font-semibold uppercase tracking-wide text-slate-500'>
-        {isId ? 'Hasil simulasi' : 'Simulation result'}
-      </p>
-      <div className='mt-2 flex flex-wrap items-end justify-between gap-3'>
-        <div>
-          <p className='text-2xl font-bold leading-tight text-slate-900 lg:text-3xl'>
-            {heroValue}
-            {showPerMonth && (
-              <span className='ml-1 text-sm font-medium text-slate-500'>
-                {isId ? '/bln' : '/mo'}
-              </span>
-            )}
-          </p>
-          <p className='mt-1 max-w-md text-xs leading-relaxed text-slate-600'>
-            {heroCaption}
-          </p>
-        </div>
-        {improved.goalReached && improved.goalReachedMonth != null && (
-          <div className='text-right'>
-            <p className='text-[11px] text-slate-500'>{improvedLabel}</p>
-            <p className='text-base font-semibold text-emerald-600'>
-              {isId ? 'Tercapai bln ' : 'Reached mo '}
-              {improved.goalReachedMonth}
+    <div className='w-full flex flex-col gap-6 items-center'>
+      <p className='font-bold text-xl lg:text-3xl text-center'>{headline}</p>
+
+      {improved.goalReached && improved.goalReachedMonth != null && (
+        <p className='text-xs font-light text-center'>
+          {improvedLabel}:{' '}
+          <span
+            className='font-semibold'
+            style={{ color: SCENARIO_COLORS.improved }}
+          >
+            {isId
+              ? `tercapai di bulan ke-${improved.goalReachedMonth}`
+              : `reached in month ${improved.goalReachedMonth}`}
+          </span>
+        </p>
+      )}
+
+      {actionPlan.requiredMonthlySaving != null && (
+        <div className='flex flex-col gap-2 w-full'>
+          <p className='text-sm text-center'>{requiredLabel} :</p>
+          <div className='bg-docduit-lightblue border border-black rounded-full p-2'>
+            <p className='font-semibold text-lg text-center'>
+              {formatRupiah(actionPlan.requiredMonthlySaving)}
             </p>
           </div>
-        )}
+        </div>
+      )}
+
+      <div className='grid grid-cols-2 gap-2 w-full'>
+        <div className='flex flex-col gap-2 w-full'>
+          <p className='text-sm text-center'>{capacityLabel} :</p>
+          <div className='bg-docduit-lightyellow border border-black rounded-full p-2'>
+            <p className='font-bold text-center w-full'>
+              {formatRupiah(actionPlan.monthlyCapacity)}
+            </p>
+          </div>
+        </div>
+        <div className='flex flex-col gap-2 w-full'>
+          <p className='text-sm text-center'>{gapLabel} :</p>
+          <div
+            className={cn(
+              'border border-black rounded-full p-2 w-full',
+              hasGap ? 'bg-docduit-lightred' : 'bg-docduit-lightblue',
+            )}
+          >
+            <p className='font-bold text-center'>
+              {formatRupiah(hasGap ? (actionPlan.savingGap as number) : surplus)}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1532,14 +1553,15 @@ function NarrativeCard({
 
   return (
     <CollapsibleCard
-      className='shadow-sm border-slate-200 rounded-2xl'
+      className='w-full rounded-2xl border-black shadow-none'
+      titleClassName='text-base font-bold text-black'
       title={t(
         'title',
         'Bacaan AI dari simulasimu',
         'AI reading of your simulation',
       )}
       accessory={
-        <span className='inline-flex items-center rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white'>
+        <span className='inline-flex items-center rounded-full bg-docduit-blue px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white'>
           {t('badge', 'AI', 'AI')}
         </span>
       }
@@ -1548,66 +1570,68 @@ function NarrativeCard({
       desktopCollapsible
       contentClassName='space-y-3'
     >
-        {state === 'loading' || !narrative ? (
-          <div className='space-y-2' aria-live='polite'>
-            <div className='h-3 w-2/3 animate-pulse rounded-full bg-slate-200' />
-            <div className='h-3 w-full animate-pulse rounded-full bg-slate-200' />
-            <div className='h-3 w-5/6 animate-pulse rounded-full bg-slate-200' />
-            <p className='text-[11px] text-slate-500'>
-              {t(
-                'loading',
-                'AI sedang menyusun penjelasan dari angkamu…',
-                'AI is writing an explanation from your numbers…',
-              )}
+      {state === 'loading' || !narrative ? (
+        <div className='space-y-2' aria-live='polite'>
+          <div className='h-3 w-2/3 animate-pulse rounded-full bg-docduit-lightgray' />
+          <div className='h-3 w-full animate-pulse rounded-full bg-docduit-lightgray' />
+          <div className='h-3 w-5/6 animate-pulse rounded-full bg-docduit-lightgray' />
+          <p className='text-xs font-light text-black/60'>
+            {t(
+              'loading',
+              'AI sedang menyusun penjelasan dari angkamu…',
+              'AI is writing an explanation from your numbers…',
+            )}
+          </p>
+        </div>
+      ) : (
+        <>
+          {narrative.headline && (
+            <p className='text-sm font-semibold'>{narrative.headline}</p>
+          )}
+          <p className='text-xs font-light leading-relaxed'>
+            {narrative.summary}
+          </p>
+          {narrative.bottleneckExplanation && (
+            <p className='text-xs font-light leading-relaxed'>
+              {narrative.bottleneckExplanation}
             </p>
-          </div>
-        ) : (
-          <>
-            {narrative.headline && (
-              <p className='text-sm font-semibold text-slate-900'>
-                {narrative.headline}
+          )}
+          {narrative.recommendedActions.length > 0 && (
+            <div>
+              <p className='text-xs font-semibold'>
+                {t(
+                  'actionsTitle',
+                  'Langkah yang disarankan AI',
+                  'AI-suggested steps',
+                )}
               </p>
-            )}
-            <p className='text-xs leading-relaxed text-slate-700'>
-              {narrative.summary}
+              <ul className='mt-1 space-y-1'>
+                {narrative.recommendedActions.map((action, index) => (
+                  <li
+                    key={index}
+                    className='flex gap-2 text-xs font-light leading-relaxed'
+                  >
+                    <span className='mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-docduit-blue' />
+                    <span>{action}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {narrative.encouragement && (
+            <p className='text-xs font-medium leading-relaxed'>
+              {narrative.encouragement}
             </p>
-            {narrative.bottleneckExplanation && (
-              <p className='text-xs leading-relaxed text-slate-700'>
-                {narrative.bottleneckExplanation}
-              </p>
+          )}
+          <p className='text-[10px] font-light leading-relaxed text-black/50'>
+            {t(
+              'disclaimer',
+              'Teks ini dibuat oleh AI berdasarkan hasil simulasi dan hanya untuk edukasi — bukan nasihat keuangan berlisensi.',
+              'This text is generated by AI from your simulation results and is for education only — not licensed financial advice.',
             )}
-            {narrative.recommendedActions.length > 0 && (
-              <div>
-                <p className='text-xs font-semibold text-slate-800'>
-                  {t('actionsTitle', 'Langkah yang disarankan AI', 'AI-suggested steps')}
-                </p>
-                <ul className='mt-1 space-y-1'>
-                  {narrative.recommendedActions.map((action, index) => (
-                    <li
-                      key={index}
-                      className='flex gap-2 text-xs leading-relaxed text-slate-700'
-                    >
-                      <span className='mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400' />
-                      <span>{action}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {narrative.encouragement && (
-              <p className='text-xs font-medium leading-relaxed text-slate-700'>
-                {narrative.encouragement}
-              </p>
-            )}
-            <p className='text-[10px] leading-relaxed text-slate-400'>
-              {t(
-                'disclaimer',
-                'Teks ini dibuat oleh AI berdasarkan hasil simulasi dan hanya untuk edukasi — bukan nasihat keuangan berlisensi.',
-                'This text is generated by AI from your simulation results and is for education only — not licensed financial advice.',
-              )}
-            </p>
-          </>
-        )}
+          </p>
+        </>
+      )}
     </CollapsibleCard>
   );
 }
@@ -1642,6 +1666,13 @@ function ActionPlanCard({
   };
 
   const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
+
+  // English needs "1 month" but "3 months"; Indonesian uses "bulan" either way.
+  // The locale strings carry a {monthsWord} slot that this fills.
+  const monthsWord = (count: number) =>
+    count === 1
+      ? (vocabularies?.calculators?.month ?? (isId ? 'bulan' : 'month'))
+      : (vocabularies?.calculators?.months ?? (isId ? 'bulan' : 'months'));
 
   const healthItems: {
     label: string;
@@ -1712,11 +1743,14 @@ function ActionPlanCard({
           t(
             'projectedLate',
             'Dengan kebiasaan sekarang, target baru tercapai di bulan {month} — telat {late} bulan dari rencanamu.',
-            'At your current pace, this goal lands at month {month} — {late} months past your timeline.',
+            'At your current pace, this goal lands at month {month} — {late} {monthsWord} past your timeline.',
           ),
           {
             month: actionPlan.projectedGoalMonth,
             late: actionPlan.projectedGoalMonth - horizonMonths,
+            monthsWord: monthsWord(
+              actionPlan.projectedGoalMonth - horizonMonths,
+            ),
           },
         )
       : t(
@@ -1768,12 +1802,13 @@ function ActionPlanCard({
         t(
           'impactEarlier',
           'Target tercapai di bulan {month}, bukan bulan {before} — lebih cepat {saved} bulan',
-          'Goal at month {month} instead of {before} — {saved} months earlier',
+          'Goal at month {month} instead of {before} — {saved} {monthsWord} earlier',
         ),
         {
           month: lever.goalMonthAfter,
           before: lever.goalMonthBefore,
           saved: lever.monthsSaved,
+          monthsWord: monthsWord(lever.monthsSaved),
         },
       );
     }
@@ -1789,177 +1824,173 @@ function ActionPlanCard({
 
   return (
     <CollapsibleCard
-      className='shadow-sm border-slate-200 rounded-2xl'
+      className='w-full rounded-2xl border-black shadow-none'
+      titleClassName='text-base font-bold text-black'
       title={t('title', 'Rencana Aksimu', 'Your Action Plan')}
       open={open}
       onToggle={onToggle}
       contentClassName='space-y-5'
     >
-        <p className='text-xs leading-relaxed text-slate-500'>
+      <p className='text-xs font-light leading-relaxed text-black/60'>
+        {t(
+          'helper',
+          'Dihitung dari angkamu sendiri. Setiap langkah di bawah sudah diukur dampaknya, jadi kamu tahu persis apa yang berubah.',
+          'Built from your own numbers. Each step below is quantified so you can see exactly what it changes.',
+        )}
+      </p>
+
+      <div>
+        <p className='text-xs font-semibold mb-2'>
+          {t('healthTitle', 'Cek kesehatan singkat', 'Quick health check')}
+        </p>
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-2'>
+          {healthItems.map((item) => (
+            <div
+              key={item.label}
+              className='rounded-2xl border border-black/10 bg-docduit-lightgray/40 p-3 flex items-center gap-2'
+            >
+              <span
+                className={cn(
+                  'h-2.5 w-2.5 shrink-0 rounded-full',
+                  HEALTH_DOT_CLASS[item.status],
+                )}
+              />
+              <div className='min-w-0'>
+                <p className='text-[11px] font-light text-black/60 truncate'>
+                  {item.label}
+                </p>
+                <p className='text-xs font-semibold'>{item.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className='rounded-2xl border border-black/10 bg-white p-3 space-y-2'>
+        <p className='text-xs font-semibold'>
           {t(
-            'helper',
-            'Dihitung dari angkamu sendiri. Setiap langkah di bawah sudah diukur dampaknya, jadi kamu tahu persis apa yang berubah.',
-            'Built from your own numbers. Each step below is quantified so you can see exactly what it changes.',
+            'targetTitle',
+            'Angka yang paling penting',
+            'The number that matters',
           )}
         </p>
-
-        <div>
-          <p className='text-xs font-semibold text-slate-800 mb-2'>
-            {t('healthTitle', 'Cek kesehatan singkat', 'Quick health check')}
-          </p>
-          <div className='grid grid-cols-1 sm:grid-cols-3 gap-2'>
-            {healthItems.map((item) => (
-              <div
-                key={item.label}
-                className='rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-2'
-              >
-                <span
-                  className={cn(
-                    'h-2.5 w-2.5 shrink-0 rounded-full',
-                    HEALTH_DOT_CLASS[item.status],
-                  )}
-                />
-                <div className='min-w-0'>
-                  <p className='text-[11px] text-slate-500 truncate'>
-                    {item.label}
-                  </p>
-                  <p className='text-xs font-semibold text-slate-900'>
-                    {item.value}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className='rounded-xl border border-slate-200 bg-white p-3 space-y-2'>
-          <p className='text-xs font-semibold text-slate-800'>
-            {t(
-              'targetTitle',
-              'Angka yang paling penting',
-              'The number that matters',
-            )}
-          </p>
-          {actionPlan.requiredMonthlySaving != null && (
-            <div className='flex flex-col gap-1 text-[11px] text-slate-500'>
-              <p>
-                {t(
-                  'requiredPerMonth',
-                  'Perlu ditabung per bulan agar target tercapai tepat waktu',
-                  'Needed per month to hit your goal on time',
-                )}
-                :{' '}
-                <span className='font-semibold text-slate-900'>
-                  {formatRupiah(actionPlan.requiredMonthlySaving)}
-                </span>
-              </p>
-              <p>
-                {t(
-                  'capacityPerMonth',
-                  'Sisa anggaranmu per bulan saat ini',
-                  'What your current budget leaves per month',
-                )}
-                :{' '}
-                <span className='font-semibold text-slate-900'>
-                  {formatRupiah(actionPlan.monthlyCapacity)}
-                </span>
-              </p>
-            </div>
-          )}
-          <p className='text-xs leading-relaxed text-slate-600'>{gapMessage}</p>
-          {projectionMessage && (
-            <p className='text-xs leading-relaxed text-amber-700'>
-              {projectionMessage}
-            </p>
-          )}
-        </div>
-
-        {actionPlan.levers.length > 0 && (
-          <div>
-            <p className='text-xs font-semibold text-slate-800'>
+        {actionPlan.requiredMonthlySaving != null && (
+          <div className='flex flex-col gap-1 text-[11px] font-light text-black/60'>
+            <p>
               {t(
-                'leversTitle',
-                'Langkah dengan dampak terbesar',
-                'Highest-impact next steps',
+                'requiredPerMonth',
+                'Perlu ditabung per bulan agar target tercapai tepat waktu',
+                'Needed per month to hit your goal on time',
               )}
+              :{' '}
+              <span className='font-semibold text-black'>
+                {formatRupiah(actionPlan.requiredMonthlySaving)}
+              </span>
             </p>
-            <p className='mt-0.5 text-[11px] leading-relaxed text-slate-500'>
+            <p>
               {t(
-                'leversHelper',
-                'Setiap langkah disimulasikan ulang dengan angkamu. Dampak dihitung jika kamu konsisten sepanjang periode.',
-                'Each step was re-simulated with your numbers. Impact assumes you keep it up for the whole timeline.',
+                'capacityPerMonth',
+                'Sisa anggaranmu per bulan saat ini',
+                'What your current budget leaves per month',
               )}
+              :{' '}
+              <span className='font-semibold text-black'>
+                {formatRupiah(actionPlan.monthlyCapacity)}
+              </span>
             </p>
-            <ol className='mt-2 space-y-2'>
-              {actionPlan.levers.map((lever, index) => (
-                <li
-                  key={lever.key}
-                  className='rounded-xl border border-slate-200 bg-slate-50 p-3 flex gap-3'
-                >
-                  <span className='flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white'>
-                    {index + 1}
-                  </span>
-                  <div className='min-w-0'>
-                    <p className='text-xs font-semibold text-slate-900'>
-                      {leverTitle(lever)}
-                    </p>
-                    <p className='mt-0.5 text-[11px] leading-relaxed text-emerald-700'>
-                      {leverImpact(lever)}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
           </div>
         )}
+        <p className='text-xs font-light leading-relaxed'>{gapMessage}</p>
+        {projectionMessage && (
+          <p className='text-xs font-medium leading-relaxed text-docduit-red'>
+            {projectionMessage}
+          </p>
+        )}
+      </div>
 
-        <div className='rounded-xl border border-slate-900/10 bg-slate-900 p-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
-          <div>
-            <p className='text-xs font-semibold text-white'>
-              {t(
-                'ctaTitle',
-                'Mau langkah ini jadi rencana lengkap?',
-                'Want this turned into a full plan?',
-              )}
-            </p>
-            <p className='mt-0.5 text-[11px] leading-relaxed text-slate-300'>
-              {t(
-                'ctaBody',
-                'Diskusikan langkah-langkah ini dengan konsultasi AI Docduit dan dapatkan resep keuangan yang dipersonalisasi.',
-                'Discuss these steps with the Docduit AI consultation and get a personalized financial prescription.',
-              )}
-            </p>
-          </div>
-          <Button
-            asChild
-            size='sm'
-            className='shrink-0 rounded-full bg-white text-slate-900 hover:bg-slate-100'
-          >
-            <Link
-              href={`/${lang}/consultation`}
-              onClick={() => {
-                trackFinancialTwinEvent('financial_twin_consultation_clicked', {
-                  ...buildTwinFunnelParams(submittedInput, lang),
-                  entry_point: 'twin_action_plan',
-                });
-                storeTwinConsultPrefill(
-                  buildConsultationPrefill(
-                    submittedInput,
-                    actionPlan,
-                    horizonMonths,
-                    lang,
-                  ),
-                );
-              }}
-            >
-              {t(
-                'ctaButton',
-                'Diskusikan dengan konsultasi AI',
-                'Discuss with AI consultation',
-              )}
-            </Link>
-          </Button>
+      {actionPlan.levers.length > 0 && (
+        <div>
+          <p className='text-xs font-semibold'>
+            {t(
+              'leversTitle',
+              'Langkah dengan dampak terbesar',
+              'Highest-impact next steps',
+            )}
+          </p>
+          <p className='mt-0.5 text-[11px] font-light leading-relaxed text-black/60'>
+            {t(
+              'leversHelper',
+              'Setiap langkah disimulasikan ulang dengan angkamu. Dampak dihitung jika kamu konsisten sepanjang periode.',
+              'Each step was re-simulated with your numbers. Impact assumes you keep it up for the whole timeline.',
+            )}
+          </p>
+          <ol className='mt-2 space-y-2'>
+            {actionPlan.levers.map((lever, index) => (
+              <li
+                key={lever.key}
+                className='rounded-2xl border border-black/10 bg-docduit-lightblue/30 p-3 flex gap-3'
+              >
+                <span className='flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-docduit-blue text-[10px] font-semibold text-white'>
+                  {index + 1}
+                </span>
+                <div className='min-w-0'>
+                  <p className='text-xs font-semibold'>{leverTitle(lever)}</p>
+                  <p
+                    className='mt-0.5 text-[11px] font-medium leading-relaxed'
+                    style={{ color: SCENARIO_COLORS.improved }}
+                  >
+                    {leverImpact(lever)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </div>
+      )}
+
+      <div className='rounded-2xl bg-docduit-lightblue p-4 flex flex-col gap-3 items-start'>
+        <div>
+          <p className='text-xs font-semibold'>
+            {t(
+              'ctaTitle',
+              'Mau langkah ini jadi rencana lengkap?',
+              'Want this turned into a full plan?',
+            )}
+          </p>
+          <p className='mt-0.5 text-[11px] font-light leading-relaxed'>
+            {t(
+              'ctaBody',
+              'Diskusikan langkah-langkah ini dengan konsultasi AI Docduit dan dapatkan resep keuangan yang dipersonalisasi.',
+              'Discuss these steps with the Docduit AI consultation and get a personalized financial prescription.',
+            )}
+          </p>
+        </div>
+        <Button asChild size='sm' variant='blue' className='shrink-0'>
+          <Link
+            href={`/${lang}/consultation`}
+            onClick={() => {
+              trackFinancialTwinEvent('financial_twin_consultation_clicked', {
+                ...buildTwinFunnelParams(submittedInput, lang),
+                entry_point: 'twin_action_plan',
+              });
+              storeTwinConsultPrefill(
+                buildConsultationPrefill(
+                  submittedInput,
+                  actionPlan,
+                  horizonMonths,
+                  lang,
+                ),
+              );
+            }}
+          >
+            {t(
+              'ctaButton',
+              'Diskusikan dengan konsultasi AI',
+              'Discuss with AI consultation',
+            )}
+          </Link>
+        </Button>
+      </div>
     </CollapsibleCard>
   );
 }
