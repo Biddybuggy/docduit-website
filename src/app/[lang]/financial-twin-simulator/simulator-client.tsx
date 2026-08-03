@@ -218,6 +218,7 @@ export default function FinancialTwinSimulator({
   const { user, isLoading: isLoadingUser } = useAuth();
   const [savedPlan, setSavedPlan] = useState<FinancialTwinPlan | null>(null);
   const resultsPanelRef = useRef<HTMLDivElement>(null);
+  const inputPanelRef = useRef<HTMLDivElement>(null);
   const viewedTrackedRef = useRef(false);
   const inputStartedRef = useRef(false);
   const resultsViewedRef = useRef(false);
@@ -314,7 +315,7 @@ export default function FinancialTwinSimulator({
 
   // Enter the results view. On mobile that swaps the visible step; on desktop
   // the result panel replaces the hero panel next to the form, so all we need
-  // is to make sure the panel is scrolled to its own top.
+  // is to make sure both panels are scrolled to their own top.
   const showResults = () => {
     // The headline, comparison and chart now render inline, so the action plan
     // is the one collapsed section worth opening on arrival — it carries the
@@ -324,6 +325,10 @@ export default function FinancialTwinSimulator({
     if (typeof window !== 'undefined') {
       window.requestAnimationFrame(() => {
         resultsPanelRef.current?.scrollTo({ top: 0 });
+        // The submit button sits at the foot of the form, so the input panel is
+        // scrolled to its end when the run starts. Rewind it, otherwise the
+        // results appear beside the last field instead of the first one.
+        inputPanelRef.current?.scrollTo({ top: 0 });
       });
     }
   };
@@ -660,11 +665,13 @@ export default function FinancialTwinSimulator({
 
         {/* ── Input panel ────────────────────────────────────────────── */}
         <div
+          ref={inputPanelRef}
           className={cn(
-            // The extra bottom padding keeps the submit button clear of any
-            // bottom-fixed overlay (cookie banner, floating chat) once this
-            // panel is scrolled to its end.
-            'w-full flex flex-col gap-10 lg:gap-8 bg-white lg:bg-docduit-lightblue px-8 py-8 pb-40 lg:py-24 lg:pb-44 lg:px-20 items-center justify-between lg:overflow-y-auto',
+            // Mobile keeps generous bottom padding so the submit button clears
+            // the bottom-fixed overlays (cookie banner, floating chat). Desktop
+            // scrolls inside the panel and ends on the disclaimer, so it only
+            // needs a normal bottom margin — more just reads as dead colour.
+            'w-full flex flex-col gap-10 lg:gap-8 bg-white lg:bg-docduit-lightblue px-8 py-8 pb-40 lg:py-24 lg:pb-16 lg:px-20 items-center justify-between lg:overflow-y-auto',
             activeState !== 'input' && 'hidden lg:flex',
           )}
         >
@@ -866,7 +873,7 @@ export default function FinancialTwinSimulator({
         <div
           ref={resultsPanelRef}
           className={cn(
-            'w-full flex-col gap-8 bg-white px-8 py-8 pb-40 lg:py-24 lg:pb-44 lg:px-20 items-center lg:overflow-y-auto',
+            'w-full flex-col gap-8 bg-white px-8 py-8 pb-40 lg:py-24 lg:pb-16 lg:px-20 items-center lg:overflow-y-auto',
             activeState === 'results' ? 'flex' : 'hidden',
           )}
         >
