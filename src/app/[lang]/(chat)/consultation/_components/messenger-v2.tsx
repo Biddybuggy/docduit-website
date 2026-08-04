@@ -1358,7 +1358,11 @@ export default function MessengerV2({
           'h-full flex flex-col',
           chatRoomMessages && chatRoomMessages?.length > 0
             ? 'justify-between'
-            : 'gap-4 justify-center',
+            // Mobile: anchor near the top instead of true vertical centering —
+            // 100dvh-based containers can measure taller than the visible
+            // viewport on mobile browsers, which turned justify-center into a
+            // large empty gap both above and below the content.
+            : 'gap-4 justify-start pt-12 md:justify-center md:pt-0',
         )}
       >
         {(isLoadingUser || getChatRoomByIdLoading) && !isDemoMode ? (

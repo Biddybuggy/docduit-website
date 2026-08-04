@@ -667,11 +667,11 @@ export default function FinancialTwinSimulator({
         <div
           ref={inputPanelRef}
           className={cn(
-            // Mobile keeps generous bottom padding so the submit button clears
-            // the bottom-fixed overlays (cookie banner, floating chat). Desktop
+            // Mobile keeps extra bottom padding so the submit button clears
+            // the bottom-fixed floating chat bubble (~56px tall). Desktop
             // scrolls inside the panel and ends on the disclaimer, so it only
             // needs a normal bottom margin — more just reads as dead colour.
-            'w-full flex flex-col gap-10 lg:gap-8 bg-white lg:bg-docduit-lightblue px-8 py-8 pb-40 lg:py-24 lg:pb-16 lg:px-20 items-center justify-between lg:overflow-y-auto',
+            'w-full flex flex-col gap-10 lg:gap-8 bg-white lg:bg-docduit-lightblue px-8 py-8 pb-24 lg:py-24 lg:pb-16 lg:px-20 items-center justify-between lg:overflow-y-auto',
             activeState !== 'input' && 'hidden lg:flex',
           )}
         >
@@ -873,7 +873,7 @@ export default function FinancialTwinSimulator({
         <div
           ref={resultsPanelRef}
           className={cn(
-            'w-full flex-col gap-8 bg-white px-8 py-8 pb-40 lg:py-24 lg:pb-16 lg:px-20 items-center lg:overflow-y-auto',
+            'w-full flex-col gap-8 bg-white px-8 py-8 pb-24 lg:py-24 lg:pb-16 lg:px-20 items-center lg:overflow-y-auto',
             activeState === 'results' ? 'flex' : 'hidden',
           )}
         >

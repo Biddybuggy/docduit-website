@@ -24,7 +24,7 @@ export default function ConsultationContent({
 
   return (
     <>
-      <div className='flex h-[calc(100vh-80px)]'>
+      <div className='flex h-[calc(100dvh-80px)]'>
         {showHistorySidebar && (
           <div
             className={cn(

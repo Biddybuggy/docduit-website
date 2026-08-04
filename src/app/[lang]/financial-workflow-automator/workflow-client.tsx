@@ -456,7 +456,7 @@ export default function FinancialWorkflowAutomatorClient({
   };
 
   return (
-    <main className='min-h-[calc(100vh-80px)] bg-[#f7faf9] px-5 py-8 lg:px-16 xl:px-24'>
+    <main className='min-h-screen bg-[#f7faf9] px-5 py-8 lg:px-16 xl:px-24'>
       <div className='mx-auto flex max-w-6xl flex-col gap-6'>
         <Button
           asChild
