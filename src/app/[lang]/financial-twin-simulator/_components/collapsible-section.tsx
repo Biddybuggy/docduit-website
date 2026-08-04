@@ -37,7 +37,7 @@ export function CollapsibleCard({
 }) {
   return (
     <Card className={className}>
-      <CardHeader className={cn('pb-3', headerClassName)}>
+      <CardHeader className={cn('py-4', headerClassName)}>
         <button
           type='button'
           onClick={onToggle}
