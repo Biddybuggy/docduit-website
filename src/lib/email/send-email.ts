@@ -5,6 +5,12 @@ import nodemailer, { type Transporter } from 'nodemailer';
 // Resend/SES later, only `createTransport` and the default `from` need to
 // change — callers of `sendEmail` stay the same.
 
+export type SendEmailAttachment = {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+};
+
 export type SendEmailParams = {
   to: string;
   subject: string;
@@ -12,6 +18,8 @@ export type SendEmailParams = {
   text?: string;
   /** Overrides the default From. Rarely needed. */
   from?: string;
+  /** Optional file attachments (passed straight to nodemailer). */
+  attachments?: SendEmailAttachment[];
 };
 
 export type SendEmailResult = {
@@ -70,6 +78,7 @@ export async function sendEmail(
       subject: params.subject,
       html: params.html,
       text: params.text || stripHtml(params.html),
+      attachments: params.attachments,
     });
     return { ok: true, messageId: info.messageId };
   } catch (error) {

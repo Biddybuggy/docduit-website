@@ -35,6 +35,8 @@ EMAIL_FROM_NAME=Docduit
 # Optional overrides (defaults shown). Use 587 if 465 is blocked.
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
+# Where "Report a bug" submissions are emailed. Falls back to SMTP_USER if unset.
+BUG_REPORT_TO=
 
 # Deprecated: do not use NEXT_PUBLIC_AI_CHAT_URL or NEXT_PUBLIC_GOOGLE_CLIENT_SECRET.
 # AI requests are proxied through /api/chat/* routes using AI_CHAT_URL server-side.
