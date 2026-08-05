@@ -7,6 +7,7 @@ import { ChatRoomResponse, getAllRooms } from '@/services/chat.service';
 import { loadConversationsFromFirestore, loadConversationFromFirestore, FirestoreConversation } from '@/services/firebase.service';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
+import { useFirebaseAuth } from '@/context/FirebaseAuthContext';
 
 interface HistoryChatContentProps {
   onHistoryClick?: (e: any) => void;
@@ -19,7 +20,11 @@ const HistoryChatContent = ({
 }: HistoryChatContentProps) => {
   const {
     chat: {
-      history: { nohistory: noHistoryText },
+      history: {
+        nohistory: noHistoryText,
+        loadFailed: loadFailedText,
+        retry: retryText,
+      },
     },
   } = vocabularies;
 
@@ -30,14 +35,26 @@ const HistoryChatContent = ({
   const { user, isLoading: userInfoLoading } = useAuth();
 
   const roomId = searchParams.get('r');
+  const {
+    firebaseUser,
+    status: firebaseStatus,
+    retry: retryFirebaseAuth,
+  } = useFirebaseAuth();
 
-  const { data, error, isLoading } = useSWR<FirestoreConversation[], Error>(
-    user?.email ? ['firebase-conversations', user.email] : null,
+  // Firestore is only readable once the Firebase session exists, so the fetch
+  // waits for it instead of failing and caching an empty list.
+  const { data, error, isLoading, mutate } = useSWR<FirestoreConversation[], Error>(
+    user?.email && firebaseUser ? ['firebase-conversations', user.email] : null,
     ([, userEmail]: [string, string]) => loadConversationsFromFirestore(userEmail),
     {
       revalidateOnFocus: true,
+      keepPreviousData: true,
     },
   );
+
+  const isConnecting =
+    userInfoLoading || firebaseStatus === 'loading' || (isLoading && !data);
+  const hasFailed = Boolean(error) || firebaseStatus === 'error';
 
   const {
     conversationId: activeConversationId,
@@ -124,7 +141,7 @@ const HistoryChatContent = ({
 
   return (
     <div className='min-h-0 flex-1 space-y-6 overflow-y-auto scrollbar-hide'>
-      {isLoading || userInfoLoading ? (
+      {isConnecting ? (
         <div className='space-y-4 px-4'>
           {[...Array(6)].map((_, index) => (
             <div
@@ -133,10 +150,20 @@ const HistoryChatContent = ({
             ></div>
           ))}
         </div>
-      ) : error ? (
-        <p className='italic text-center my-2 text-red-500'>
-          Gagal memuat riwayat obrolan. Silakan coba lagi.
-        </p>
+      ) : hasFailed ? (
+        <div className='my-2 flex flex-col items-center gap-2 px-4 text-center'>
+          <p className='italic text-red-200'>{loadFailedText}</p>
+          <Button
+            variant='ghost'
+            className='h-auto rounded-lg border border-white/25 px-3 py-1 text-sm font-medium text-white hover:bg-white/10 hover:text-white'
+            onClick={() => {
+              retryFirebaseAuth();
+              void mutate();
+            }}
+          >
+            {retryText}
+          </Button>
+        </div>
       ) : data && data.length > 0 ? (
         <nav className='space-y-1 overflow-x-hidden'>
           {data.map((conversation) => {

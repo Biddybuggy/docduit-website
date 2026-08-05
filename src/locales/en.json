@@ -32,7 +32,9 @@
   },
   "chat": {
     "history": {
-      "nohistory": "No previous conversations yet."
+      "nohistory": "No previous conversations yet.",
+      "loadFailed": "Couldn't load your conversation history.",
+      "retry": "Try again"
     },
     "placeholderNominal": "Enter amount (e.g. 10,000,000)",
     "placeholderQuestion": "Type your question",
@@ -53,6 +55,7 @@
     "articles": "Articles",
     "financialTwin": "Financial Twin",
     "workflowAutomator": "Workflow Automator",
+    "tools": "Tools",
     "signIn": "Sign In",
     "takeTour": "Take a tour"
   },

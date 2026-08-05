@@ -80,8 +80,8 @@ export function DownloadPlanCard({
       className='fixed left-[-9999px] top-0 z-[-1] flex flex-col gap-5 bg-white p-8 text-black'
     >
       <div className='flex items-center justify-between'>
-        <span className='font-epilogue text-2xl font-bold text-docduit-blue'>
-          Docduit
+        <span className='font-epilogue text-2xl font-bold'>
+          Doc<span className='text-docduit-blue'>duit</span>
         </span>
         <span className='text-xs text-gray-500'>
           {chrome.generatedOn} {generatedAt}

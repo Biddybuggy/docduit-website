@@ -1,54 +1,12 @@
 'use client';
-import { SessionProvider, useSession } from 'next-auth/react';
-import { ReactNode, useEffect } from 'react';
-import { firebaseAuth } from '@/lib/firebase';
-import {
-  GoogleAuthProvider,
-  signInWithCredential,
-  signOut as firebaseSignOut,
-} from 'firebase/auth';
-
-function FirebaseAuthSync({ children }: { children: ReactNode }) {
-  const { data: session, status } = useSession();
-
-  useEffect(() => {
-    if (!firebaseAuth) return;
-
-    if (
-      status === 'authenticated' &&
-      session?.user?.idToken &&
-      session?.user?.googleAccessToken
-    ) {
-      const hasMatchingGoogleUser =
-        firebaseAuth.currentUser?.email &&
-        session.user.email &&
-        firebaseAuth.currentUser.email === session.user.email;
-
-      if (!hasMatchingGoogleUser) {
-        const credential = GoogleAuthProvider.credential(
-          session.user.idToken ?? undefined,
-          session.user.googleAccessToken ?? undefined,
-        );
-
-        signInWithCredential(firebaseAuth, credential).catch((error) => {
-          console.error('Firebase sign-in failed:', error);
-        });
-      }
-      return;
-    }
-
-    if (status === 'unauthenticated' && firebaseAuth.currentUser) {
-      firebaseSignOut(firebaseAuth).catch(() => {});
-    }
-  }, [status, session]);
-
-  return <>{children}</>;
-}
+import { SessionProvider } from 'next-auth/react';
+import { ReactNode } from 'react';
+import { FirebaseAuthProvider } from '@/context/FirebaseAuthContext';
 
 export default function SessionProviders({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
-      <FirebaseAuthSync>{children}</FirebaseAuthSync>
+      <FirebaseAuthProvider>{children}</FirebaseAuthProvider>
     </SessionProvider>
   );
 }
