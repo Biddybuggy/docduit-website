@@ -52,7 +52,8 @@
     "articles": "Artikel",
     "financialTwin": "Financial Twin",
     "workflowAutomator": "Workflow Automator",
-    "signIn": "Masuk"
+    "signIn": "Masuk",
+    "takeTour": "Ikuti tur"
   },
   "twinSimulator": {
     "savedPlan": {
@@ -361,7 +362,8 @@
     "common": {
       "goldBtn": "Tabungan Emas",
       "forexBtn": "Tabungan Mata Uang Asing",
-      "otherInstrument": "Tahukah kamu? Ada instrumen tabungan lain yang dapat memberimu keuntungan lebih. Lihat skema berikut!"
+      "otherInstrument": "Tahukah kamu? Ada instrumen tabungan lain yang dapat memberimu keuntungan lebih. Lihat skema berikut!",
+      "downloadPlan": "Unduh rencana"
     },
     "goldSavingSection": {
       "title": "Tabungan Emas",

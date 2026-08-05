@@ -53,7 +53,8 @@
     "articles": "Articles",
     "financialTwin": "Financial Twin",
     "workflowAutomator": "Workflow Automator",
-    "signIn": "Sign In"
+    "signIn": "Sign In",
+    "takeTour": "Take a tour"
   },
   "twinSimulator": {
     "savedPlan": {
@@ -362,7 +363,8 @@
     "common": {
       "goldBtn": "Gold Savings",
       "forexBtn": "Foreign Currency Savings",
-      "otherInstrument": "Did you know that there are other investment tools that boast higher returns? Check out the following options!"
+      "otherInstrument": "Did you know that there are other investment tools that boast higher returns? Check out the following options!",
+      "downloadPlan": "Download plan"
     },
     "goldSavingSection": {
       "title": "Gold Savings",

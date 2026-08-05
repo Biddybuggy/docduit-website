@@ -1,3 +1,5 @@
+import ReportBugLink from './report-bug-link';
+
 export default function FooterComponent() {
   const socials = [
     { name: 'instagram', icon: '/icons/instagram.svg', href: 'https://www.instagram.com/docduit.id' }, 
@@ -25,6 +27,7 @@ export default function FooterComponent() {
           </a>
         ))}
       </div>
+      <ReportBugLink />
     </footer>
   );
 }

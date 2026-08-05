@@ -7,6 +7,9 @@ import SessionProviders from './session-provider';
 import { ChatProvider } from '@/context/ChatContext';
 import { CookieConsent } from '@/components/shared/cookie-consent';
 import { ConditionalAnalytics } from '@/components/shared/conditional-analytics';
+import { OnboardingModal } from './[lang]/_components/onboarding/onboarding-modal';
+import { EnvBanner } from '@/components/shared/env-banner';
+import { BugReportDialog } from '@/components/shared/bug-report-dialog';
 
 export const metadata: Metadata = {
   title: 'Docduit',
@@ -35,6 +38,9 @@ export default async function RootLayout({
               {children}
               <Toaster richColors position='bottom-right' />
               <CookieConsent />
+              <OnboardingModal />
+              <EnvBanner />
+              <BugReportDialog />
             </ChatProvider>
           </SWRConfigProvider>
         </SessionProviders>

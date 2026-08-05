@@ -1,5 +1,6 @@
 'use client';
-import { Globe, Menu } from 'lucide-react';
+import { Globe, Menu, HelpCircle } from 'lucide-react';
+import { OPEN_ONBOARDING_EVENT } from './onboarding/onboarding-modal';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -90,6 +91,25 @@ export const LocalesButton = ({
   );
 };
 
+const TakeTourButton = ({
+  label,
+  onClick,
+}: {
+  label?: string;
+  onClick?: () => void;
+}) => (
+  <button
+    onClick={() => {
+      onClick?.();
+      window.dispatchEvent(new Event(OPEN_ONBOARDING_EVENT));
+    }}
+    className='flex items-center gap-2 rounded-full p-2 hover:bg-black/15 focus:bg-black/15'
+  >
+    <HelpCircle size={20} />
+    {label ? <span className='font-semibold'>{label}</span> : null}
+  </button>
+);
+
 const SheetSidenav = ({
   vocabularies,
   locale,
@@ -123,6 +143,10 @@ const SheetSidenav = ({
             callbackFn={() => setIsOpen(false)}
           />
           <div className='flex flex-col gap-4'>
+            <TakeTourButton
+              label={vocabularies.navigation.takeTour}
+              onClick={() => setIsOpen(false)}
+            />
             <AuthenticationSection vocabularies={vocabularies} />
             <LocalesButton label={language} onBeforeNavigate={() => setIsOpen(false)} />
           </div>
@@ -194,6 +218,7 @@ export default function HeaderComponent({
           </Link>
           <NavigationSection navigations={navigations} />
           <div className='hidden lg:flex gap-4 items-center'>
+            <TakeTourButton label={vocabularies.navigation.takeTour} />
             <LocalesButton />
             <AuthenticationSection vocabularies={vocabularies} />
           </div>
