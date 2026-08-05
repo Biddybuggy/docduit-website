@@ -277,48 +277,48 @@ export const deleteInvoiceTrackerEntryFromFirestore = async (
   await deleteDoc(doc(trackersCollection, scrubDocumentId(entryId)));
 };
 
+/**
+ * Throws on failure on purpose: swallowing the error here would make an auth or
+ * permission problem look identical to "this user has no conversations".
+ */
 export const loadConversationsFromFirestore = async (
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   userEmail: string,
 ): Promise<FirestoreConversation[]> => {
-  try {
-    const db = getFirestoreDb();
-    const firebaseUser = await waitForFirebaseUser();
-    const userId = firebaseUser.uid;
-    const userDoc = doc(db, 'users', userId);
-    const conversationsCollection = collection(userDoc, 'conversations');
+  const db = getFirestoreDb();
+  const firebaseUser = await waitForFirebaseUser();
+  const userId = firebaseUser.uid;
+  const userDoc = doc(db, 'users', userId);
+  const conversationsCollection = collection(userDoc, 'conversations');
 
-    const q = query(
-      conversationsCollection,
-      orderBy('updatedAt', 'desc'),
-      limit(50),
-    );
-    const querySnapshot = await getDocs(q);
+  const q = query(
+    conversationsCollection,
+    orderBy('updatedAt', 'desc'),
+    limit(50),
+  );
+  const querySnapshot = await getDocs(q);
 
-    const conversations: FirestoreConversation[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      conversations.push({
-        id: doc.id,
-        userEmail: data.userEmail,
-        roomId: data.roomId,
-        conversationId: data.conversationId ?? doc.id,
-        title: data.title ?? null,
-        messages: data.messages.map((msg: any) => ({
-          type_user: msg.type_user,
-          message: msg.message,
-          conversation_id: msg.conversation_id,
-          room_id: msg.room_id,
-        })),
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
-      });
+  const conversations: FirestoreConversation[] = [];
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+    conversations.push({
+      id: doc.id,
+      userEmail: data.userEmail,
+      roomId: data.roomId,
+      conversationId: data.conversationId ?? doc.id,
+      title: data.title ?? null,
+      messages: (data.messages ?? []).map((msg: any) => ({
+        type_user: msg.type_user,
+        message: msg.message,
+        conversation_id: msg.conversation_id,
+        room_id: msg.room_id,
+      })),
+      createdAt: data.createdAt?.toDate() || new Date(),
+      updatedAt: data.updatedAt?.toDate() || new Date(),
     });
+  });
 
-    return conversations;
-  } catch (error) {
-    console.error('Failed to load conversations from Firestore:', error);
-    return [];
-  }
+  return conversations;
 };
 
 export const loadConversationFromFirestore = async (

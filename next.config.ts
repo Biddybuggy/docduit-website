@@ -1,6 +1,13 @@
 import type { NextConfig } from 'next';
 
 function buildCsp(workerOrigin: string, aiOrigin: string): string {
+  // Firebase Auth mounts a hidden iframe on the project's authDomain; without
+  // it in frame-src the browser blocks it and logs a CSP violation on every
+  // page that touches auth.
+  const firebaseAuthOrigin = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    ? `https://${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}`
+    : 'https://*.firebaseapp.com';
+
   const connectSrc = [
     "'self'",
     'https://www.google-analytics.com',
@@ -22,7 +29,7 @@ function buildCsp(workerOrigin: string, aiOrigin: string): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://lh3.googleusercontent.com https://www.google-analytics.com",
     `connect-src ${connectSrc}`,
-    "frame-src https://accounts.google.com",
+    `frame-src https://accounts.google.com https://apis.google.com ${firebaseAuthOrigin}`,
     "font-src 'self' data: https://fonts.gstatic.com",
     "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "object-src 'none'",

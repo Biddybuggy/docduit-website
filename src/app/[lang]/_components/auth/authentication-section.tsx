@@ -16,9 +16,12 @@ export type User = {
 
 interface AuthButtonProps {
   vocabularies: any;
+  /** Renders the signed-in profile as an avatar-only trigger (desktop header). */
+  compact?: boolean;
 }
 export default function AuthenticationSection({
   vocabularies,
+  compact = false,
 }: AuthButtonProps) {
   const { data, status } = useSession();
   const [userInfo, setUserInfo] = useState<User | null>(null);
@@ -65,6 +68,7 @@ export default function AuthenticationSection({
         <ProfileComponent
           userInfo={userInfo}
           vocabularies={vocabularies}
+          compact={compact}
         />
       ) : (
         <AuthButton vocabularies={vocabularies} />

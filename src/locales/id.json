@@ -32,7 +32,9 @@
   },
   "chat": {
     "history": {
-      "nohistory": "Belum ada percakapan sebelumnya."
+      "nohistory": "Belum ada percakapan sebelumnya.",
+      "loadFailed": "Gagal memuat riwayat obrolan.",
+      "retry": "Coba lagi"
     },
     "placeholderNominal": "Masukkan nominal, contoh: 10.000.000",
     "placeholderQuestion": "Tuliskan pertanyaanmu",
@@ -52,6 +54,7 @@
     "articles": "Artikel",
     "financialTwin": "Financial Twin",
     "workflowAutomator": "Workflow Automator",
+    "tools": "Alat",
     "signIn": "Masuk",
     "takeTour": "Ikuti tur"
   },

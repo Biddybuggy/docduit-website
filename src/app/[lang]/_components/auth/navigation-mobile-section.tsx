@@ -20,13 +20,19 @@ export default function NavigationMobileSection({
       name: userInfo?.name,
     });
   };
+  // The sheet has vertical room, so desktop's dropdown groups are flattened
+  // back into a plain list here.
+  const flatNavigations = navigations.flatMap((nav) =>
+    nav.children?.length ? nav.children : [nav],
+  );
+
   return (
     <div className='space-y-6'>
       <nav className='space-y-1'>
-        {navigations.map((nav, idx) => (
+        {flatNavigations.map((nav, idx) => (
           <Link
             key={idx}
-            href={nav.href}
+            href={nav.href ?? '#'}
             className='flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium'
             prefetch={false}
             onClick={() => {

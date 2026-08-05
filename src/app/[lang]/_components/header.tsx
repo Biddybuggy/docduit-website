@@ -25,8 +25,11 @@ import { useState } from 'react';
 
 export type NavigationItem = {
   name: string;
-  href: string;
+  /** Omitted for group headers, which only open a dropdown of `children`. */
+  href?: string;
   gaEvent?: string;
+  /** Desktop collapses these into a dropdown; mobile lists them inline. */
+  children?: NavigationItem[];
 };
 
 export const LocalesButton = ({
@@ -61,7 +64,11 @@ export const LocalesButton = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
-        <div className='flex gap-2 items-center hover:bg-black/15 focus:bg-black/15 p-4 rounded-full'>
+        <div
+          className={`flex gap-2 items-center hover:bg-black/15 focus:bg-black/15 rounded-full ${
+            label ? 'p-4' : 'p-2'
+          }`}
+        >
           <Globe size={20} />
           {label ? <p className='font-semibold'>{label}</p> : <></>}
         </div>
@@ -93,9 +100,12 @@ export const LocalesButton = ({
 
 const TakeTourButton = ({
   label,
+  showLabel = false,
   onClick,
 }: {
   label?: string;
+  /** Desktop shows the icon alone (tooltip only); the mobile sheet shows text. */
+  showLabel?: boolean;
   onClick?: () => void;
 }) => (
   <button
@@ -103,10 +113,14 @@ const TakeTourButton = ({
       onClick?.();
       window.dispatchEvent(new Event(OPEN_ONBOARDING_EVENT));
     }}
+    title={label}
+    aria-label={label}
     className='flex items-center gap-2 rounded-full p-2 hover:bg-black/15 focus:bg-black/15'
   >
     <HelpCircle size={20} />
-    {label ? <span className='font-semibold'>{label}</span> : null}
+    {showLabel && label ? (
+      <span className='font-semibold'>{label}</span>
+    ) : null}
   </button>
 );
 
@@ -145,6 +159,7 @@ const SheetSidenav = ({
           <div className='flex flex-col gap-4'>
             <TakeTourButton
               label={vocabularies.navigation.takeTour}
+              showLabel
               onClick={() => setIsOpen(false)}
             />
             <AuthenticationSection vocabularies={vocabularies} />
@@ -192,20 +207,23 @@ export default function HeaderComponent({
       gaEvent: 'click_articles_section',
     },
     {
-      name:
-        vocabularies.navigation.financialTwin ??
-        (lang === 'id'
-          ? 'Financial Twin Simulator'
-          : 'Financial Twin Simulator'),
-      href: `/${lang}/financial-twin-simulator`,
-      gaEvent: 'navigate_to_financial_twin_simulator',
-    },
-    {
-      name:
-        vocabularies.navigation.workflowAutomator ??
-        (lang === 'id' ? 'Workflow Automator' : 'Workflow Automator'),
-      href: `/${lang}/financial-workflow-automator`,
-      gaEvent: 'navigate_to_financial_workflow_automator',
+      // The two long tool names are what crowd the signed-in bar, so on desktop
+      // they live behind a single "Tools" dropdown.
+      name: vocabularies.navigation.tools ?? (lang === 'id' ? 'Alat' : 'Tools'),
+      children: [
+        {
+          name:
+            vocabularies.navigation.financialTwin ?? 'Financial Twin Simulator',
+          href: `/${lang}/financial-twin-simulator`,
+          gaEvent: 'navigate_to_financial_twin_simulator',
+        },
+        {
+          name:
+            vocabularies.navigation.workflowAutomator ?? 'Workflow Automator',
+          href: `/${lang}/financial-workflow-automator`,
+          gaEvent: 'navigate_to_financial_workflow_automator',
+        },
+      ],
     },
   ];
 
@@ -217,10 +235,10 @@ export default function HeaderComponent({
             <span className='font-epilogue font-bold lg:text-2xl'>Docduit</span>
           </Link>
           <NavigationSection navigations={navigations} />
-          <div className='hidden lg:flex gap-4 items-center'>
+          <div className='hidden lg:flex gap-1 items-center'>
             <TakeTourButton label={vocabularies.navigation.takeTour} />
             <LocalesButton />
-            <AuthenticationSection vocabularies={vocabularies} />
+            <AuthenticationSection vocabularies={vocabularies} compact />
           </div>
           <div className='lg:hidden'>
             <SheetSidenav
