@@ -300,25 +300,46 @@ export const loadConversationsFromFirestore = async (
 
   const conversations: FirestoreConversation[] = [];
   querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    conversations.push({
-      id: doc.id,
-      userEmail: data.userEmail,
-      roomId: data.roomId,
-      conversationId: data.conversationId ?? doc.id,
-      title: data.title ?? null,
-      messages: (data.messages ?? []).map((msg: any) => ({
-        type_user: msg.type_user,
-        message: msg.message,
-        conversation_id: msg.conversation_id,
-        room_id: msg.room_id,
-      })),
-      createdAt: data.createdAt?.toDate() || new Date(),
-      updatedAt: data.updatedAt?.toDate() || new Date(),
-    });
+    try {
+      const data = doc.data();
+      conversations.push({
+        id: doc.id,
+        userEmail: data.userEmail,
+        roomId: data.roomId,
+        conversationId: data.conversationId ?? doc.id,
+        title: data.title ?? null,
+        messages: (data.messages ?? []).map((msg: any) => ({
+          type_user: msg.type_user,
+          message: msg.message,
+          conversation_id: msg.conversation_id,
+          room_id: msg.room_id,
+        })),
+        createdAt: toDateSafe(data.createdAt),
+        updatedAt: toDateSafe(data.updatedAt),
+      });
+    } catch (docError) {
+      // A single malformed legacy document (e.g. a non-Timestamp
+      // createdAt/updatedAt from an older schema) shouldn't fail the
+      // whole history load for accounts with a lot of chat history.
+      console.error(
+        `Skipping malformed conversation doc ${doc.id}:`,
+        docError,
+      );
+    }
   });
 
   return conversations;
+};
+
+const toDateSafe = (value: unknown): Date => {
+  if (value && typeof (value as { toDate?: unknown }).toDate === 'function') {
+    return (value as { toDate: () => Date }).toDate();
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date();
 };
 
 export const loadConversationFromFirestore = async (
