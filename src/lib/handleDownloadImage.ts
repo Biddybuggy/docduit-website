@@ -1,6 +1,6 @@
 import html2canvas from 'html2canvas';
 
-export const handleDownloadImage = async (id: string) => {
+export const handleDownloadImage = async (id: string, fileName?: string) => {
   try {
     const element = document.getElementById(id) as HTMLElement;
 
@@ -37,17 +37,16 @@ export const handleDownloadImage = async (id: string) => {
     });
 
     const link = document.createElement('a');
-    link.download = `Cetakan Hasil Kosultasi - ${new Date().toLocaleDateString(
-      'id-ID',
-      {
+    link.download =
+      fileName ??
+      `Cetakan Hasil Kosultasi - ${new Date().toLocaleDateString('id-ID', {
         day: '2-digit',
         month: 'long',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
         timeZone: 'Asia/Jakarta',
-      },
-    )} WIB.png`;
+      })} WIB.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   } catch (error) {

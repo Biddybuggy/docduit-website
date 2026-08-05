@@ -1,8 +1,13 @@
 'use client';
+import { useState } from 'react';
+import { Download } from 'lucide-react';
 import { CalculationResultProps } from '@/lib/interfaces';
 import { Button } from '@/components/ui/button';
 import { BarChartComponent, ChartDataType } from './bar-charts';
 import { cn, formatMonth } from '@/lib/utils';
+import { buildCalculatorDownloadPlan } from '@/lib/download-plan';
+import { DownloadPlanCard } from '@/components/shared/download-plan-card';
+import { handleDownloadImage } from '@/lib/handleDownloadImage';
 
 interface LayoutProps {
   calculatorType: string;
@@ -76,6 +81,30 @@ export default function CalculationResultSection({
         (withDp ? Math.round(monthlyToSaveDP) : Math.round(monthlyToSave)),
     }),
   );
+
+  const [downloadLoading, setDownloadLoading] = useState(false);
+  const downloadPlanId = `download-plan-${calculatorType}`;
+  const downloadPlanLabel =
+    vocabularies?.common?.downloadPlan ?? 'Download plan';
+  const planTitle = titleSubjectContent || calculatorTypeVocab?.title || 'Docduit';
+  const downloadPlan = buildCalculatorDownloadPlan({
+    title: planTitle,
+    calculatorType,
+    calculation,
+    vocabularies,
+  });
+
+  const onDownloadPlan = async () => {
+    setDownloadLoading(true);
+    try {
+      await handleDownloadImage(
+        downloadPlanId,
+        `Docduit - ${planTitle}.png`,
+      );
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
 
   return (
     <div
@@ -164,7 +193,18 @@ export default function CalculationResultSection({
             {backText}
           </Button>
         </div>
+        <Button
+          onClick={onDownloadPlan}
+          disabled={downloadLoading}
+          variant='outline'
+          size='lg'
+          className='gap-2'
+        >
+          <Download size={18} />
+          {downloadPlanLabel}
+        </Button>
       </div>
+      <DownloadPlanCard plan={downloadPlan} id={downloadPlanId} />
     </div>
   );
 }

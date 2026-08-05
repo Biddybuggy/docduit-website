@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { Download } from 'lucide-react';
 import {
   FinancialTwinInput,
   ValidationErrors,
@@ -41,6 +42,9 @@ import {
   TwinCheckInCard,
 } from './_components/twin-plan-card';
 import { CollapsibleCard } from './_components/collapsible-section';
+import { buildTwinDownloadPlan } from '@/lib/download-plan';
+import { DownloadPlanCard } from '@/components/shared/download-plan-card';
+import { handleDownloadImage } from '@/lib/handleDownloadImage';
 import type { TwinNarrative } from '@/lib/financial-twin-narrative';
 import { Locale } from '../_utils/dictionaries';
 import { ReactQueryProvider } from '@/lib/react-query';
@@ -217,6 +221,19 @@ export default function FinancialTwinSimulator({
 
   const { user, isLoading: isLoadingUser } = useAuth();
   const [savedPlan, setSavedPlan] = useState<FinancialTwinPlan | null>(null);
+  const [downloadLoading, setDownloadLoading] = useState(false);
+
+  const onDownloadPlan = async () => {
+    setDownloadLoading(true);
+    try {
+      await handleDownloadImage(
+        'download-plan-twin',
+        `Docduit - ${isId ? 'Rencana Keuangan' : 'Financial Plan'}.png`,
+      );
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
   const resultsPanelRef = useRef<HTMLDivElement>(null);
   const inputPanelRef = useRef<HTMLDivElement>(null);
   const viewedTrackedRef = useRef(false);
@@ -1153,6 +1170,32 @@ export default function FinancialTwinSimulator({
                   onPlanSaved={setSavedPlan}
                 />
               )}
+
+            {isSubmitted && actionPlan && results && insights && submittedInput && (
+              <>
+                <Button
+                  onClick={onDownloadPlan}
+                  disabled={downloadLoading}
+                  variant='outline'
+                  className='gap-2 self-start'
+                >
+                  <Download size={18} />
+                  {isId ? 'Unduh rencana (PNG)' : 'Download plan (PNG)'}
+                </Button>
+                <DownloadPlanCard
+                  id='download-plan-twin'
+                  plan={buildTwinDownloadPlan({
+                    title: isId ? 'Rencana Keuangan' : 'Financial Plan',
+                    input: submittedInput,
+                    results,
+                    insights,
+                    actionPlan,
+                    vocabularies,
+                    isId,
+                  })}
+                />
+              </>
+            )}
 
             <Button onClick={showInputs} className='lg:hidden' variant='link'>
               {isId ? 'Ubah input' : 'Edit inputs'}
