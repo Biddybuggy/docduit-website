@@ -1,4 +1,5 @@
 import { AuthOptions, DefaultUser } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import { login, googleLogin, refreshToken } from '@/services/auth.service';
@@ -16,9 +17,6 @@ const googleClientId = trimEnv(
   process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
 );
 const googleClientSecret = trimEnv(process.env.GOOGLE_CLIENT_SECRET);
-const legacyApiUrl = trimEnv(process.env.NEXT_PUBLIC_API_URL);
-const isGoogleOnlyMode = process.env.NEXT_PUBLIC_CHAT_DEMO_MODE === 'true';
-const useLegacyBackendAuth = !isGoogleOnlyMode && Boolean(legacyApiUrl);
 
 const nextAuthUrl =
   trimEnv(process.env.NEXTAUTH_URL) ||
@@ -33,6 +31,8 @@ declare module 'next-auth' {
     accessToken?: string;
     idToken?: string;
     googleAccessToken?: string;
+    googleRefreshToken?: string;
+    googleTokenExpiresAt?: number;
     refreshToken?: string;
     expiresAt?: number;
     username?: string;
@@ -46,6 +46,7 @@ declare module 'next-auth' {
       accessToken?: string;
       idToken?: string;
       googleAccessToken?: string;
+      googleTokenExpiresAt?: number;
       refreshToken?: string;
       expiresAt?: number;
       username?: string;
@@ -63,6 +64,8 @@ declare module 'next-auth/jwt' {
     accessToken?: string;
     idToken?: string;
     googleAccessToken?: string;
+    googleRefreshToken?: string;
+    googleTokenExpiresAt?: number;
     refreshToken?: string;
     expiresAt?: number;
     username?: string;
@@ -72,6 +75,66 @@ declare module 'next-auth/jwt' {
     error?: string;
   }
 }
+
+const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
+
+/** Expiry of a Google ID token, in ms. Falls back to the account's own expiry. */
+const googleTokenExpiry = (idToken?: string, expiresAtSeconds?: number) => {
+  if (idToken) {
+    const decoded = decode(idToken) as { exp?: number } | null;
+    if (decoded?.exp) return decoded.exp * 1000;
+  }
+  if (expiresAtSeconds) return expiresAtSeconds * 1000;
+  return Date.now() + 60 * 60 * 1000;
+};
+
+/**
+ * Firestore reads are authorized by exchanging this Google ID token for a
+ * Firebase session, but a Google ID token only lives about an hour while the
+ * NextAuth session lasts 24. Without refreshing it here, the exchange starts
+ * failing an hour after sign-in and every Firestore read fails until the user
+ * signs out and back in.
+ */
+const refreshGoogleIdToken = async (token: JWT): Promise<JWT> => {
+  if (!token.googleRefreshToken || !googleClientId || !googleClientSecret) {
+    return { ...token, error: 'GoogleRefreshError' };
+  }
+
+  try {
+    const response = await fetch(GOOGLE_TOKEN_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: googleClientId,
+        client_secret: googleClientSecret,
+        refresh_token: token.googleRefreshToken,
+        grant_type: 'refresh_token',
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error_description || data.error || 'Refresh failed');
+    }
+
+    const refreshed: JWT = {
+      ...token,
+      idToken: data.id_token ?? token.idToken,
+      googleAccessToken: data.access_token ?? token.googleAccessToken,
+      // Google only returns a new refresh token when it rotates one.
+      googleRefreshToken: data.refresh_token ?? token.googleRefreshToken,
+      googleTokenExpiresAt: googleTokenExpiry(
+        data.id_token,
+        data.expires_in ? Math.floor(Date.now() / 1000) + data.expires_in : undefined,
+      ),
+    };
+    delete refreshed.error;
+    return refreshed;
+  } catch (error) {
+    console.error('Error refreshing Google ID token:', error);
+    return { ...token, error: 'GoogleRefreshError' };
+  }
+};
 
 export const authOptions: AuthOptions = {
   debug: process.env.NODE_ENV === 'development',
@@ -84,7 +147,6 @@ export const authOptions: AuthOptions = {
             nextAuthUrl,
             googleClientId: maskValue(googleClientId),
             googleClientSecretLength: googleClientSecret?.length ?? 0,
-            useLegacyBackendAuth,
           },
         });
         return;
@@ -180,56 +242,31 @@ export const authOptions: AuthOptions = {
       if (account?.provider === 'google' && account.access_token) {
         token.idToken = account.id_token;
         token.googleAccessToken = account.access_token;
+        // Kept so the ID token can be re-minted once it expires; Google only
+        // returns a refresh token on consent, which `prompt: 'consent'` forces.
+        token.googleRefreshToken =
+          account.refresh_token ?? token.googleRefreshToken;
+        token.googleTokenExpiresAt = googleTokenExpiry(
+          account.id_token,
+          account.expires_at,
+        );
         token.email = user?.email ?? token.email;
         token.name = user?.name ?? token.name;
         token.image = user?.image ?? token.image;
         token.username =
           user?.email ?? user?.name ?? token.username ?? token.email;
 
-        if (!useLegacyBackendAuth) {
-          delete token.accessToken;
-          delete token.refreshToken;
-          delete token.expiresAt;
-          delete token.error;
-          return token;
-        }
-
-        try {
-          const payload: GoogleLoginPayload = {
-            access_token: account.access_token,
-            provider: 'google',
-          };
-          const response = await googleLogin(payload);
-          const decoded = decode(response.data.access_token) as {
-            exp: number;
-            username: string;
-          };
-          token.accessToken = response.data.access_token;
-          token.refreshToken = response.data.refresh_token;
-          token.expiresAt = decoded.exp * 1000;
-          token.username =
-            decoded.username || user?.email || user?.name || token.username;
-          delete token.error;
-        } catch (error) {
-          console.error('Error logging in with Google backend:', {
-            error,
-            apiUrl: process.env.NEXT_PUBLIC_API_URL,
-          });
-          return {
-            ...token,
-            error: 'GoogleLoginError',
-          };
-        }
+        delete token.error;
+        return token;
       }
 
       if (user && !account?.provider) {
         return {
           ...token,
-          accessToken: user.accessToken,
           idToken: user.idToken,
           googleAccessToken: user.googleAccessToken,
-          refreshToken: user.refreshToken,
-          expiresAt: user.expiresAt,
+          googleRefreshToken: user.googleRefreshToken,
+          googleTokenExpiresAt: user.googleTokenExpiresAt,
           username: user.username,
           email: user.email,
           name: user.name,
@@ -240,54 +277,25 @@ export const authOptions: AuthOptions = {
       const refreshThreshold = 60 * 1000; // 1 minute before expiration
       const now = Date.now();
 
+      // Keep the Google ID token alive for the whole NextAuth session, not just
+      // its own ~1 hour lifetime, otherwise Firestore reads start failing.
       if (
-        useLegacyBackendAuth &&
-        token.expiresAt &&
-        now > token.expiresAt - refreshThreshold
+        token.idToken &&
+        token.googleTokenExpiresAt &&
+        now > token.googleTokenExpiresAt - refreshThreshold
       ) {
-        try {
-          const response = await refreshToken(token.refreshToken as string);
-          const decoded = decode(response.data.access_token) as {
-            exp: number;
-            username: string;
-          };
-
-          return {
-            ...token,
-            accessToken: response.data.access_token,
-            refreshToken: response.data.refresh_token,
-            expiresAt: decoded.exp * 1000,
-            username: decoded.username,
-            idToken: token.idToken,
-            googleAccessToken: token.googleAccessToken,
-            email: token.email,
-            name: token.name,
-            image: token.image,
-          };
-        } catch (error) {
-          console.error('Error refreshing token:', error);
-          return {
-            ...token,
-            error: 'RefreshAccessTokenError',
-          };
-        }
+        return refreshGoogleIdToken(token);
       }
 
       return token;
     },
     async session({ session, token }) {
-      if (token.error === 'RefreshAccessTokenError') {
-        return {
-          ...session,
-          user: {},
-          expires: new Date(0).toISOString(),
-        };
-      }
       session.user = {
         ...session.user,
         accessToken: token.accessToken as string,
         idToken: token.idToken as string,
         googleAccessToken: token.googleAccessToken as string,
+        googleTokenExpiresAt: token.googleTokenExpiresAt as number,
         refreshToken: token.refreshToken as string,
         expiresAt: token.expiresAt as number,
         username: token.username as string,

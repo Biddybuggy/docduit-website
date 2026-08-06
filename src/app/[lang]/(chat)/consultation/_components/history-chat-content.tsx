@@ -7,6 +7,7 @@ import { ChatRoomResponse, getAllRooms } from '@/services/chat.service';
 import { loadConversationsFromFirestore, loadConversationFromFirestore, FirestoreConversation } from '@/services/firebase.service';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
+import { signIn } from 'next-auth/react';
 import { useFirebaseAuth } from '@/context/FirebaseAuthContext';
 
 interface HistoryChatContentProps {
@@ -24,6 +25,8 @@ const HistoryChatContent = ({
         nohistory: noHistoryText,
         loadFailed: loadFailedText,
         retry: retryText,
+        reauth: reauthText,
+        reauthAction: reauthActionText,
       },
     },
   } = vocabularies;
@@ -39,6 +42,7 @@ const HistoryChatContent = ({
     firebaseUser,
     status: firebaseStatus,
     retry: retryFirebaseAuth,
+    needsReauth,
   } = useFirebaseAuth();
 
   // Firestore is only readable once the Firebase session exists, so the fetch
@@ -152,16 +156,24 @@ const HistoryChatContent = ({
         </div>
       ) : hasFailed ? (
         <div className='my-2 flex flex-col items-center gap-2 px-4 text-center'>
-          <p className='italic text-red-200'>{loadFailedText}</p>
+          <p className='italic text-red-200'>
+            {needsReauth ? reauthText : loadFailedText}
+          </p>
           <Button
             variant='ghost'
             className='h-auto rounded-lg border border-white/25 px-3 py-1 text-sm font-medium text-white hover:bg-white/10 hover:text-white'
             onClick={() => {
+              // A dead credential can only be replaced by a fresh Google
+              // sign-in; anything else is recoverable in place.
+              if (needsReauth) {
+                void signIn('google');
+                return;
+              }
               retryFirebaseAuth();
               void mutate();
             }}
           >
-            {retryText}
+            {needsReauth ? reauthActionText : retryText}
           </Button>
         </div>
       ) : data && data.length > 0 ? (

@@ -34,7 +34,9 @@
     "history": {
       "nohistory": "Belum ada percakapan sebelumnya.",
       "loadFailed": "Gagal memuat riwayat obrolan.",
-      "retry": "Coba lagi"
+      "retry": "Coba lagi",
+      "reauth": "Sesi masuk kamu sudah berakhir. Masuk lagi untuk melihat riwayat.",
+      "reauthAction": "Masuk lagi"
     },
     "placeholderNominal": "Masukkan nominal, contoh: 10.000.000",
     "placeholderQuestion": "Tuliskan pertanyaanmu",
