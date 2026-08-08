@@ -47,6 +47,18 @@
       "savingBestPractices": "What are the best saving practices?",
       "howToChooseInstrument": "How can I choose the right investment tools? ",
       "howTheStrategy": "How can I divide my salary between needs and savings?"
+    },
+    "prescription": {
+      "title": "PRESCRIPTION",
+      "tagline": "Docduit - Your Money Doctor",
+      "riskProfile": "Risk Profile:",
+      "comment": "COMMENT",
+      "allocation": "Allocation:",
+      "emergencyFund": "You should have an emergency fund worth {count}x your monthly salary",
+      "savingsAccount": "Savings Account",
+      "transactionAccount": "Transaction Account",
+      "twoAccounts": "It's important to keep two separate accounts.",
+      "fileName": "Consultation Prescription"
     }
   },
   "navigation": {

@@ -1232,7 +1232,11 @@ export default function MessengerV2({
       }
       setMessagesToAdded(null);
     } else if (code === 'investasi') {
-      const riskScore = isDemoMode ? 3 : riskProfileData?.data?.risk_score;
+      // Demo mode has no backend risk profile, so derive the score from the
+      // answers the user just gave in the risk quiz.
+      const riskScore = isDemoMode
+        ? choiceScore.reduce((a, b) => a + b, 0)
+        : riskProfileData?.data?.risk_score;
       if (!isDemoMode && riskProfileData?.data.risk_score === 0) {
         return toast.error(
           'Anda tidak memiliki profil resiko, silahkan mengisi instrumen investasi.',
@@ -1251,7 +1255,7 @@ export default function MessengerV2({
       });
 
       const dataResep = getChoicesTemplateAnswerForResep(
-        (riskScore ?? 3) as number,
+        (riskScore ?? 0) as number,
         lang,
       );
 
@@ -1296,14 +1300,20 @@ export default function MessengerV2({
       setChatType('debt_question');
       setMessagesToAdded(newChatsToSave);
     } else if (code === 'risk_profile') {
-      const riskScore = isDemoMode ? 3 : riskProfileData?.data?.risk_score;
+      const riskScore = isDemoMode
+        ? choiceScore.reduce((a, b) => a + b, 0)
+        : riskProfileData?.data?.risk_score;
       if (!isDemoMode && riskProfileData?.data.risk_score === 0) {
         return toast.error(
           'Anda tidak memiliki profil resiko, silahkan mengisi instrumen investasi.',
         );
       }
 
-      const answerMsg = getChoicesTemplateAnswer([(riskScore ?? 3) as number], lang);
+      const answerMsg = getChoicesTemplateAnswer(
+        [(riskScore ?? 0) as number],
+        lang,
+        templateTopic,
+      );
       newChatsToAdd.push({
         type_user: 'bot',
         message: answerMsg,
@@ -1606,6 +1616,8 @@ export default function MessengerV2({
           onClose={() => setIsResepModalOpen(false)}
           resep={resep}
           isMarried={isMarried}
+          vocabularies={vocabularies}
+          lang={lang}
         />
       )}
     </div>

@@ -15,21 +15,36 @@ interface PrescriptionModalProps {
   onClose: () => void;
   resep: IResep;
   isMarried: boolean;
+  vocabularies: any;
+  lang: string;
 }
 
 const PrescriptionModal = ({
   onClose,
   resep,
   isMarried,
+  vocabularies,
+  lang,
 }: PrescriptionModalProps) => {
   const [downloadLoading, setDownloadLoading] = React.useState(false);
 
-  const handleDownload = () => {
+  const {
+    chat: { prescription: t },
+  } = vocabularies;
+
+  const handleDownload = async () => {
+    setDownloadLoading(true);
     try {
-      setDownloadLoading(true);
-      handleDownloadImage('resep');
-    } catch (error) {
-      console.error('Error downloading image:', error);
+      const date = new Date().toLocaleDateString(
+        lang === 'en' ? 'en-US' : 'id-ID',
+        {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+          timeZone: 'Asia/Jakarta',
+        },
+      );
+      await handleDownloadImage('resep', `${t.fileName} - ${date}.png`);
     } finally {
       setDownloadLoading(false);
     }
@@ -50,21 +65,21 @@ const PrescriptionModal = ({
 
         <div className='bg-[#f9e9ab]' id='resep'>
           <h2 className='text-lg sm:text-3xl font-bold text-center pt-6'>
-            PRESCRIPTION
+            {t.title}
           </h2>
           <h3 className='text-base sm:text-xl font-semibold text-center'>
-            Docduit - Dokter Urusan Duit
+            {t.tagline}
           </h3>
 
           <div className='mt-4 border-t-4 border-black p-4 sm:p-6'>
             {resep.profile ? (
               <p className='text-base sm:text-xl text-center'>
-                Profile Resiko:{' '}
+                {t.riskProfile}{' '}
                 <span className='font-semibold'>{resep.profile}</span>
               </p>
             ) : (
               <h4 className='text-sm sm:text-base font-semibold text-center'>
-                KOMENTAR
+                {t.comment}
               </h4>
             )}
             <div
@@ -75,7 +90,9 @@ const PrescriptionModal = ({
 
             {resep.allocation && resep.allocation.length > 0 && (
               <div className='mt-4 text-left'>
-                <p className='font-semibold text-sm sm:text-base'>Alokasi:</p>
+                <p className='font-semibold text-sm sm:text-base'>
+                  {t.allocation}
+                </p>
                 <div className='mt-1'>
                   {resep.allocation.map((item, index) => (
                     <div key={index} className='text-sm sm:text-base'>
@@ -101,7 +118,7 @@ const PrescriptionModal = ({
             ))}
             <div className='mt-4'>
               <p className='text-sm sm:text-base'>
-                {`Kamu sebaiknya punya simpanan dana darurat sebesar ${bagCount}x gaji bulanan`}
+                {t.emergencyFund.replace('{count}', String(bagCount))}
               </p>
             </div>
           </div>
@@ -117,7 +134,7 @@ const PrescriptionModal = ({
                   alt={'bag1'}
                 />
                 <p className='font-semibold text-sm sm:text-base'>
-                  Rekening Tabungan
+                  {t.savingsAccount}
                 </p>
               </div>
               <div className='flex flex-col items-center gap-4'>
@@ -129,13 +146,11 @@ const PrescriptionModal = ({
                   alt={'bag2'}
                 />
                 <p className='font-semibold text-sm sm:text-base'>
-                  Rekening Transaksi
+                  {t.transactionAccount}
                 </p>
               </div>
             </div>
-            <p className='mt-2 text-sm sm:text-base'>
-              Penting untuk memiliki dua rekening terpisah.
-            </p>
+            <p className='mt-2 text-sm sm:text-base'>{t.twoAccounts}</p>
           </div>
         </div>
       </div>

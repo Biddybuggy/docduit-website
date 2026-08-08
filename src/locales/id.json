@@ -46,6 +46,18 @@
       "savingBestPractices": "Bagaimana cara menabung yang baik?",
       "howToChooseInstrument": "Bagaimana memilih instrumen investasi yang tepat untuk saya?",
       "howTheStrategy": "Bagaimana strategi membagi gaji saya untuk kebutuhan dan tabungan?"
+    },
+    "prescription": {
+      "title": "RESEP",
+      "tagline": "Docduit - Dokter Urusan Duit",
+      "riskProfile": "Profil Risiko:",
+      "comment": "KOMENTAR",
+      "allocation": "Alokasi:",
+      "emergencyFund": "Kamu sebaiknya punya simpanan dana darurat sebesar {count}x gaji bulanan",
+      "savingsAccount": "Rekening Tabungan",
+      "transactionAccount": "Rekening Transaksi",
+      "twoAccounts": "Penting untuk memiliki dua rekening terpisah.",
+      "fileName": "Resep Hasil Konsultasi"
     }
   },
   "navigation": {
