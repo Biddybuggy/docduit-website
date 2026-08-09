@@ -55,7 +55,7 @@ Promote reuses the **existing (preview-built) deployment** — it does not rebui
 Verify the whole set from `.example-env` is enabled for Preview (Firebase `NEXT_PUBLIC_FIREBASE_*`, `AI_CHAT_URL`, `CHAT_DEMO_CF_WORKER_URL`, `OPENAI_*`, `NEXTAUTH_SECRET`, `GOOGLE_CLIENT_SECRET`, `SMTP_*`, etc.).
 
 ### 3. `NEXTAUTH_URL` — the one per-scope exception
-`src/services/auth.ts` builds Google's OAuth callback origin from `NEXTAUTH_URL`. It must differ by environment, or sign-in on dev will redirect to prod:
+`src/services/auth.ts` builds the session callback origin from `NEXTAUTH_URL`. It must differ by environment, or sign-in on dev will redirect to prod:
 
 | Scope | Value |
 | --- | --- |
@@ -69,12 +69,30 @@ Confirm Settings → Git → **Production Branch** is `master` (unchanged).
 
 ---
 
-## One-time Google OAuth setup
+## One-time Firebase Auth setup
 
-On the OAuth 2.0 Client used for sign-in (Google Cloud Console → APIs & Services → Credentials), **add** (keep the existing prod entries):
+Firebase Auth is the identity source of truth for **both** Google and email/password
+sign-in; NextAuth only verifies the resulting Firebase ID token and issues the server
+session. There is no Google OAuth redirect URI to maintain any more — the old
+`/api/auth/callback/google` entry in Google Cloud Console is obsolete.
 
-- Authorized JavaScript origin: `https://dev.docduit.vercel.app`
-- Authorized redirect URI: `https://dev.docduit.vercel.app/api/auth/callback/google`
+In the Firebase console (project `docduit-app`), under **Authentication**:
+
+- **Sign-in method →** enable **Email/Password**. Leave "Email link (passwordless
+  sign-in)" off. Google should already be enabled.
+- **Settings → User account linking →** must be **"Link accounts that use the same
+  email"**. If it is set to "Create multiple accounts", someone who signed up with
+  Google and later registers a password gets a *second* uid, and their saved
+  conversations and plans silently disappear.
+- **Settings → User actions →** keep **email enumeration protection** on. It collapses
+  `auth/user-not-found` and `auth/wrong-password` into `auth/invalid-credential`, which
+  is why the sign-in copy never says whether an address exists.
+- **Settings → Authorized domains →** must list `localhost`,
+  `docduit-app.firebaseapp.com`, `docduit.vercel.app`, and `dev.docduit.vercel.app`.
+  The Google popup is rejected from any domain not on this list.
+- **Templates →** customise the **email address verification** and **password reset**
+  messages. Both send from `noreply@docduit-app.firebaseapp.com` unless a custom SMTP
+  sender is configured.
 
 ---
 
@@ -87,5 +105,5 @@ A small **DEV** badge renders on any non-production host (dev alias, Vercel prev
 ## Sanity checks
 
 - Push a trivial commit to `dev` → it deploys **only** to `dev.docduit.vercel.app`; production is unchanged until you promote.
-- On `dev.docduit.vercel.app` the DEV badge shows and Google sign-in completes (confirms the Preview `NEXTAUTH_URL` + Google redirect URI).
+- On `dev.docduit.vercel.app` the DEV badge shows, and both Google and email/password sign-in complete (confirms the Preview `NEXTAUTH_URL` and that the host is on Firebase's authorized-domains list).
 - After Promote → `docduit.vercel.app` works and the DEV badge is **hidden**.

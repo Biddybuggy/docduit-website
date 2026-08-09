@@ -7,7 +7,6 @@ import { ChatRoomResponse, getAllRooms } from '@/services/chat.service';
 import { loadConversationsFromFirestore, loadConversationFromFirestore, FirestoreConversation } from '@/services/firebase.service';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import useSWR from 'swr';
-import { signIn } from 'next-auth/react';
 import { useFirebaseAuth } from '@/context/FirebaseAuthContext';
 
 interface HistoryChatContentProps {
@@ -163,10 +162,14 @@ const HistoryChatContent = ({
             variant='ghost'
             className='h-auto rounded-lg border border-white/25 px-3 py-1 text-sm font-medium text-white hover:bg-white/10 hover:text-white'
             onClick={() => {
-              // A dead credential can only be replaced by a fresh Google
-              // sign-in; anything else is recoverable in place.
+              // Without a Firebase user there is nothing to retry against;
+              // anything else is recoverable in place.
               if (needsReauth) {
-                void signIn('google');
+                router.push(
+                  `/login?lang=${lang}&callbackUrl=${encodeURIComponent(
+                    `/${lang}/consultation`,
+                  )}`,
+                );
                 return;
               }
               retryFirebaseAuth();

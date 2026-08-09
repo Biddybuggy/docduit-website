@@ -14,12 +14,16 @@ export default async function FinancialWorkflowAutomatorPage({
   const { lang } = await params;
   const session = await getServerSession(authOptions);
 
+  const callbackUrl = encodeURIComponent(`/${lang}/financial-workflow-automator`);
+
   if (!session?.user?.email) {
-    redirect(
-      `/login?callbackUrl=${encodeURIComponent(
-        `/${lang}/financial-workflow-automator`,
-      )}`,
-    );
+    redirect(`/login?lang=${lang}&callbackUrl=${callbackUrl}`);
+  }
+
+  // `=== false` rather than falsy: sessions minted before this claim existed
+  // carry no value, and must not lock their owners out.
+  if (session.user.emailVerified === false) {
+    redirect(`/login?lang=${lang}&callbackUrl=${callbackUrl}`);
   }
 
   const vocabularies = await getDictionary(lang as Locale);

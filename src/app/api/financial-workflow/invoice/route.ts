@@ -50,6 +50,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // The page redirects unverified users away, but this route is reachable
+  // directly, so it has to make the same judgement itself.
+  if (session.user.emailVerified === false) {
+    return NextResponse.json(
+      { error: 'Confirm your email address to use this feature.' },
+      { status: 403 },
+    );
+  }
+
   try {
     const formData = await request.formData();
     const formValues = Object.fromEntries(

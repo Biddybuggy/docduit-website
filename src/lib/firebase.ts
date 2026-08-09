@@ -57,3 +57,7 @@ export const firebaseFirestore =
   typeof window !== 'undefined' && firebaseApp ? getFirestore(firebaseApp) : undefined;
 
 export const googleAuthProvider = new GoogleAuthProvider();
+// Let people pick which Google account to use. Deliberately not `consent`,
+// which the old NextAuth flow forced only to obtain a refresh token; Firebase
+// keeps its own session alive, so re-prompting every sign-in buys nothing.
+googleAuthProvider.setCustomParameters({ prompt: 'select_account' });

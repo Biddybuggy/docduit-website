@@ -7,14 +7,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useState } from 'react';
-import AuthSignIn from './sign-in';
-import AuthSignUp from './sign-up';
-import { useToast } from '@/hooks/use-toast';
-import AuthSignInGoogle from './sign-in-google';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-
-const isGoogleOnlyMode = process.env.NEXT_PUBLIC_CHAT_DEMO_MODE === 'true';
+import AuthForm, { type AuthFormView } from './auth-form';
 
 interface AuthDialogProps {
   vocabularies: any;
@@ -33,19 +28,27 @@ export default function AuthDialog({
   setIsOpen,
   children,
 }: AuthDialogProps) {
-  const { toast } = useToast();
-  const [displayForm, setDisplayForm] = useState<'signin' | 'signup'>('signin');
+  const [view, setView] = useState<AuthFormView>('signin');
 
   const {
-    common: { alreadyHaveAccount, signIn, dontHaveAccount, signUp, or },
+    common: { backToHome },
     auth: {
       signIn: { title: signInTitle },
       signUp: { title: signUpTitle },
+      forgotPassword: { title: forgotPasswordTitle },
+      verifyEmail: { title: verifyEmailTitle },
     },
   } = vocabularies;
 
   const params = useParams();
   const lang = params.lang as string;
+
+  const titles: Record<AuthFormView, string> = {
+    signin: signInTitle,
+    signup: signUpTitle,
+    forgot: forgotPasswordTitle,
+    verify: verifyEmailTitle,
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -63,56 +66,22 @@ export default function AuthDialog({
         <DialogHeader>
           <DialogTitle>
             <div className='flex justify-center'>
-              <p className='font-semibold text-2xl'>
-                {displayForm === 'signin' ? signInTitle : signUpTitle}
-              </p>
+              <p className='font-semibold text-2xl'>{titles[view]}</p>
             </div>
           </DialogTitle>
         </DialogHeader>
         <div className='flex flex-col gap-6 p-8 lg:px-24'>
-          {!isGoogleOnlyMode && (
-            <div className='flex flex-col gap-6'>
-              <div className='flex flex-col gap-4'>
-                {displayForm === 'signin' ? (
-                  <>
-                    <AuthSignIn setIsOpen={setIsOpen} vocabularies={vocabularies} />
-                    <p className='text-start text-gray-500'>
-                      {dontHaveAccount}&nbsp;
-                      <button
-                        onClick={() => setDisplayForm('signup')}
-                        className='text-docduit-red'
-                      >
-                        {signUp}
-                      </button>
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <AuthSignUp vocabularies={vocabularies} />
-                    <p className='text-start text-gray-500'>
-                      {alreadyHaveAccount}&nbsp;
-                      <button
-                        onClick={() => setDisplayForm('signin')}
-                        className='text-docduit-red'
-                      >
-                        {signIn}
-                      </button>
-                    </p>
-                  </>
-                )}
-              </div>
-              <p className='text-xl text-docduit-gray text-center'>{or}</p>
-            </div>
-          )}
-          <div className='flex justify-center'>
-            <AuthSignInGoogle />
-          </div>
+          <AuthForm
+            vocabularies={vocabularies}
+            onViewChange={setView}
+            onAuthenticated={() => setIsOpen(false)}
+          />
           {showBackLink && (
             <Link
               className='text-sm underline text-blue-500 text-center'
               href={`/${lang}/`}
             >
-              Kembali ke halaman utama
+              {backToHome}
             </Link>
           )}
         </div>

@@ -21,8 +21,14 @@ export default async function ConsultationPage({ params }: LayoutProps) {
 
   const session = await getServerSession(authOptions);
   if (!session) {
-    redirect(`/api/auth/signin/google?callbackUrl=${encodeURIComponent('/' + lang + '/consultation')}`);
+    redirect(
+      `/login?lang=${lang}&callbackUrl=${encodeURIComponent(
+        `/${lang}/consultation`,
+      )}`,
+    );
   }
+  // Unverified users are let through to the page, which renders the
+  // verification gate over it — they still have a session, just not access.
 
   return <ConsultationContainer vocabularies={vocabularies} />;
 }

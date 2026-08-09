@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
 import { toast } from 'sonner';
 import { CalendarCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -110,6 +109,7 @@ export function SavePlanCard({
 }) {
   const t = getSavedPlanCopy(vocabularies, lang);
   const pathname = usePathname();
+  const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [justSaved, setJustSaved] = useState<FinancialTwinPlan | null>(null);
 
@@ -124,13 +124,16 @@ export function SavePlanCard({
       toast.info(
         t(
           'signInToSave',
-          'Masuk dengan Google untuk menyimpan rencana ini. Kamu akan kembali ke halaman ini dan penyimpanan selesai otomatis.',
-          'Sign in with Google to save this plan. We will bring you back here and finish saving automatically.',
+          'Masuk untuk menyimpan rencana ini. Kamu akan kembali ke halaman ini dan penyimpanan selesai otomatis.',
+          'Sign in to save this plan. We will bring you back here and finish saving automatically.',
         ),
       );
-      await signIn('google', {
-        callbackUrl: pathname ?? `/${lang}/financial-twin-simulator`,
-      });
+      // The stored intent is replayed by `simulator-client` once the user lands
+      // back here signed in, so the save finishes without them asking twice.
+      const callbackUrl = pathname ?? `/${lang}/financial-twin-simulator`;
+      router.push(
+        `/login?lang=${lang}&callbackUrl=${encodeURIComponent(callbackUrl)}`,
+      );
       return;
     }
 
