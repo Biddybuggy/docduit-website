@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import AuthForm, { type AuthFormView } from '../[lang]/_components/auth/auth-form';
+import { useFirebaseAuth } from '@/context/FirebaseAuthContext';
 
 /**
  * Only credentials errors are reachable now that Firebase Auth is the identity
@@ -21,6 +22,7 @@ const ERROR_HELP: Record<string, string> = {
 
 export default function LoginContent({ vocabularies }: { vocabularies: any }) {
   const { status } = useSession();
+  const { emailVerified } = useFirebaseAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
@@ -28,10 +30,13 @@ export default function LoginContent({ vocabularies }: { vocabularies: any }) {
   const [view, setView] = useState<AuthFormView>('signin');
 
   useEffect(() => {
-    if (status === 'authenticated') {
+    // A NextAuth session is minted for any signed-in Firebase user, verified
+    // or not — wait for verification too, or this fires before the user can
+    // act on the "confirm your email" view and yanks them off the page.
+    if (status === 'authenticated' && emailVerified) {
       router.push(callbackUrl);
     }
-  }, [status, router, callbackUrl]);
+  }, [status, emailVerified, router, callbackUrl]);
 
   if (status === 'loading') {
     return (

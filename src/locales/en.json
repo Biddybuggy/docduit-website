@@ -60,6 +60,7 @@
       "userDisabled": "This account has been disabled.",
       "network": "Network problem. Check your connection and try again.",
       "accountExistsDifferentCredential": "This email is already registered with a different sign-in method. Sign in the way you did originally.",
+      "signInUnavailable": "This sign-in method is having trouble on our end. Try another way to sign in, or try again later.",
       "generic": "Sign in failed. Please try again.",
       "signUpFailed": "Sign up failed. Please try again.",
       "allFieldsRequired": "Please fill in every field.",

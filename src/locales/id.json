@@ -60,6 +60,7 @@
       "userDisabled": "Akun ini sudah dinonaktifkan.",
       "network": "Ada masalah jaringan. Periksa koneksi kamu lalu coba lagi.",
       "accountExistsDifferentCredential": "Email ini sudah terdaftar dengan metode masuk yang berbeda. Masuklah dengan cara yang kamu pakai sebelumnya.",
+      "signInUnavailable": "Metode masuk ini sedang bermasalah dari sisi kami. Coba masuk dengan cara lain, atau coba lagi nanti.",
       "generic": "Gagal masuk. Silakan coba lagi.",
       "signUpFailed": "Gagal mendaftar. Silakan coba lagi.",
       "allFieldsRequired": "Semua field harus diisi.",

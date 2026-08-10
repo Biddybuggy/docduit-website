@@ -132,19 +132,36 @@ type ErrorContext = 'signin' | 'signup' | 'reset' | 'google';
  * address exists. And it makes `fetchSignInMethodsForEmail` useless, so on a
  * collision we cannot say *which* provider the existing account uses — only
  * that one exists.
+ *
+ * `context` matters because the same code means different things per flow: on
+ * the password flows a rejected credential is something the user typed, but on
+ * the Google flow it is Firebase refusing the provider's own credential, which
+ * the user cannot fix by retyping anything.
  */
 export const mapFirebaseAuthError = (
   error: unknown,
   context: ErrorContext,
   errors: Record<string, string>,
 ): string => {
+  const isPasswordFlow = context !== 'google';
+
   switch (errorCode(error)) {
     case 'auth/email-already-in-use':
       return errors.emailInUse;
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
-      return errors.invalidCredential;
+      // Blaming the user's typing on the Google flow sends them to reset a
+      // password that was never involved; the real cause there is a project
+      // misconfiguration (a stale OAuth client secret, say).
+      return isPasswordFlow
+        ? errors.invalidCredential
+        : errors.signInUnavailable;
+    // The domain is missing from Firebase's authorized list, or the provider
+    // is switched off. Both are ours to fix, so offer the other method.
+    case 'auth/unauthorized-domain':
+    case 'auth/operation-not-allowed':
+      return errors.signInUnavailable;
     case 'auth/invalid-email':
       return errors.invalidEmail;
     case 'auth/weak-password':
