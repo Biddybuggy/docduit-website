@@ -14,12 +14,10 @@ export default async function FinancialWorkflowAutomatorPage({
   const { lang } = await params;
   const session = await getServerSession(authOptions);
 
+  const callbackUrl = encodeURIComponent(`/${lang}/financial-workflow-automator`);
+
   if (!session?.user?.email) {
-    redirect(
-      `/login?callbackUrl=${encodeURIComponent(
-        `/${lang}/financial-workflow-automator`,
-      )}`,
-    );
+    redirect(`/login?lang=${lang}&callbackUrl=${callbackUrl}`);
   }
 
   const vocabularies = await getDictionary(lang as Locale);

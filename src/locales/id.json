@@ -6,7 +6,8 @@
     "signUp": "Daftar",
     "alreadyHaveAccount": "Sudah punya akun?",
     "dontHaveAccount": "Belum punya akun?",
-    "or": "atau"
+    "or": "atau",
+    "backToHome": "Kembali ke halaman utama"
   },
   "auth": {
     "signIn": {
@@ -28,6 +29,42 @@
       "confirmPasswordPlaceholder": "Konfirmasi kata sandi Anda di sini",
       "fullname": "Nama Lengkap",
       "fullnamePlaceholder": "Masukkan nama lengkap Anda di sini"
+    },
+    "continueWithGoogle": "Lanjutkan dengan Google",
+    "verifyEmail": {
+      "title": "Konfirmasi email kamu",
+      "sentTo": "Kami sudah mengirim tautan konfirmasi ke {email}.",
+      "instructions": "Buka tautan tersebut untuk mengaktifkan akun kamu, lalu kembali ke halaman ini.",
+      "resend": "Kirim ulang email",
+      "resending": "Mengirim…",
+      "resent": "Email terkirim. Cek kotak masuk dan folder spam kamu.",
+      "resendCooldown": "Kamu bisa minta email lagi dalam {seconds} detik.",
+      "checkAgain": "Saya sudah konfirmasi",
+      "checking": "Memeriksa…",
+      "notVerifiedYet": "Emailnya belum terkonfirmasi. Buka dulu tautan di email, lalu coba lagi.",
+      "useAnotherAccount": "Gunakan akun lain"
+    },
+    "forgotPassword": {
+      "title": "Atur ulang kata sandi",
+      "description": "Masukkan alamat email kamu dan kami akan mengirim tautan untuk membuat kata sandi baru.",
+      "submit": "Kirim tautan",
+      "sent": "Jika ada akun dengan alamat itu, kami sudah mengirim tautan atur ulang. Cek kotak masuk kamu.",
+      "backToSignIn": "Kembali ke halaman masuk"
+    },
+    "errors": {
+      "emailInUse": "Sudah ada akun dengan email ini. Coba masuk — atau pakai Lanjutkan dengan Google kalau itu cara kamu mendaftar.",
+      "invalidCredential": "Kombinasi email dan kata sandi tidak cocok.",
+      "invalidEmail": "Masukkan alamat email yang valid.",
+      "weakPassword": "Kata sandi minimal 8 karakter.",
+      "tooManyRequests": "Terlalu banyak percobaan. Tunggu beberapa menit, atau atur ulang kata sandi kamu.",
+      "userDisabled": "Akun ini sudah dinonaktifkan.",
+      "network": "Ada masalah jaringan. Periksa koneksi kamu lalu coba lagi.",
+      "accountExistsDifferentCredential": "Email ini sudah terdaftar dengan metode masuk yang berbeda. Masuklah dengan cara yang kamu pakai sebelumnya.",
+      "signInUnavailable": "Metode masuk ini sedang bermasalah dari sisi kami. Coba masuk dengan cara lain, atau coba lagi nanti.",
+      "generic": "Gagal masuk. Silakan coba lagi.",
+      "signUpFailed": "Gagal mendaftar. Silakan coba lagi.",
+      "allFieldsRequired": "Semua field harus diisi.",
+      "passwordMismatch": "Kata sandi tidak cocok."
     }
   },
   "chat": {
@@ -46,6 +83,18 @@
       "savingBestPractices": "Bagaimana cara menabung yang baik?",
       "howToChooseInstrument": "Bagaimana memilih instrumen investasi yang tepat untuk saya?",
       "howTheStrategy": "Bagaimana strategi membagi gaji saya untuk kebutuhan dan tabungan?"
+    },
+    "prescription": {
+      "title": "RESEP",
+      "tagline": "Docduit - Dokter Urusan Duit",
+      "riskProfile": "Profil Risiko:",
+      "comment": "KOMENTAR",
+      "allocation": "Alokasi:",
+      "emergencyFund": "Kamu sebaiknya punya simpanan dana darurat sebesar {count}x gaji bulanan",
+      "savingsAccount": "Rekening Tabungan",
+      "transactionAccount": "Rekening Transaksi",
+      "twoAccounts": "Penting untuk memiliki dua rekening terpisah.",
+      "fileName": "Resep Hasil Konsultasi"
     }
   },
   "navigation": {
@@ -69,7 +118,7 @@
       "savedTitle": "Rencana tersimpan",
       "savedBody": "Kembali kapan saja — setiap minggu kami akan bertanya apakah kamu masih di jalur.",
       "nextCheckInLabel": "Check-in berikutnya",
-      "signInToSave": "Masuk dengan Google untuk menyimpan rencana ini. Kamu akan kembali ke halaman ini dan penyimpanan selesai otomatis.",
+      "signInToSave": "Masuk untuk menyimpan rencana ini. Kamu akan kembali ke halaman ini dan penyimpanan selesai otomatis.",
       "saveFailed": "Rencana gagal disimpan. Silakan masuk, jalankan ulang simulasi, lalu coba simpan lagi.",
       "saveFailedPermission": "Penyimpanan ditolak oleh server (izin database). Hubungi tim Docduit — aturan keamanan untuk rencana Financial Twin belum dipasang.",
       "saveFailedAuth": "Sesi masukmu belum tersambung ke penyimpanan. Keluar lalu masuk lagi, jalankan simulasi, dan coba simpan ulang.",

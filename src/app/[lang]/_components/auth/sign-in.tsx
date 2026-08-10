@@ -1,24 +1,25 @@
+'use client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { getSession } from 'next-auth/react';
-import { mutate } from 'swr';
 import { safeSendGAEvent } from '@/lib/analytics';
+import { signInWithEmail, mapFirebaseAuthError } from '@/services/firebase-auth.service';
+import { signInSchema } from '@/lib/security/schemas/firebase-auth';
 
-interface AuthContentProps {
+interface AuthSignInProps {
   vocabularies: any;
-  setIsOpen: (isOpen: boolean) => void;
+  onSuccess: () => void;
+  onForgotPassword: () => void;
 }
 
-export default function AuthSignIn({ vocabularies, setIsOpen }: AuthContentProps) {
-  const { loginWithCredentials } = useAuth();
-  const router = useRouter();
-
+export default function AuthSignIn({
+  vocabularies,
+  onSuccess,
+  onForgotPassword,
+}: AuthSignInProps) {
   const {
     common: { signIn },
     auth: {
@@ -27,67 +28,77 @@ export default function AuthSignIn({ vocabularies, setIsOpen }: AuthContentProps
         password: passwordText,
         emailPlaceholder,
         passwordPlaceholder,
+        forgotPassword: forgotPasswordText,
       },
+      errors,
     },
   } = vocabularies;
 
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
-    if (email && password) {
-      setLoading(true);
-      try {
-        const result = await loginWithCredentials(email, password);
-        if (result?.error || !result?.ok) {
-          toast.error('Login gagal. Silakan coba lagi.');
-        } else {
-          await getSession();
-          router.refresh();
-          mutate('user-info');
-          setIsOpen(false);
-          toast.success('Login berhasil!');
-          safeSendGAEvent('event', 'manual_sign_in', { email });
-        }
-      } catch (error) {
-        toast.error('Login gagal. Silakan coba lagi.');
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      toast.error('Semua field harus diisi');
+    const parsed = signInSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? errors.allFieldsRequired);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await signInWithEmail(parsed.data.email, parsed.data.password);
+      safeSendGAEvent('event', 'manual_sign_in', { method: 'password' });
+
+      // The NextAuth session is minted by the auth bridge once Firebase
+      // reports the new user, so there is nothing to await here.
+      onSuccess();
+    } catch (error) {
+      console.error('Email sign-in failed:', error);
+      toast.error(mapFirebaseAuthError(error, 'signin', errors));
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <>
       <div className='flex flex-col gap-2'>
-        <Label htmlFor='email' className='text-gray-500'>
+        <Label htmlFor='signin-email' className='text-gray-500'>
           {emailText}
         </Label>
         <Input
-          id='email'
+          id='signin-email'
           type='email'
+          autoComplete='email'
           className='rounded-full bg-docduit-gray/40 border-0'
           placeholder={emailPlaceholder}
+          value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
       </div>
       <div className='flex flex-col gap-2'>
-        <Label htmlFor='password' className='text-gray-500'>
+        <Label htmlFor='signin-password' className='text-gray-500'>
           {passwordText}
         </Label>
         <Input
-          id='password'
+          id='signin-password'
           type='password'
+          autoComplete='current-password'
           className='rounded-full bg-docduit-gray/40 border-0'
           placeholder={passwordPlaceholder}
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSignIn()}
         />
       </div>
+      <button
+        type='button'
+        onClick={onForgotPassword}
+        className='self-start text-sm text-docduit-red hover:underline'
+      >
+        {forgotPasswordText}
+      </button>
       <div className='flex justify-center'>
         <Button
           variant='red'

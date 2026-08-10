@@ -1,33 +1,24 @@
 'use client';
 import { Button } from '@/components/ui/button';
-import { signIn } from 'next-auth/react';
 import { useState } from 'react';
+import AuthDialog from './auth-dialog';
 
 interface AuthButtonProps {
   vocabularies: any;
 }
 
 export default function AuthButton({ vocabularies }: AuthButtonProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const {
     common: { signIn: signInText },
   } = vocabularies;
 
-  const handleSignIn = async () => {
-    setIsLoading(true);
-    try {
-      const callbackUrl = window.location.pathname + window.location.search;
-      await signIn('google', { callbackUrl });
-    } catch (error) {
-      console.error('Sign in error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Opens the dialog rather than starting a sign-in directly: the Google flow
+  // is a popup now, and browsers block popups that aren't opened straight from
+  // a click on the element that offers the choice.
   return (
-    <Button variant='red' onClick={handleSignIn} disabled={isLoading}>
-      {isLoading ? 'Signing in...' : signInText}
-    </Button>
+    <AuthDialog vocabularies={vocabularies} isOpen={isOpen} setIsOpen={setIsOpen}>
+      <Button variant='red'>{signInText}</Button>
+    </AuthDialog>
   );
 }

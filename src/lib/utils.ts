@@ -133,6 +133,9 @@ export const handleMarriageStatus = (text: string): boolean => {
     'sudah settle',
     'sudah hidup bersama',
     'sudah membina rumah tangga',
+    // English answers (the `/en` template options are "Married" / "Not married").
+    'married',
+    'i am married',
   ];
 
   const notMarriedKeywords = [
@@ -173,6 +176,12 @@ export const handleMarriageStatus = (text: string): boolean => {
     'sudah duda',
     'tidak lagi menikah',
     'sudah tidak berkeluarga',
+    // English answers. These are checked first (see the return below), so they
+    // win over the 'married' substring they contain.
+    'not married',
+    'unmarried',
+    'divorced',
+    'widowed',
   ];
 
   
@@ -187,27 +196,74 @@ export const handleMarriageStatus = (text: string): boolean => {
   return isNotMarriedStatus ? false : isMarriedStatus;
 };
 
+// Unit words that can follow an amount, in either locale. Ordered longest-first
+// so 'miliar' is not matched by a shorter pattern first.
+// The short forms are also matched when written flush against the digits
+// ("5jt", "500rb"), where there is no word boundary to anchor on.
+const AMOUNT_UNITS: { pattern: RegExp; multiplier: number }[] = [
+  { pattern: /\b(miliar|milyar|billion)\b/, multiplier: 1_000_000_000 },
+  { pattern: /\b(juta|million|mio)\b|\d\s*jt\b/, multiplier: 1_000_000 },
+  { pattern: /\b(ribu|thousand)\b|\d\s*(rb|k)\b/, multiplier: 1_000 },
+];
+
+const BELOW_PATTERN = /\b(kurang dari|di bawah|dibawah|less than|under|below)\b|</;
+const ABOVE_PATTERN = /\b(lebih dari|di atas|diatas|more than|over|above)\b|>/;
+
+/**
+ * Parses a Rupiah amount out of a chat answer.
+ *
+ * Handles three shapes, because the consultation flow produces all of them:
+ * an exact numeral ("10.000.000"), an amount with a unit word ("10 juta",
+ * "1.5 million"), and the bucketed multiple-choice labels offered by the
+ * A22A/A22B templates ("5-10 juta", "Less than 1 million").
+ *
+ * Buckets collapse to a single representative figure: the midpoint of a bounded
+ * range, half the bound for an open-ended "less than X", and 1.5x the bound for
+ * an open-ended "more than X". Callers only use the result for ratio tests
+ * (e.g. installments against 30% of income), so a representative value is
+ * enough — but it must be non-zero, or every such test silently passes.
+ */
 export const convertRupiahToNumber = (input: string | undefined): number => {
   if (!input) return 0;
-  
-  const cleanedInput = input
-    .trim()
-    .replace(/rp\.?|rupiah/gi, '') 
-    .replace(/,--|,-/g, '') 
-    .replace(/\s+/g, ''); 
 
-  const numericMatch = cleanedInput.match(/^[\d,.]+$/);
-  if (numericMatch) {
-    const numStr = cleanedInput
-      .replace(/([,.])(\d{3})(\b)/g, '$2') 
-      .replace(/,/g, '.'); 
+  const normalized = input
+    .toLowerCase()
+    .replace(/rp\.?|rupiah/gi, '')
+    .replace(/,--|,-/g, '')
+    .trim();
+
+  // Exact numeral, e.g. "10.000.000" or "10,000,000".
+  const compact = normalized.replace(/\s+/g, '');
+  if (/^[\d,.]+$/.test(compact)) {
+    const numStr = compact
+      .replace(/([,.])(\d{3})(\b)/g, '$2')
+      .replace(/,/g, '.');
     const num = parseFloat(numStr);
-    if (isNaN(num)) return 0; 
-    return Math.floor(num); 
+    return isNaN(num) ? 0 : Math.floor(num);
   }
 
+  const unit = AMOUNT_UNITS.find(({ pattern }) => pattern.test(normalized));
+  if (!unit) return 0;
 
-  return 0;
+  // Amounts written alongside a unit word are small ("2,5 juta"), so a comma or
+  // dot here is a decimal point rather than a thousands separator.
+  const amounts = (normalized.match(/\d+(?:[.,]\d+)?/g) ?? []).map((token) =>
+    parseFloat(token.replace(',', '.')),
+  );
+  if (amounts.length === 0) return 0;
+
+  let value: number;
+  if (amounts.length >= 2) {
+    value = (amounts[0] + amounts[1]) / 2;
+  } else if (BELOW_PATTERN.test(normalized)) {
+    value = amounts[0] / 2;
+  } else if (ABOVE_PATTERN.test(normalized)) {
+    value = amounts[0] * 1.5;
+  } else {
+    value = amounts[0];
+  }
+
+  return Math.floor(value * unit.multiplier);
 };
 
 export const getTemplateId = (chat: string): string => {

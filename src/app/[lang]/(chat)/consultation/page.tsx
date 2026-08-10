@@ -21,7 +21,11 @@ export default async function ConsultationPage({ params }: LayoutProps) {
 
   const session = await getServerSession(authOptions);
   if (!session) {
-    redirect(`/api/auth/signin/google?callbackUrl=${encodeURIComponent('/' + lang + '/consultation')}`);
+    redirect(
+      `/login?lang=${lang}&callbackUrl=${encodeURIComponent(
+        `/${lang}/consultation`,
+      )}`,
+    );
   }
 
   return <ConsultationContainer vocabularies={vocabularies} />;
