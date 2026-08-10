@@ -4,9 +4,8 @@ import AuthSignIn from './sign-in';
 import AuthSignUp from './sign-up';
 import AuthSignInGoogle from './sign-in-google';
 import ForgotPassword from './forgot-password';
-import VerifyEmailGate from './verify-email-gate';
 
-export type AuthFormView = 'signin' | 'signup' | 'forgot' | 'verify';
+export type AuthFormView = 'signin' | 'signup' | 'forgot';
 
 interface AuthFormProps {
   vocabularies: any;
@@ -35,10 +34,6 @@ export default function AuthForm({
     onViewChange(next);
   };
 
-  if (view === 'verify') {
-    return <VerifyEmailGate vocabularies={vocabularies} />;
-  }
-
   if (view === 'forgot') {
     return <ForgotPassword vocabularies={vocabularies} onBack={() => go('signin')} />;
   }
@@ -51,7 +46,6 @@ export default function AuthForm({
             <AuthSignIn
               vocabularies={vocabularies}
               onSuccess={onAuthenticated}
-              onNeedsVerification={() => go('verify')}
               onForgotPassword={() => go('forgot')}
             />
             <p className='text-start text-gray-500'>
@@ -65,7 +59,7 @@ export default function AuthForm({
           <>
             <AuthSignUp
               vocabularies={vocabularies}
-              onNeedsVerification={() => go('verify')}
+              onSuccess={onAuthenticated}
               onSignIn={() => go('signin')}
             />
             <p className='text-start text-gray-500'>

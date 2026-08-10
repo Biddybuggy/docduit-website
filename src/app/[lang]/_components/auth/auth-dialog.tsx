@@ -36,7 +36,6 @@ export default function AuthDialog({
       signIn: { title: signInTitle },
       signUp: { title: signUpTitle },
       forgotPassword: { title: forgotPasswordTitle },
-      verifyEmail: { title: verifyEmailTitle },
     },
   } = vocabularies;
 
@@ -47,7 +46,6 @@ export default function AuthDialog({
     signin: signInTitle,
     signup: signUpTitle,
     forgot: forgotPasswordTitle,
-    verify: verifyEmailTitle,
   };
 
   return (

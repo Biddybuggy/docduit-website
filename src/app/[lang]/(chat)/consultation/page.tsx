@@ -27,8 +27,6 @@ export default async function ConsultationPage({ params }: LayoutProps) {
       )}`,
     );
   }
-  // Unverified users are let through to the page, which renders the
-  // verification gate over it — they still have a session, just not access.
 
   return <ConsultationContainer vocabularies={vocabularies} />;
 }

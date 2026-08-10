@@ -12,15 +12,12 @@ import { signInSchema } from '@/lib/security/schemas/firebase-auth';
 interface AuthSignInProps {
   vocabularies: any;
   onSuccess: () => void;
-  /** Signed in, but the address still needs confirming. */
-  onNeedsVerification: () => void;
   onForgotPassword: () => void;
 }
 
 export default function AuthSignIn({
   vocabularies,
   onSuccess,
-  onNeedsVerification,
   onForgotPassword,
 }: AuthSignInProps) {
   const {
@@ -50,15 +47,11 @@ export default function AuthSignIn({
 
     setLoading(true);
     try {
-      const credential = await signInWithEmail(parsed.data.email, parsed.data.password);
+      await signInWithEmail(parsed.data.email, parsed.data.password);
       safeSendGAEvent('event', 'manual_sign_in', { method: 'password' });
 
       // The NextAuth session is minted by the auth bridge once Firebase
       // reports the new user, so there is nothing to await here.
-      if (!credential.user.emailVerified) {
-        onNeedsVerification();
-        return;
-      }
       onSuccess();
     } catch (error) {
       console.error('Email sign-in failed:', error);

@@ -11,14 +11,13 @@ import { signUpSchema } from '@/lib/security/schemas/firebase-auth';
 
 interface AuthSignUpProps {
   vocabularies: any;
-  /** Account created; the address now needs confirming before anything else. */
-  onNeedsVerification: () => void;
+  onSuccess: () => void;
   onSignIn: () => void;
 }
 
 export default function AuthSignUp({
   vocabularies,
-  onNeedsVerification,
+  onSuccess,
   onSignIn,
 }: AuthSignUpProps) {
   const {
@@ -62,7 +61,7 @@ export default function AuthSignUp({
     try {
       await signUpWithEmail(parsed.data.email, parsed.data.password, parsed.data.fullname);
       safeSendGAEvent('event', 'manual_sign_up', { method: 'password' });
-      onNeedsVerification();
+      onSuccess();
     } catch (error) {
       console.error('Sign up failed:', error);
       const code = (error as { code?: string })?.code;

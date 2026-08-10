@@ -20,12 +20,6 @@ export default async function FinancialWorkflowAutomatorPage({
     redirect(`/login?lang=${lang}&callbackUrl=${callbackUrl}`);
   }
 
-  // `=== false` rather than falsy: sessions minted before this claim existed
-  // carry no value, and must not lock their owners out.
-  if (session.user.emailVerified === false) {
-    redirect(`/login?lang=${lang}&callbackUrl=${callbackUrl}`);
-  }
-
   const vocabularies = await getDictionary(lang as Locale);
 
   return (

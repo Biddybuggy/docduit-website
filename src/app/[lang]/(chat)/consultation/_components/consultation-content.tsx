@@ -5,16 +5,8 @@ import { PanelLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NewConsultationBtn from './new-consultation-btn';
 import AuthDialog from '@/app/[lang]/_components/auth/auth-dialog';
-import VerifyEmailGate from '@/app/[lang]/_components/auth/verify-email-gate';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import MessengerV2 from './messenger-v2';
 import { useAuth } from '@/hooks/useAuth';
-import { useFirebaseAuth } from '@/context/FirebaseAuthContext';
 
 const isDemoMode = process.env.NEXT_PUBLIC_CHAT_DEMO_MODE === 'true';
 
@@ -27,11 +19,7 @@ export default function ConsultationContent({
 }: ConsultationContentProps) {
   const [showHistory, setShowHistory] = useState(false); // Start hidden for better UX
   const { user, isLoading } = useAuth();
-  const { firebaseUser, emailVerified } = useFirebaseAuth();
   const showAuthDialog = !isDemoMode && !isLoading && !user;
-  // Signed in but the address is unconfirmed: same hard gate, different reason.
-  const showVerifyGate =
-    !isDemoMode && !showAuthDialog && Boolean(firebaseUser) && !emailVerified;
   const showHistorySidebar = !isDemoMode || (user?.email); // Show for Google users even in demo mode
 
   return (
@@ -83,24 +71,6 @@ export default function ConsultationContent({
           keepOpen={true}
           showBackLink={true}
         />
-      )}
-
-      {showVerifyGate && (
-        <Dialog open>
-          <DialogContent
-            className='lg:max-w-[600px]'
-            onInteractOutside={(e) => e.preventDefault()}
-            onEscapeKeyDown={(e) => e.preventDefault()}
-            showClose={false}
-          >
-            <DialogHeader>
-              <DialogTitle className='sr-only'>
-                {vocabularies.auth.verifyEmail.title}
-              </DialogTitle>
-            </DialogHeader>
-            <VerifyEmailGate vocabularies={vocabularies} />
-          </DialogContent>
-        </Dialog>
       )}
     </>
   );
